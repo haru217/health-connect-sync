@@ -1,0 +1,44 @@
+【完了報告】health-connect-sync BUILD_FIX_PLAN 実装
+
+実施日:
+2026-02-17
+
+対象:
+C:/Users/senta/.openclaw/workspace/projects/health-connect-sync
+
+実施内容:
+1. Android ビルド基盤の修正
+- Gradle Wrapper を追加（gradlew / gradlew.bat / gradle-wrapper.jar / gradle-wrapper.properties）
+- gradle.properties に JDK 固定設定を追加
+  - org.gradle.java.home=C:\\Program Files\\Android\\Android Studio\\jbr
+
+2. Health Connect 対応（Manifest）
+- Health Connect 読み取り権限を追加
+- <queries> に com.google.android.apps.healthdata を追加
+- Android 14+ 向け ViewPermissionUsageActivity（activity-alias）を追加
+- usesCleartextTraffic=true の意図コメントを追記
+
+3. セキュリティ修正
+- ルート .gitignore を新規作成（.env / *.db / apk / build / node_modules などを除外）
+- HttpSyncClient に connect/read/write timeout を追加（15/30/30秒）
+
+4. ビルド成立のための互換修正
+- Health Connect SDK を 1.2.0-alpha02 → 1.1.0-alpha01 に変更
+  （現行 AGP 8.6.1 / compileSdk 34 との互換性確保）
+- Java/Kotlin ターゲット不整合を解消（compileOptions を Java 17 に統一）
+- PrereleaseSdkCheck の opt-in を AppScreen に追加
+
+5. 不要コンポーネント整理
+- android/ は削除完了
+- mobile-app/ は中身削除済み（空ディレクトリ本体のみプロセスロックで残存）
+
+検証結果:
+- ./gradlew.bat assembleDebug: 成功
+- ./gradlew.bat testDebugUnitTest: 成功（NO-SOURCE）
+- ./gradlew.bat lintDebug: 成功
+- APK 生成確認:
+  C:/Users/senta/.openclaw/workspace/projects/health-connect-sync/android-app/app/build/outputs/apk/debug/app-debug.apk
+
+補足:
+- pc-server/.env, pc-server/hc_sync.db は Git 追跡対象外であることを確認済み。
+- mobile-app ディレクトリ本体はロック解除後に削除可能。

@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>健康管理ダッシュボード</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #09132a;
+      --panel: #152847;
+      --line: rgba(122, 153, 199, 0.22);
+      --txt: #eaf2ff;
+      --muted: #9fb3d8;
+      --acc: #33ff20;
+      --good: #85ff9f;
+      --bad: #ff90a6;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "M PLUS 1p", "Noto Sans JP", sans-serif;
+      color: var(--txt);
+      background: radial-gradient(circle at 15% 0, #173569 0, #09132a 45%, #070e20 100%);
+    }
+    h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: .02em; }
+    button, input { font: inherit; }
+    .layout { display: grid; min-height: 100vh; grid-template-columns: 240px minmax(0, 1fr); }
+    .side {
+      background: linear-gradient(180deg, rgba(21, 39, 69, .96), rgba(10, 20, 42, .96));
+      border-right: 1px solid var(--line);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .profile { display: flex; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .av {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(150deg, #ffd18f, #e9a969);
+      color: #1f2130;
+      font-family: Lexend;
+      font-weight: 700;
+      box-shadow: 0 0 0 2px rgba(74, 255, 109, .28);
+    }
+    .name { font-size: 14px; font-weight: 700; }
+    .role { font-size: 12px; color: var(--acc); font-weight: 700; }
+    .nav { display: grid; gap: 8px; }
+    .nav button {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+    }
+    .nav .on {
+      background: linear-gradient(180deg, rgba(46, 188, 93, .35), rgba(24, 119, 59, .3));
+      color: #e7ffec;
+      border-color: rgba(91, 255, 131, .22);
+    }
+    .set { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); font-size: 13px; font-weight: 700; }
+    .main { padding: 18px; display: grid; gap: 12px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .top h1 { font-size: 36px; line-height: 1.1; }
+    .top p { margin: 4px 0 0; color: var(--muted); }
+    .sw { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(18, 34, 60, .8); }
+    .rb {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 12px;
+      font-weight: 700;
+      min-width: 60px;
+      cursor: pointer;
+    }
+    .rb.on { color: #07220f; background: linear-gradient(180deg, #8dff88, #41e63b); }
+    .hero { display: grid; grid-template-columns: 1.02fr 1.98fr; gap: 10px; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(165deg, rgba(24, 43, 73, .96), rgba(12, 22, 44, .96));
+      padding: 14px;
+      min-width: 0;
+    }
+    .ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 12px; }
+    .ring {
+      width: 170px;
+      aspect-ratio: 1/1;
+      margin: 8px auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle, #162945 59%, transparent 60%),
+        conic-gradient(var(--acc) 0 var(--p, 0%), rgba(90, 112, 152, .22) var(--p, 0%) 100%);
+    }
+    .rnum { font-family: Lexend; font-size: 32px; font-weight: 700; line-height: 1; text-align: center; }
+    .rnum small { display: block; font-size: 12px; color: var(--muted); font-family: "M PLUS 1p"; }
+    .goalf { border-top: 1px solid var(--line); padding-top: 8px; display: flex; justify-content: space-between; }
+    .goalf .l { font-size: 12px; color: var(--muted); }
+    .goalf .v { font-family: Lexend; font-size: 22px; font-weight: 600; }
+    .tp { font-family: Lexend; font-size: 30px; font-weight: 700; }
+    .td {
+      border: 1px solid rgba(255, 130, 150, .24);
+      background: rgba(255, 92, 124, .13);
+      color: #ffabc0;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .td.ok {
+      border-color: rgba(96, 255, 142, .28);
+      background: rgba(50, 219, 98, .12);
+      color: #9fffc0;
+    }
+    .ttl { display: flex; align-items: center; gap: 8px; font-size: 26px; }
+    .ttl:before { content: ""; width: 7px; height: 23px; border-radius: 6px; background: linear-gradient(180deg, #8fff77, #33e63a); }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .k {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(160deg, rgba(29, 49, 81, .95), rgba(17, 31, 56, .95));
+      padding: 11px;
+    }
+    .kh { display: flex; justify-content: space-between; align-items: center; }
+    .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba(91, 131, 197, .24); font: 700 11px Lexend; }
+    .cp { border: 1px solid rgba(63, 236, 126, .25); color: #8fffb7; background: rgba(35, 197, 96, .14); border-radius: 8px; padding: 2px 7px; font: 700 11px Lexend; }
+    .cp.d { border-color: rgba(255, 130, 140, .26); color: #ff9eb0; background: rgba(255, 94, 119, .14); }
+    .kl { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .kv { font: 700 28px/1.05 Lexend; margin-top: 1px; }
+    .u { font-size: 12px; color: var(--muted); margin-left: 3px; }
+    .tw { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .m { border: 1px solid var(--line); border-radius: 10px; padding: 7px; background: rgba(17, 31, 56, .6); }
+    .m .l { font-size: 11px; color: var(--muted); }
+    .m .v { font: 700 22px/1 Lexend; margin-top: 2px; }
+    .cb { height: 220px; margin-top: 8px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .f { display: grid; gap: 3px; color: var(--muted); font-size: 12px; }
+    .f input { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: rgba(14, 26, 48, .9); color: var(--txt); }
+    .save { border: 0; border-radius: 8px; padding: 8px 12px; background: linear-gradient(180deg, #83ff7b, #31e33a); color: #082910; font-weight: 800; cursor: pointer; }
+    .msg { margin-top: 7px; font-size: 12px; color: var(--muted); }
+    .msg.ok { color: var(--good); }
+    .msg.w { color: #ffb9c5; }
+    .ins { display: grid; gap: 6px; margin-top: 8px; }
+    .ins .it { border-left: 3px solid rgba(130, 255, 141, .35); padding: 6px 8px; border-radius: 4px; background: rgba(21, 42, 70, .36); font-size: 13px; color: var(--muted); }
+    .ins .it.w { border-color: rgba(255, 124, 146, .4); color: #ffd6de; }
+    .tbl { max-height: 220px; overflow: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { position: sticky; top: 0; background: rgba(12, 22, 44, .95); color: var(--muted); }
+    .note { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 1180px) {
+      .hero { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      .side { border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .tw { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: 1fr; }
+      .top { flex-direction: column; align-items: flex-start; }
+      .top h1 { font-size: 29px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="side">
+      <div class="profile">
+        <div class="av">AM</div>
+        <div>
+          <div class="name">Alex Morgan</div>
+          <div class="role">プロ会員</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="on">概要</button>
+        <button>履歴</button>
+        <button>分析</button>
+        <button>目標</button>
+        <button>栄養管理</button>
+      </nav>
+      <div class="set">設定</div>
+    </aside>
+    <main class="main">
+      <div class="top">
+        <div>
+          <h1>健康管理ダッシュボード</h1>
+          <p id="subline">お帰りなさい。今日の詳細はこちらです。</p>
+        </div>
+        <div class="sw">
+          <button class="rb on" data-r="day">今日</button>
+          <button class="rb" data-r="week">週間</button>
+          <button class="rb" data-r="month">月間</button>
+        </div>
+      </div>
+
+      <section class="hero">
+        <article class="panel">
+          <div class="ph">
+            <div>
+              <h3>ダイエット目標</h3>
+              <div class="sub">目標: <strong id="goalTarget">75</strong>kg</div>
+            </div>
+            <span class="sub" style="color:var(--acc);font-weight:700;">順調</span>
+          </div>
+          <div id="goalRing" class="ring" style="--p:0%">
+            <div class="rnum"><span id="goalLoss">-</span><small id="goalDeltaLabel">kg 変化</small></div>
+          </div>
+          <div class="goalf">
+            <div>
+              <div class="l">開始</div>
+              <div class="v"><span id="goalStart">-</span><span class="u">kg</span></div>
+            </div>
+            <div style="text-align:right">
+              <div class="l">現在</div>
+              <div class="v"><span id="goalCurrent">-</span><span class="u">kg</span></div>
+            </div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="ph">
+            <div>
+              <h3>体重推移</h3>
+              <div class="sub">過去30日間</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="trendPercent" class="tp">--</span>
+              <span id="trendDelta" class="td">--</span>
+            </div>
+          </div>
+          <div class="cb"><canvas id="weightChart"></canvas></div>
+        </article>
+      </section>
+
+      <h2 class="ttl">今日のアクティビティ</h2>
+      <section class="kpis">
+        <article class="k"><div class="kh"><div class="ic">CAL</div><span id="chipActive" class="cp">--</span></div><div class="kl">アクティブカロリー</div><div class="kv"><span id="activeValue">-</span><span class="u">kcal</span></div></article>
+        <article class="k"><div class="kh"><div class="ic">STEP</div><span id="chipSteps" class="cp">--</span></div><div class="kl">歩数</div><div class="kv"><span id="stepsValue">-</span><span class="u">歩</span></div></article>
+        <article class="k"><div class="kh"><div class="ic">DIST</div><span id="chipDistance" class="cp">--</span></div><div class="kl">距離</div><div class="kv"><span id="distanceValue">-</span><span class="u">km</span></div></article>
+        <article class="k"><div class="kh"><div class="ic">SLP</div><span id="chipSleep" class="cp">--</span></div><div class="kl">睡眠</div><div class="kv"><span id="sleepValue">-</span><span class="u">h</span></div></article>
+      </section>
+
+      <section class="tw">
+        <article class="panel">
+          <h3>バイタル</h3>
+          <div class="metrics">
+            <div class="m"><div class="l">安静時心拍数</div><div class="v"><span id="rhrValue">-</span><span class="u">bpm</span></div></div>
+            <div class="m"><div class="l">平均心拍数</div><div class="v"><span id="hrValue">-</span><span class="u">bpm</span></div></div>
+            <div class="m"><div class="l">酸素飽和度</div><div class="v"><span id="spo2Value">-</span><span class="u">%</span></div></div>
+            <div class="m"><div class="l">平均睡眠</div><div class="v"><span id="sleepAvgValue">-</span><span class="u">h</span></div></div>
+          </div>
+          <div class="cb"><canvas id="vitalsChart"></canvas></div>
+        </article>
+        <article class="panel">
+          <h3>体組成・代謝</h3>
+          <div class="metrics">
+            <div class="m"><div class="l">体脂肪率</div><div class="v"><span id="bodyFatValue">-</span><span class="u">%</span></div></div>
+            <div class="m"><div class="l">基礎代謝(BMR)</div><div class="v"><span id="bmrValue">-</span><span class="u">kcal</span></div></div>
+            <div class="m"><div class="l">総消費</div><div class="v"><span id="totalBurnedValue">-</span><span class="u">kcal</span></div></div>
+            <div class="m"><div class="l">摂取</div><div class="v"><span id="intakeNowValue">-</span><span class="u">kcal</span></div></div>
+          </div>
+          <div class="cb"><canvas id="balanceChart"></canvas></div>
+        </article>
+      </section>
+
+      <section class="tw">
+        <article class="panel"><h3>総消費カロリー / 摂取カロリー / 基礎代謝</h3><div class="cb"><canvas id="caloriesChart"></canvas></div></article>
+        <article class="panel"><h3>歩数 / 距離 / 睡眠</h3><div class="cb"><canvas id="activityChart"></canvas></div></article>
+      </section>
+
+      <section class="tw">
+        <article class="panel">
+          <h3>摂取カロリー入力 (OpenClaw)</h3>
+          <div class="controls">
+            <label class="f">日付<input id="intakeDay" type="date" /></label>
+            <label class="f">kcal<input id="intakeKcal" type="number" min="0" step="1" placeholder="1800" /></label>
+            <button id="saveIntakeBtn" class="save">保存</button>
+          </div>
+          <div id="intakeMsg" class="msg">未保存</div>
+          <div class="note">保存先: <code>/api/intake</code> (source=openclaw)</div>
+        </article>
+        <article class="panel">
+          <h3>インサイト / 記録内訳</h3>
+          <div id="insights" class="ins"></div>
+          <div class="tbl"><table id="byType"></table></div>
+        </article>
+      </section>
+
+      <script>
+        const S = { apiKey: "", data: null, range: "day" };
+        const CH = {};
+        const C = {
+          acc: "#33ff20",
+          blue: "#79b4ff",
+          green: "#4bff95",
+          orange: "#ffc676",
+          rose: "#ff90ac",
+          cyan: "#7de9ff",
+          purple: "#a59aff",
+          red: "#ff6f8b",
+          slate: "#9cb1d5",
+        };
+
+        Chart.defaults.color = "rgba(213,226,255,.8)";
+        Chart.defaults.font.family = '"M PLUS 1p","Noto Sans JP",sans-serif';
+
+        const fmt0 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : Math.round(Number(v)).toLocaleString("ja-JP"));
+        const fmt1 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : (Math.round(Number(v) * 10) / 10).toLocaleString("ja-JP"));
+        const pct = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "--" : (Number(v) > 0 ? "+" : "") + (Math.round(Number(v) * 10) / 10) + "%");
+        const last = (a) => (a && a.length ? a[a.length - 1] : null);
+        const map = (a, k) => Object.fromEntries((a || []).map((x) => [x.date, x[k]]));
+        const dayDate = (s) => new Date(s + "T00:00:00");
+        const rangeDays = () => (S.range === "day" ? 1 : S.range === "week" ? 7 : 30);
+        const chartType = () => (S.range === "day" ? "bar" : "line");
+        const seriesStyle = (isBar, backgroundColor) => (
+          isBar
+            ? { backgroundColor, borderWidth: 1, borderRadius: 6, maxBarThickness: 26 }
+            : { tension: 0.3, pointRadius: 0, backgroundColor }
+        );
+
+        function filt(a) {
+          if (!Array.isArray(a) || !a.length) return [];
+          const n = rangeDays();
+          if (n >= 30) return a.slice(-30);
+          const c = new Date();
+          c.setHours(0, 0, 0, 0);
+          c.setDate(c.getDate() - (n - 1));
+          const o = a.filter((x) => dayDate(x.date) >= c);
+          return o.length ? o : a.slice(-n);
+        }
+
+        const lv = (a, k) => {
+          const r = last(a);
+          return r && r[k] !== undefined ? Number(r[k]) : null;
+        };
+        const ch = (a, k) => {
+          if (!a || a.length < 2) return null;
+          const x = Number(a[a.length - 1][k]);
+          const y = Number(a[a.length - 2][k]);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || y === 0) return null;
+          return ((x - y) / Math.abs(y)) * 100;
+        };
+        const labels = (...arrs) => {
+          const s = new Set();
+          for (const a of arrs) for (const r of a || []) s.add(r.date);
+          return Array.from(s).sort();
+        };
+        const set = (id, t) => {
+          const e = document.getElementById(id);
+          if (e) e.textContent = t;
+        };
+        function chip(id, v) {
+          const e = document.getElementById(id);
+          if (!e) return;
+          if (v === null) {
+            e.textContent = "--";
+            e.classList.remove("d");
+            return;
+          }
+          e.textContent = pct(v);
+          if (v < 0) e.classList.add("d");
+          else e.classList.remove("d");
+        }
+
+        function opts(extra) {
+          const o = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+              x: {
+                grid: { color: "rgba(117,149,197,.13)" },
+                ticks: { color: "rgba(189,205,235,.82)", maxRotation: 0, autoSkip: true },
+              },
+              y: {
+                grid: { color: "rgba(117,149,197,.13)" },
+                ticks: { color: "rgba(189,205,235,.82)" },
+              },
+            },
+            plugins: {
+              legend: { labels: { usePointStyle: true, boxWidth: 11, color: "rgba(225,236,255,.86)" } },
+              tooltip: { backgroundColor: "rgba(8,16,33,.95)", borderColor: "rgba(100,132,189,.55)", borderWidth: 1 },
+            },
+          };
+          if (extra) Object.assign(o, extra);
+          return o;
+        }
+
+        function draw(id, type, l, ds, o) {
+          if (CH[id]) CH[id].destroy();
+          CH[id] = new Chart(document.getElementById(id), { type, data: { labels: l, datasets: ds }, options: o || opts() });
+        }
+
+        async function key() {
+          let k = localStorage.getItem("hc_api_key") || "";
+          if (!k) {
+            k = prompt("Enter X-Api-Key") || "";
+            if (k) localStorage.setItem("hc_api_key", k);
+          }
+          S.apiKey = k;
+        }
+        async function get() {
+          const r = await fetch("/api/summary", { headers: { "X-Api-Key": S.apiKey } });
+          if (!r.ok) throw new Error("summary fetch failed: " + r.status);
+          return r.json();
+        }
+
+        function renderGoal(D) {
+          const t = 75;
+          const w = (D.weightByDate || []).slice(-30);
+          const wd = (D.weightDaily || []).slice(-30);
+          const s = w.length ? Number(w[0].kg) : null;
+          const c = w.length ? Number(w[w.length - 1].kg) : null;
+          let loss = null; // positive when reduced
+          let delta = null; // positive when increased
+          let p = 0;
+          if (s !== null && c !== null) {
+            delta = c - s;
+            loss = s - c;
+            const den = s - t;
+            if (den > 0) p = Math.max(0, Math.min(1, loss / den));
+          }
+          set("goalTarget", fmt1(t));
+          const d = document.getElementById("goalDeltaLabel");
+          if (delta === null) {
+            set("goalLoss", "-");
+            if (d) d.textContent = "kg 変化";
+          } else if (delta > 0) {
+            set("goalLoss", fmt1(delta));
+            if (d) d.textContent = "kg 増加";
+          } else if (delta < 0) {
+            set("goalLoss", fmt1(-delta));
+            if (d) d.textContent = "kg 減量";
+          } else {
+            set("goalLoss", "0");
+            if (d) d.textContent = "kg 変化";
+          }
+          set("goalStart", s === null ? "-" : fmt1(s));
+          set("goalCurrent", c === null ? "-" : fmt1(c));
+          document.getElementById("goalRing").style.setProperty("--p", Math.round(p * 100) + "%");
+
+          if (s !== null && c !== null && s !== 0) {
+            const pp = ((c - s) / s) * 100;
+            const dd = c - s;
+            set("trendPercent", pct(pp));
+            const e = document.getElementById("trendDelta");
+            e.textContent = (dd > 0 ? "+" : "") + fmt1(dd) + " kg";
+            if (dd < 0) e.classList.add("ok");
+            else e.classList.remove("ok");
+          } else {
+            set("trendPercent", "--");
+            set("trendDelta", "--");
+          }
+
+          const l = wd.map((x) => x.date);
+          const v = wd.map((x) => x.kg);
+          const ma = v.map((_, i) => {
+            const f = Math.max(0, i - 6);
+            const z = v.slice(f, i + 1).filter((x) => x !== null && x !== undefined);
+            if (z.length < 3) return null;
+            return z.reduce((a, b) => a + b, 0) / z.length;
+          });
+          const ctx = document.getElementById("weightChart").getContext("2d");
+          const g = ctx.createLinearGradient(0, 0, 0, 240);
+          g.addColorStop(0, "rgba(51,255,32,.35)");
+          g.addColorStop(1, "rgba(51,255,32,0)");
+          draw("weightChart", "line", l, [
+            { label: "体重", data: v, borderColor: C.acc, backgroundColor: g, fill: true, tension: 0.35, pointRadius: 0 },
+            { label: "MA7", data: ma, borderColor: C.cyan, tension: 0.28, pointRadius: 0 },
+          ]);
+        }
+
+        function renderKpi(D) {
+          const a = filt(D.activeCaloriesByDate || []);
+          const s = filt(D.stepsByDate || []);
+          const di = filt(D.distanceKmByDate || []);
+          const sl = filt(D.sleepHoursByDate || []);
+          set("activeValue", fmt0(lv(a, "kcal")));
+          set("stepsValue", fmt0(lv(s, "steps")));
+          set("distanceValue", fmt1(lv(di, "km")));
+          set("sleepValue", fmt1(lv(sl, "hours")));
+          chip("chipActive", ch(a, "kcal"));
+          chip("chipSteps", ch(s, "steps"));
+          chip("chipDistance", ch(di, "km"));
+          chip("chipSleep", ch(sl, "hours"));
+        }
+
+        function renderVitals(D) {
+          const hr = filt(D.heartRateBpmByDate || []);
+          const rhr = filt(D.restingHeartRateBpmByDate || []);
+          const sp = filt(D.oxygenSaturationPctByDate || []);
+          const sl = filt(D.sleepHoursByDate || []);
+          const bf = filt(D.bodyFatPctByDate || []);
+          const bmr = filt(D.basalMetabolicRateKcalByDate || []);
+          const tb = filt(D.totalCaloriesByDate || []);
+          const inK = filt(D.intakeCaloriesByDate || []);
+          const bal = filt(D.calorieBalanceByDate || []);
+
+          set("rhrValue", fmt0(lv(rhr, "bpm")));
+          set("hrValue", fmt0(lv(hr, "bpm")));
+          set("spo2Value", fmt1(lv(sp, "pct")));
+          const sv = sl.map((x) => Number(x.hours)).filter(Number.isFinite);
+          const sa = sv.length ? sv.reduce((x, y) => x + y, 0) / sv.length : null;
+          set("sleepAvgValue", fmt1(sa));
+          set("bodyFatValue", fmt1(lv(bf, "pct")));
+          set("bmrValue", fmt0(lv(bmr, "kcalPerDay")));
+          set("totalBurnedValue", fmt0(lv(tb, "kcal")));
+          set("intakeNowValue", fmt0(lv(inK, "kcal")));
+
+          const l = labels(hr, rhr, sp);
+          const hm = map(hr, "bpm");
+          const rm = map(rhr, "bpm");
+          const sm = map(sp, "pct");
+          const isBar = chartType() === "bar";
+          const o = opts();
+          o.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(189,205,235,.82)" } };
+          if (isBar) o.scales.x.offset = true;
+
+          draw("vitalsChart", chartType(), l, [
+            Object.assign({ label: "心拍", data: l.map((x) => hm[x] ?? null), borderColor: C.rose, yAxisID: "y" }, seriesStyle(isBar, "rgba(255,144,172,.42)")),
+            Object.assign({ label: "安静時心拍", data: l.map((x) => rm[x] ?? null), borderColor: C.purple, yAxisID: "y" }, seriesStyle(isBar, "rgba(165,154,255,.42)")),
+            Object.assign({ label: "SpO2", data: l.map((x) => sm[x] ?? null), borderColor: C.cyan, yAxisID: "y1" }, seriesStyle(isBar, "rgba(125,233,255,.42)")),
+          ], o);
+
+          draw("balanceChart", "bar", bal.map((x) => x.date), [
+            { label: "総消費-摂取", data: bal.map((x) => x.kcal), backgroundColor: "rgba(121,180,255,.45)", borderColor: C.blue },
+          ]);
+        }
+
+        function renderCharts(D) {
+          const tb = filt(D.totalCaloriesByDate || []);
+          const ik = filt(D.intakeCaloriesByDate || []);
+          const ac = filt(D.activeCaloriesByDate || []);
+          const bmr = filt(D.basalMetabolicRateKcalByDate || []);
+          const l = labels(tb, ik, ac, bmr);
+          const tm = map(tb, "kcal");
+          const im = map(ik, "kcal");
+          const am = map(ac, "kcal");
+          const bm = map(bmr, "kcalPerDay");
+          const isBar = chartType() === "bar";
+
+          const oc = opts();
+          if (isBar) oc.scales.x.offset = true;
+          draw("caloriesChart", chartType(), l, [
+            Object.assign({ label: "総消費", data: l.map((x) => tm[x] ?? null), borderColor: C.red }, seriesStyle(isBar, "rgba(255,111,139,.42)")),
+            Object.assign({ label: "摂取", data: l.map((x) => im[x] ?? null), borderColor: C.blue }, seriesStyle(isBar, "rgba(121,180,255,.42)")),
+            Object.assign({ label: "アクティブ", data: l.map((x) => am[x] ?? null), borderColor: C.orange }, seriesStyle(isBar, "rgba(255,198,118,.42)")),
+            Object.assign({ label: "基礎代謝", data: l.map((x) => bm[x] ?? null), borderColor: C.green }, seriesStyle(isBar, "rgba(75,255,149,.38)")),
+          ], oc);
+
+          const st = filt(D.stepsByDate || []);
+          const di = filt(D.distanceKmByDate || []);
+          const sl = filt(D.sleepHoursByDate || []);
+          const la = labels(st, di, sl);
+          const sm = map(st, "steps");
+          const dm = map(di, "km");
+          const lm = map(sl, "hours");
+          const oa = opts();
+          oa.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(189,205,235,.82)" } };
+          if (isBar) oa.scales.x.offset = true;
+
+          draw("activityChart", chartType(), la, [
+            Object.assign({ label: "歩数", data: la.map((x) => sm[x] ?? null), borderColor: C.green, yAxisID: "y" }, seriesStyle(isBar, "rgba(75,255,149,.35)")),
+            Object.assign({ label: "距離(km)", data: la.map((x) => dm[x] ?? null), borderColor: C.cyan, yAxisID: "y1" }, seriesStyle(isBar, "rgba(125,233,255,.35)")),
+            Object.assign({ label: "睡眠(h)", data: la.map((x) => lm[x] ?? null), borderColor: C.slate, yAxisID: "y1" }, seriesStyle(isBar, "rgba(156,177,213,.38)")),
+          ], oa);
+        }
+
+        function renderInfo(D) {
+          const w = document.getElementById("insights");
+          w.innerHTML = "";
+          const i = D.insights || [];
+          if (!i.length) {
+            const d = document.createElement("div");
+            d.className = "it";
+            d.textContent = "インサイトはまだありません。";
+            w.appendChild(d);
+          } else {
+            for (const x of i) {
+              const d = document.createElement("div");
+              d.className = "it" + (x.level === "warn" ? " w" : "");
+              d.textContent = x.message;
+              w.appendChild(d);
+            }
+          }
+          const t = document.getElementById("byType");
+          t.innerHTML = "<tr><th>Type</th><th>Count</th></tr>";
+          const e = Object.entries(D.byType || {}).sort((a, b) => b[1] - a[1]);
+          for (const [k, v] of e) {
+            const r = document.createElement("tr");
+            r.innerHTML = "<td>" + k + "</td><td>" + v + "</td>";
+            t.appendChild(r);
+          }
+        }
+
+        function intakeSync(D) {
+          const dI = document.getElementById("intakeDay");
+          const kI = document.getElementById("intakeKcal");
+          if (!dI.value) dI.value = new Date().toISOString().slice(0, 10);
+          const m = map(D.intakeCaloriesByDate || [], "kcal");
+          if (m[dI.value] !== undefined) kI.value = Math.round(m[dI.value]);
+        }
+        function rb() {
+          document.querySelectorAll(".rb").forEach((b) => {
+            if (b.dataset.r === S.range) b.classList.add("on");
+            else b.classList.remove("on");
+          });
+        }
+        function render() {
+          if (!S.data) return;
+          rb();
+          renderGoal(S.data);
+          renderKpi(S.data);
+          renderVitals(S.data);
+          renderCharts(S.data);
+          renderInfo(S.data);
+          intakeSync(S.data);
+        }
+        async function save() {
+          const day = document.getElementById("intakeDay").value;
+          const k = Number(document.getElementById("intakeKcal").value);
+          const m = document.getElementById("intakeMsg");
+          if (!day) {
+            m.textContent = "日付が必要です";
+            m.className = "msg w";
+            return;
+          }
+          if (!Number.isFinite(k) || k < 0) {
+            m.textContent = "kcalは0以上で入力してください";
+            m.className = "msg w";
+            return;
+          }
+          m.textContent = "保存中...";
+          m.className = "msg";
+          const r = await fetch("/api/intake", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Api-Key": S.apiKey },
+            body: JSON.stringify({ day: day, intakeKcal: k, source: "openclaw" }),
+          });
+          if (!r.ok) {
+            m.textContent = "保存失敗: " + r.status;
+            m.className = "msg w";
+            return;
+          }
+          m.textContent = "保存完了: " + day + " = " + fmt0(k) + " kcal";
+          m.className = "msg ok";
+          S.data = await get();
+          render();
+        }
+        async function load() {
+          await key();
+          if (!S.apiKey) return;
+          S.data = await get();
+          render();
+        }
+
+        document.getElementById("saveIntakeBtn").addEventListener("click", save);
+        document.getElementById("intakeDay").addEventListener("change", () => {
+          if (S.data) intakeSync(S.data);
+        });
+        document.querySelectorAll(".rb").forEach((b) =>
+          b.addEventListener("click", () => {
+            S.range = b.dataset.r;
+            render();
+          })
+        );
+        load().catch((e) => {
+          document.getElementById("subline").textContent = "読み込み失敗: " + (e.message || e);
+        });
+      </script>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,212 @@
+openapi: 3.1.0
+info:
+  title: Health Connect Sync Bridge API
+  version: 0.1.0
+  description: |
+    Ingestion API for an Android Health Connect sync-bridge app.
+    
+    Notes:
+    - All timestamps are RFC3339 (ISO-8601) with timezone.
+    - The server is designed for idempotent upserts.
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: example.run.app
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: deviceToken
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+      required: [error, message]
+
+    DeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        deviceName:
+          type: string
+          description: Optional human-friendly name.
+        appVersion:
+          type: string
+          description: App version string.
+      required: [appVersion]
+
+    DeviceRegistrationResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        deviceId:
+          type: string
+        deviceToken:
+          type: string
+          description: |
+            Device bearer token. Store securely on device.
+            Server should store only a hash.
+      required: [deviceId, deviceToken]
+
+    RecordEnvelope:
+      type: object
+      description: |
+        A single Health Connect record encoded for transport.
+        
+        - type: Use the Health Connect Record class simple name (recommended), e.g. "StepsRecord", "WeightRecord".
+        - startTime/endTime: Use when the record is an interval.
+        - time: Use when the record is a point-in-time measurement.
+        - payload: Raw-ish JSON representation of the record (MVP stores as-is).
+      properties:
+        type:
+          type: string
+          examples: [StepsRecord, WeightRecord, SleepSessionRecord, HeartRateRecord]
+        recordId:
+          type: string
+          description: Health Connect metadata.id if available.
+        recordKey:
+          type: string
+          description: |
+            Optional client-computed stable key for idempotency.
+            If omitted, server will compute one.
+        source:
+          type: string
+          description: Data origin package name (Health Connect DataOrigin).
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        time:
+          type: string
+          format: date-time
+        lastModifiedTime:
+          type: string
+          format: date-time
+        unit:
+          type: string
+          description: Optional human-readable unit hint.
+        payload:
+          type: object
+          description: Raw-ish record payload. Schema intentionally flexible.
+          additionalProperties: true
+      required: [type, payload]
+      additionalProperties: false
+
+    SyncRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        deviceId:
+          type: string
+        syncId:
+          type: string
+          description: UUID identifying this sync run.
+        syncedAt:
+          type: string
+          format: date-time
+        rangeStart:
+          type: string
+          format: date-time
+        rangeEnd:
+          type: string
+          format: date-time
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordEnvelope'
+      required: [deviceId, syncId, syncedAt, rangeStart, rangeEnd, records]
+
+    SyncResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        accepted:
+          type: boolean
+        upsertedCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+      required: [accepted, upsertedCount, skippedCount]
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+
+  /v1/register:
+    post:
+      summary: Register a device and issue a deviceToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '200':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceRegistrationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/sync:
+    post:
+      summary: Ingest a sync batch (idempotent upsert)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

@@ -1,0 +1,24 @@
+# Secrets & data
+.env
+*.db
+
+# Android
+*.apk
+*.aab
+local.properties
+.gradle/
+build/
+app/build/
+.idea/
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (mobile-app)
+node_modules/

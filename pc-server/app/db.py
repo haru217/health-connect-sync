@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+import json
+import os
+import sqlite3
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Any, Iterator
+
+DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "hc_sync.db"))
+
+
+def _connect() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
+
+@contextmanager
+def db() -> Iterator[sqlite3.Connection]:
+    conn = _connect()
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_db() -> None:
+    with db() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sync_runs (
+              sync_id TEXT PRIMARY KEY,
+              device_id TEXT NOT NULL,
+              synced_at TEXT NOT NULL,
+              range_start TEXT NOT NULL,
+              range_end TEXT NOT NULL,
+              received_at TEXT NOT NULL,
+              record_count INTEGER NOT NULL,
+              upserted_count INTEGER NOT NULL DEFAULT 0,
+              skipped_count INTEGER NOT NULL DEFAULT 0
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS health_records (
+              record_key TEXT PRIMARY KEY,
+              device_id TEXT NOT NULL,
+              type TEXT NOT NULL,
+              record_id TEXT,
+              source TEXT,
+              start_time TEXT,
+              end_time TEXT,
+              time TEXT,
+              last_modified_time TEXT,
+              unit TEXT,
+              payload_json TEXT NOT NULL,
+              ingested_at TEXT NOT NULL
+            );
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_health_records_type ON health_records(type);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_health_records_ingested_at ON health_records(ingested_at);")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS intake_calories_daily (
+              day TEXT PRIMARY KEY,
+              intake_kcal REAL NOT NULL,
+              source TEXT NOT NULL DEFAULT 'openclaw',
+              note TEXT,
+              updated_at TEXT NOT NULL
+            );
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_intake_calories_updated_at ON intake_calories_daily(updated_at);")
+
+
+def iso(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+
+
+def dumps_payload(payload: Any) -> str:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()

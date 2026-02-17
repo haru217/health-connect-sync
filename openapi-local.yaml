@@ -1,0 +1,252 @@
+openapi: 3.1.0
+info:
+  title: Health Connect Sync Bridge (Local PC) API
+  version: 0.1.0
+  description: |
+    Local (LAN) ingestion API running on a PC.
+    
+    Auth: X-Api-Key header.
+servers:
+  - url: http://{host}:{port}
+    variables:
+      host:
+        default: 192.168.0.10
+      port:
+        default: '8765'
+
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error, message]
+
+    RecordEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          description: Health Connect Record class name (e.g. StepsRecord)
+        recordId:
+          type: string
+          nullable: true
+        recordKey:
+          type: string
+          nullable: true
+          description: Optional stable idempotency key; if omitted server computes.
+        source:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          format: date-time
+          nullable: true
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+        time:
+          type: string
+          format: date-time
+          nullable: true
+        lastModifiedTime:
+          type: string
+          format: date-time
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: true
+      required: [type, payload]
+
+    SyncRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        deviceId:
+          type: string
+        syncId:
+          type: string
+          description: UUID identifying this sync run
+        syncedAt:
+          type: string
+          format: date-time
+        rangeStart:
+          type: string
+          format: date-time
+        rangeEnd:
+          type: string
+          format: date-time
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordEnvelope'
+      required: [deviceId, syncId, syncedAt, rangeStart, rangeEnd, records]
+
+    SyncResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        accepted:
+          type: boolean
+        upsertedCount:
+          type: integer
+        skippedCount:
+          type: integer
+      required: [accepted, upsertedCount, skippedCount]
+
+    Insight:
+      type: object
+      additionalProperties: false
+      properties:
+        level:
+          type: string
+          enum: [info, warn]
+        message:
+          type: string
+      required: [level, message]
+      description: Heuristic hint for dieting dashboard
+
+    StatusResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ok:
+          type: boolean
+        dbPath:
+          type: string
+        totalRecords:
+          type: integer
+        lastReceivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastSyncId:
+          type: string
+          nullable: true
+      required: [ok, dbPath, totalRecords]
+
+    DietSummary:
+      type: object
+      additionalProperties: true
+      description: Diet-oriented trend summary (heuristic)
+
+    SummaryResponse:
+      type: object
+      additionalProperties: true
+      description: Summary payload for dashboard
+
+paths:
+  /api/status:
+    get:
+      summary: Server status
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sync:
+    post:
+      summary: Ingest a sync batch (idempotent upsert)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/summary:
+    get:
+      summary: Summary (diet-oriented metrics + insights)
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResponse'
+
+  /ui:
+    get:
+      summary: Minimal HTML dashboard (prompts for API key)
+      responses:
+        '200':
+          description: HTML
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/export.csv:
+    get:
+      summary: Export records as CSV (raw payload JSON)
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+          required: false
+          description: Filter by record type.
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

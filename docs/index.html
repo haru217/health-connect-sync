@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Health Connect Public Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111d33;
+      --line: #21375f;
+      --txt: #ebf2ff;
+      --muted: #9fb4d8;
+      --accent: #49f66f;
+      --warn: #ffb26b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans JP", sans-serif;
+      color: var(--txt);
+      background: radial-gradient(circle at 10% 0, #1a3259 0, #0b1220 40%, #08101d 100%);
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 18px; display: grid; gap: 12px; }
+    .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .head h1 { margin: 0; font-size: 30px; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .toggle button {
+      border: 0;
+      color: var(--muted);
+      background: #10203a;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .toggle button.on { color: #0f230f; background: linear-gradient(180deg, #85ff8b, #49f66f); }
+    .banner {
+      border: 1px solid #34557f;
+      background: rgba(73, 246, 111, .08);
+      color: #d9ffe3;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(165deg, rgba(21, 35, 61, .96), rgba(12, 21, 36, .96));
+      padding: 12px;
+      min-height: 96px;
+    }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { margin-top: 3px; font-size: 28px; font-weight: 800; line-height: 1.1; }
+    .unit { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(165deg, rgba(21, 35, 61, .96), rgba(12, 21, 36, .96));
+      padding: 12px;
+      min-width: 0;
+    }
+    .panel h3 { margin: 0 0 8px 0; }
+    .canvas { height: 300px; }
+    .foot {
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    .error {
+      border: 1px solid #7f3f3f;
+      background: rgba(255, 88, 88, .14);
+      color: #ffd1d1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: none;
+    }
+    @media (max-width: 960px) {
+      .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panels { grid-template-columns: 1fr; }
+      .head h1 { font-size: 24px; }
+      .canvas { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1>公開用ヘルスダッシュボード</h1>
+        <div id="meta" class="sub">loading...</div>
+      </div>
+      <div class="toggle">
+        <button class="r on" data-r="day">日</button>
+        <button class="r" data-r="week">週</button>
+        <button class="r" data-r="month">月</button>
+      </div>
+    </div>
+
+    <div class="banner">
+      このページは公開用サマリーのみを表示します（生レコード/GPS/タイムスタンプは含まれません）。
+    </div>
+
+    <div id="err" class="error"></div>
+
+    <section class="grid4">
+      <article class="card"><div class="label">体重</div><div class="value"><span id="w">-</span><span class="unit">kg</span></div></article>
+      <article class="card"><div class="label">歩数</div><div class="value"><span id="s">-</span><span class="unit">歩</span></div></article>
+      <article class="card"><div class="label">総消費 / 摂取</div><div class="value"><span id="c">-</span><span class="unit">kcal</span></div></article>
+      <article class="card"><div class="label">収支 (総消費-摂取)</div><div class="value"><span id="b">-</span><span class="unit">kcal</span></div></article>
+    </section>
+
+    <section class="panels">
+      <article class="panel">
+        <h3>体重推移 (目標 75kg)</h3>
+        <div class="canvas"><canvas id="weightChart"></canvas></div>
+      </article>
+      <article class="panel">
+        <h3>カロリー収支</h3>
+        <div class="canvas"><canvas id="calChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="panels">
+      <article class="panel">
+        <h3>活動 (歩数/距離/睡眠)</h3>
+        <div class="canvas"><canvas id="actChart"></canvas></div>
+      </article>
+      <article class="panel">
+        <h3>代謝と体組成</h3>
+        <div class="canvas"><canvas id="bodyChart"></canvas></div>
+      </article>
+    </section>
+
+    <div class="foot">
+      <div>データ: <code>docs/data/summary.json</code></div>
+      <div>更新方法: <code>cd pc-server; python export_public_summary.py</code></div>
+    </div>
+  </div>
+
+  <script>
+    const S = { raw: null, range: "week" };
+    const CH = {};
+    const C = {
+      green: "#49f66f",
+      blue: "#77b8ff",
+      red: "#ff8ea6",
+      orange: "#ffbe73",
+      cyan: "#7de9ff",
+      purple: "#b3a2ff",
+      slate: "#97abd1",
+    };
+
+    const fmt0 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : Math.round(Number(v)).toLocaleString("ja-JP"));
+    const fmt1 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : (Math.round(Number(v) * 10) / 10).toLocaleString("ja-JP"));
+    const days = () => (S.range === "day" ? 1 : S.range === "week" ? 7 : 30);
+
+    function useRows() {
+      const arr = Array.isArray(S.raw?.metrics) ? S.raw.metrics : [];
+      const n = days();
+      return n >= arr.length ? arr : arr.slice(-n);
+    }
+    function labels(rows) { return rows.map((x) => x.day); }
+    function vals(rows, key) { return rows.map((x) => x[key] ?? null); }
+
+    function opts() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { ticks: { color: "rgba(220,232,255,.8)" }, grid: { color: "rgba(85,118,167,.15)" } },
+          y: { ticks: { color: "rgba(220,232,255,.8)" }, grid: { color: "rgba(85,118,167,.15)" } },
+        },
+        plugins: {
+          legend: { labels: { color: "rgba(229,238,255,.9)", usePointStyle: true } },
+          tooltip: { backgroundColor: "rgba(8,17,33,.95)", borderColor: "rgba(98,132,183,.6)", borderWidth: 1 },
+        },
+      };
+    }
+    function draw(id, type, labels, datasets, o) {
+      if (CH[id]) CH[id].destroy();
+      CH[id] = new Chart(document.getElementById(id), { type, data: { labels, datasets }, options: o || opts() });
+    }
+    function set(id, v) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = v;
+    }
+    function showError(msg) {
+      const e = document.getElementById("err");
+      e.style.display = "block";
+      e.textContent = msg;
+    }
+
+    function render() {
+      if (!S.raw) return;
+      const rows = useRows();
+      if (!rows.length) {
+        showError("summary.json に表示可能な metrics がありません。");
+        return;
+      }
+      const last = rows[rows.length - 1];
+
+      set("w", fmt1(last.weightKg));
+      set("s", fmt0(last.steps));
+      set("c", `${fmt0(last.totalCaloriesKcal)} / ${fmt0(last.intakeCaloriesKcal)}`);
+      set("b", fmt0(last.calorieBalanceKcal));
+
+      const l = labels(rows);
+      draw("weightChart", "line", l, [
+        { label: "体重", data: vals(rows, "weightKg"), borderColor: C.green, backgroundColor: "rgba(73,246,111,.18)", fill: true, pointRadius: 2, tension: .28 },
+        { label: "目標", data: l.map(() => Number(S.raw?.goals?.targetWeightKg ?? 75)), borderColor: C.orange, pointRadius: 0, borderDash: [6, 4], tension: 0 },
+      ]);
+      draw("calChart", "bar", l, [
+        { label: "総消費", data: vals(rows, "totalCaloriesKcal"), backgroundColor: "rgba(255,142,166,.45)", borderColor: C.red },
+        { label: "摂取", data: vals(rows, "intakeCaloriesKcal"), backgroundColor: "rgba(119,184,255,.45)", borderColor: C.blue },
+        { label: "収支", data: vals(rows, "calorieBalanceKcal"), backgroundColor: "rgba(255,190,115,.45)", borderColor: C.orange },
+      ]);
+
+      const oa = opts();
+      oa.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.8)" } };
+      draw("actChart", "line", l, [
+        { label: "歩数", data: vals(rows, "steps"), borderColor: C.green, yAxisID: "y", pointRadius: 2, tension: .28 },
+        { label: "距離(km)", data: vals(rows, "distanceKm"), borderColor: C.cyan, yAxisID: "y1", pointRadius: 2, tension: .28 },
+        { label: "睡眠(h)", data: vals(rows, "sleepHours"), borderColor: C.slate, yAxisID: "y1", pointRadius: 2, tension: .28 },
+      ], oa);
+
+      draw("bodyChart", "line", l, [
+        { label: "基礎代謝", data: vals(rows, "bmrKcalPerDay"), borderColor: C.purple, pointRadius: 2, tension: .2 },
+        { label: "体脂肪率(%)", data: vals(rows, "bodyFatPct"), borderColor: C.blue, pointRadius: 2, tension: .2 },
+      ]);
+    }
+
+    async function load() {
+      try {
+        const r = await fetch("./data/summary.json?ts=" + Date.now());
+        if (!r.ok) throw new Error("summary.json の取得に失敗: " + r.status);
+        S.raw = await r.json();
+        const meta = document.getElementById("meta");
+        const p = S.raw.privacy || {};
+        meta.textContent = `generatedAt: ${S.raw.generatedAt || "-"} / dateMode: ${p.dateMode || "-"} / gps: ${p.containsGps ? "あり" : "なし"}`;
+        render();
+      } catch (e) {
+        showError((e && e.message) ? e.message : String(e));
+      }
+    }
+
+    document.querySelectorAll(".r").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll(".r").forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        S.range = b.dataset.r;
+        render();
+      });
+    });
+
+    load();
+  </script>
+</body>
+</html>
