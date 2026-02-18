@@ -128,72 +128,75 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
                 return None
         return None
 
-    items = payload.get("items")
-    if isinstance(items, list):
-        for it in items:
-            if not isinstance(it, dict):
-                continue
-            consumed_at = parse_consumed_at(it) or parse_consumed_at(payload)
-            alias = it.get("alias")
-            label = it.get("label")
-            count = float(it.get("count") or 1)
-            note = it.get("note")
-            kcal = it.get("kcal")
-            protein_g = it.get("protein_g")
-            fat_g = it.get("fat_g")
-            carbs_g = it.get("carbs_g")
-            micros = it.get("micros")
+    try:
+        items = payload.get("items")
+        if isinstance(items, list):
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                consumed_at = parse_consumed_at(it) or parse_consumed_at(payload)
+                alias = it.get("alias")
+                label = it.get("label")
+                count = float(it.get("count") or 1)
+                note = it.get("note")
+                kcal = it.get("kcal")
+                protein_g = it.get("protein_g")
+                fat_g = it.get("fat_g")
+                carbs_g = it.get("carbs_g")
+                micros = it.get("micros")
 
-            if alias:
-                log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
-            elif label:
-                log_event(
-                    consumed_at=consumed_at,
-                    alias=None,
-                    label=str(label),
-                    count=count,
-                    kcal=float(kcal) if kcal is not None else None,
-                    protein_g=float(protein_g) if protein_g is not None else None,
-                    fat_g=float(fat_g) if fat_g is not None else None,
-                    carbs_g=float(carbs_g) if carbs_g is not None else None,
-                    micros=micros if isinstance(micros, dict) else None,
-                    note=note,
-                )
-        return {"ok": True, "count": len(items)}
+                if alias:
+                    log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
+                elif label:
+                    log_event(
+                        consumed_at=consumed_at,
+                        alias=None,
+                        label=str(label),
+                        count=count,
+                        kcal=float(kcal) if kcal is not None else None,
+                        protein_g=float(protein_g) if protein_g is not None else None,
+                        fat_g=float(fat_g) if fat_g is not None else None,
+                        carbs_g=float(carbs_g) if carbs_g is not None else None,
+                        micros=micros if isinstance(micros, dict) else None,
+                        note=note,
+                    )
+            return {"ok": True, "count": len(items)}
 
-    consumed_at = parse_consumed_at(payload)
+        consumed_at = parse_consumed_at(payload)
 
-    alias = payload.get("alias")
-    if alias:
-        count = float(payload.get("count") or 1)
-        note = payload.get("note")
-        log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
-        return {"ok": True}
+        alias = payload.get("alias")
+        if alias:
+            count = float(payload.get("count") or 1)
+            note = payload.get("note")
+            log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
+            return {"ok": True}
 
-    label = payload.get("label")
-    if label:
-        count = float(payload.get("count") or 1)
-        note = payload.get("note")
-        kcal = payload.get("kcal")
-        protein_g = payload.get("protein_g")
-        fat_g = payload.get("fat_g")
-        carbs_g = payload.get("carbs_g")
-        micros = payload.get("micros")
-        log_event(
-            consumed_at=consumed_at,
-            alias=None,
-            label=str(label),
-            count=count,
-            kcal=float(kcal) if kcal is not None else None,
-            protein_g=float(protein_g) if protein_g is not None else None,
-            fat_g=float(fat_g) if fat_g is not None else None,
-            carbs_g=float(carbs_g) if carbs_g is not None else None,
-            micros=micros if isinstance(micros, dict) else None,
-            note=note,
-        )
-        return {"ok": True}
+        label = payload.get("label")
+        if label:
+            count = float(payload.get("count") or 1)
+            note = payload.get("note")
+            kcal = payload.get("kcal")
+            protein_g = payload.get("protein_g")
+            fat_g = payload.get("fat_g")
+            carbs_g = payload.get("carbs_g")
+            micros = payload.get("micros")
+            log_event(
+                consumed_at=consumed_at,
+                alias=None,
+                label=str(label),
+                count=count,
+                kcal=float(kcal) if kcal is not None else None,
+                protein_g=float(protein_g) if protein_g is not None else None,
+                fat_g=float(fat_g) if fat_g is not None else None,
+                carbs_g=float(carbs_g) if carbs_g is not None else None,
+                micros=micros if isinstance(micros, dict) else None,
+                note=note,
+            )
+            return {"ok": True}
 
-    raise HTTPException(status_code=400, detail="Invalid payload")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
 
 
 @app.post("/api/intake", response_model=IntakeCaloriesUpsertResponse)
