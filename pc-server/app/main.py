@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, Response
+from fastapi import Depends, FastAPI, HTTPException, Response
 
 from .db import DB_PATH, db, dumps_payload, init_db, iso, now_iso
 from .discovery import start_discovery_thread
@@ -21,6 +21,9 @@ from .models import (
 )
 from .security import require_api_key
 from .summary import build_summary
+from .report import build_yesterday_report
+from .nutrition import log_alias, log_event
+from .openclaw_ingest import ingest_openclaw_payload
 
 app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
 
@@ -78,6 +81,131 @@ def status(_: None = Depends(require_api_key)) -> StatusResponse:
 @app.get("/api/summary")
 def summary(_: None = Depends(require_api_key)) -> dict[str, Any]:
     return build_summary()
+
+
+@app.get("/api/report/yesterday")
+def report_yesterday(_: None = Depends(require_api_key)) -> dict[str, Any]:
+    return {"text": build_yesterday_report()}
+
+
+@app.get("/api/nutrition/day")
+def nutrition_day(date: str, _: None = Depends(require_api_key)) -> dict[str, Any]:
+    from .nutrition import get_day_events, get_day_totals
+
+    return {"date": date, "events": get_day_events(date), "totals": get_day_totals(date)}
+
+
+@app.post("/api/nutrition/log")
+def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -> dict[str, Any]:
+    """Log manual nutrition/supplements.
+
+    Supports backfilling by specifying either:
+    - consumed_at: ISO8601 datetime
+    - local_date: YYYY-MM-DD (logged at 12:00 local)
+
+    Payload examples:
+    - {"alias":"protein", "count":1}
+    - {"items":[{"alias":"protein","count":1},{"alias":"vitamin_d","count":1}]}
+    - {"label":"something", "count":1, "kcal":300, "protein_g":6, "fat_g":1, "carbs_g":70}
+    """
+
+    from datetime import datetime
+    from .db import LOCAL_TZ
+
+    def parse_consumed_at(obj: dict[str, Any]) -> datetime | None:
+        ca = obj.get("consumed_at") or obj.get("consumedAt")
+        if isinstance(ca, str) and ca:
+            try:
+                return datetime.fromisoformat(ca.replace("Z", "+00:00")).astimezone(LOCAL_TZ)
+            except Exception:
+                return None
+        ld = obj.get("local_date") or obj.get("localDate")
+        if isinstance(ld, str) and ld:
+            try:
+                d = datetime.fromisoformat(ld)
+                # put it at noon local time
+                return d.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=LOCAL_TZ)
+            except Exception:
+                return None
+        return None
+
+    try:
+        items = payload.get("items")
+        if isinstance(items, list):
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                consumed_at = parse_consumed_at(it) or parse_consumed_at(payload)
+                alias = it.get("alias")
+                label = it.get("label")
+                count = float(it.get("count") or 1)
+                note = it.get("note")
+                kcal = it.get("kcal")
+                protein_g = it.get("protein_g")
+                fat_g = it.get("fat_g")
+                carbs_g = it.get("carbs_g")
+                micros = it.get("micros")
+
+                if alias:
+                    log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
+                elif label:
+                    log_event(
+                        consumed_at=consumed_at,
+                        alias=None,
+                        label=str(label),
+                        count=count,
+                        kcal=float(kcal) if kcal is not None else None,
+                        protein_g=float(protein_g) if protein_g is not None else None,
+                        fat_g=float(fat_g) if fat_g is not None else None,
+                        carbs_g=float(carbs_g) if carbs_g is not None else None,
+                        micros=micros if isinstance(micros, dict) else None,
+                        note=note,
+                    )
+            return {"ok": True, "count": len(items)}
+
+        consumed_at = parse_consumed_at(payload)
+
+        alias = payload.get("alias")
+        if alias:
+            count = float(payload.get("count") or 1)
+            note = payload.get("note")
+            log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
+            return {"ok": True}
+
+        label = payload.get("label")
+        if label:
+            count = float(payload.get("count") or 1)
+            note = payload.get("note")
+            kcal = payload.get("kcal")
+            protein_g = payload.get("protein_g")
+            fat_g = payload.get("fat_g")
+            carbs_g = payload.get("carbs_g")
+            micros = payload.get("micros")
+            log_event(
+                consumed_at=consumed_at,
+                alias=None,
+                label=str(label),
+                count=count,
+                kcal=float(kcal) if kcal is not None else None,
+                protein_g=float(protein_g) if protein_g is not None else None,
+                fat_g=float(fat_g) if fat_g is not None else None,
+                carbs_g=float(carbs_g) if carbs_g is not None else None,
+                micros=micros if isinstance(micros, dict) else None,
+                note=note,
+            )
+            return {"ok": True}
+
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
+
+
+@app.post("/api/openclaw/ingest")
+def openclaw_ingest(payload: dict[str, Any], _: None = Depends(require_api_key)) -> dict[str, Any]:
+    try:
+        return ingest_openclaw_payload(payload)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
 
 
 @app.post("/api/intake", response_model=IntakeCaloriesUpsertResponse)
@@ -217,5 +345,4 @@ def export_csv(type: str | None = None, _: None = Depends(require_api_key)) -> R
         w.writerow([r[c] for c in r.keys()])
 
     return Response(content=out.getvalue(), media_type="text/csv")
-
 

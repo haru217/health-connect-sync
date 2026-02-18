@@ -150,7 +150,166 @@ components:
       additionalProperties: true
       description: Summary payload for dashboard
 
+    OpenClawIngestItem:
+      type: object
+      additionalProperties: true
+      properties:
+        alias:
+          type: string
+          nullable: true
+        label:
+          type: string
+          nullable: true
+        count:
+          type: number
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        local_date:
+          type: string
+          nullable: true
+          description: Local date in YYYY-MM-DD.
+        consumed_at:
+          type: string
+          format: date-time
+          nullable: true
+      description: One nutrition item (alias or custom label item).
+
+    OpenClawIngestRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        event_id:
+          type: string
+          description: Stable idempotency key for this OpenClaw ingest event.
+        source:
+          type: string
+          nullable: true
+          description: Optional source label. Defaults to openclaw.
+        local_date:
+          type: string
+          nullable: true
+          description: Optional fallback date for items (YYYY-MM-DD).
+        intake_kcal:
+          type: number
+          nullable: true
+          description: Optional daily intake kcal upsert for local_date.
+        intake_note:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpenClawIngestItem'
+      required: [event_id, items]
+
+    OpenClawIngestResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ok:
+          type: boolean
+        ingested:
+          type: integer
+        duplicate:
+          type: integer
+        eventId:
+          type: string
+      required: [ok, ingested, duplicate, eventId]
+
 paths:
+  /api/nutrition/day:
+    get:
+      summary: Get nutrition events for a local date
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+          description: Local date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/nutrition/log:
+    post:
+      summary: Log manual nutrition/supplement event(s)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: |
+                Payload examples:
+                - {"alias":"protein","count":1}
+                - {"items":[{"alias":"protein","count":1},{"alias":"vitamin_d","count":1}]}
+                - {"label":"rice","count":1,"kcal":300,"protein_g":6,"fat_g":1,"carbs_g":70}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/openclaw/ingest:
+    post:
+      summary: Ingest OpenClaw nutrition event (idempotent by event_id)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenClawIngestRequest'
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenClawIngestResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/report/yesterday:
+    get:
+      summary: Yesterday report (text; includes manual nutrition PFC+micros)
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+
   /api/status:
     get:
       summary: Server status
