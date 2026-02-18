@@ -192,6 +192,7 @@
       <div>
         <h1>健康管理ダッシュボード</h1>
         <div id="meta" class="sub">loading...</div>
+        <div id="kpiMode" class="sub">カード: 当日値</div>
       </div>
       <div class="toggle">
         <button class="r on" data-r="day">日</button>
@@ -314,6 +315,24 @@
       return Number(latest);
     }
 
+    function meanValue(rows, key) {
+      const arr = rows
+        .map((x) => x?.[key])
+        .filter((v) => v !== null && v !== undefined && !Number.isNaN(Number(v)))
+        .map((v) => Number(v));
+      if (!arr.length) return null;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function cardValue(rows, key, useAverageForRange = true) {
+      if (S.range === "day" || !useAverageForRange) {
+        return displayValue(rows, key);
+      }
+      const avg = meanValue(rows, key);
+      if (avg !== null) return avg;
+      return displayValue(rows, key);
+    }
+
     function movingAverage(rows, key, window = 7, minPoints = 3) {
       const out = [];
       for (let i = 0; i < rows.length; i += 1) {
@@ -406,15 +425,17 @@
 
       const singleDay = rows.length === 1;
       const l = labels(rows);
+      setText("kpiMode", S.range === "day" ? "カード: 当日値" : "カード: 期間平均");
 
-      setText("w", fmt1(displayValue(rows, "weightKg")));
-      setText("s", fmt0(displayValue(rows, "steps")));
-      setText("c", `${fmt0(displayValue(rows, "totalCaloriesKcal"))} / ${fmt0(displayValue(rows, "intakeCaloriesKcal"))}`);
-      setText("b", fmt0(displayValue(rows, "calorieBalanceKcal")));
-      setText("sl", fmt1(displayValue(rows, "sleepHours")));
-      setText("rhr", fmt0(displayValue(rows, "restingHeartRateBpm")));
-      setText("spo2", fmt1(displayValue(rows, "oxygenSaturationPct")));
-      setText("bf", fmt1(displayValue(rows, "bodyFatPct")));
+      // Weight is kept as latest measured value; other KPI cards use range average on week/month.
+      setText("w", fmt1(cardValue(rows, "weightKg", false)));
+      setText("s", fmt0(cardValue(rows, "steps")));
+      setText("c", `${fmt0(cardValue(rows, "totalCaloriesKcal"))} / ${fmt0(cardValue(rows, "intakeCaloriesKcal"))}`);
+      setText("b", fmt0(cardValue(rows, "calorieBalanceKcal")));
+      setText("sl", fmt1(cardValue(rows, "sleepHours")));
+      setText("rhr", fmt0(cardValue(rows, "restingHeartRateBpm")));
+      setText("spo2", fmt1(cardValue(rows, "oxygenSaturationPct")));
+      setText("bf", fmt1(cardValue(rows, "bodyFatPct")));
 
       const targetWeight = Number(S.raw?.goals?.targetWeightKg ?? 75);
       draw("weightChart", singleDay ? "bar" : "line", l, [
