@@ -151,6 +151,23 @@ def _build_daily_carry_forward(m: dict[str, float], field: str) -> list[dict[str
     return out
 
 
+def _merged_interval_minutes(intervals: list[tuple[datetime, datetime]]) -> float:
+    if not intervals:
+        return 0.0
+    normalized = sorted(intervals, key=lambda x: x[0])
+    cur_start, cur_end = normalized[0]
+    total_sec = 0.0
+    for st, et in normalized[1:]:
+        if st <= cur_end:
+            if et > cur_end:
+                cur_end = et
+        else:
+            total_sec += max(0.0, (cur_end - cur_start).total_seconds())
+            cur_start, cur_end = st, et
+    total_sec += max(0.0, (cur_end - cur_start).total_seconds())
+    return total_sec / 60.0
+
+
 def _avg_tail(daily: list[dict[str, Any]], field: str, n_days: int) -> tuple[float | None, int]:
     if not daily:
         return None, 0
@@ -399,19 +416,29 @@ def build_summary() -> dict[str, Any]:
         intake_rows = conn.execute("SELECT day, intake_kcal FROM intake_calories_daily").fetchall()
         intake_kcal_manual_by_date = {r["day"]: float(r["intake_kcal"]) for r in intake_rows}
 
-        # Sleep minutes (sum by day; assign to start date)
+        # Sleep minutes (dedupe overlaps by source/day; assign to start date)
         sleep_rows = conn.execute(
-            "SELECT start_time, end_time FROM health_records WHERE type='SleepSessionRecord'"
+            "SELECT start_time, end_time, source FROM health_records WHERE type='SleepSessionRecord'"
         ).fetchall()
-        sleep_min_by_date: dict[str, float] = defaultdict(float)
+        sleep_intervals_by_day_source: dict[tuple[str, str], list[tuple[datetime, datetime]]] = (
+            defaultdict(list)
+        )
         for r in sleep_rows:
             st = _parse_iso(r["start_time"])
             et = _parse_iso(r["end_time"])
             if not st or not et:
                 continue
+            if et <= st:
+                continue
             day = _local_day(st)
-            minutes = float(max(0, (et - st).total_seconds() / 60.0))
-            sleep_min_by_date[day] += minutes
+            source = r["source"] or "unknown"
+            sleep_intervals_by_day_source[(day, source)].append((st, et))
+
+        sleep_min_by_day_source: dict[tuple[str, str], float] = {}
+        for key, intervals in sleep_intervals_by_day_source.items():
+            sleep_min_by_day_source[key] = _merged_interval_minutes(intervals)
+
+        sleep_min_by_date = _collapse_day_source_max(sleep_min_by_day_source)
         sleep_hour_by_date = {k: v / 60.0 for k, v in sleep_min_by_date.items()}
 
         # Speed (km/h, daily average from samples)
