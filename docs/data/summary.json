@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-02-18T10:26:35.442518+00:00",
+  "generatedAt": "2026-02-18T12:29:45.089814+00:00",
   "privacy": {
     "containsRawRecords": false,
     "containsGps": false,
@@ -20,8 +20,21 @@
     "intakeCaloriesKcal": 1800.0,
     "calorieBalanceKcal": 473.9,
     "bmrKcalPerDay": 1680.0,
-    "bodyFatPct": 0.0
+    "bodyFatPct": 0.0,
+    "heartRateBpm": 65.7,
+    "restingHeartRateBpm": 50.0,
+    "oxygenSaturationPct": 95.0
   },
+  "insights": [
+    {
+      "level": "info",
+      "message": "体重の記録が少なめ（直近7日で4回未満）。トレンド/停滞判定の精度が落ちるかも"
+    },
+    {
+      "level": "info",
+      "message": "直近7日平均の収支（摂取-総消費）は 329 kcal/日"
+    }
+  ],
   "metrics": [
     {
       "day": "2026-01-18",
@@ -34,7 +47,10 @@
       "calorieBalanceKcal": 29.0,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 79.9,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": 98.0
     },
     {
       "day": "2026-01-19",
@@ -47,7 +63,10 @@
       "calorieBalanceKcal": 346.4,
       "sleepHours": 20.67,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 63.6,
+      "restingHeartRateBpm": 50.0,
+      "oxygenSaturationPct": 98.0
     },
     {
       "day": "2026-01-20",
@@ -60,7 +79,10 @@
       "calorieBalanceKcal": 808.5,
       "sleepHours": 8.75,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 69.8,
+      "restingHeartRateBpm": 51.0,
+      "oxygenSaturationPct": 96.0
     },
     {
       "day": "2026-01-21",
@@ -73,7 +95,10 @@
       "calorieBalanceKcal": 667.0,
       "sleepHours": 22.0,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 68.5,
+      "restingHeartRateBpm": 54.0,
+      "oxygenSaturationPct": 97.0
     },
     {
       "day": "2026-01-22",
@@ -86,7 +111,10 @@
       "calorieBalanceKcal": 571.0,
       "sleepHours": 15.18,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 68.7,
+      "restingHeartRateBpm": 49.0,
+      "oxygenSaturationPct": 98.0
     },
     {
       "day": "2026-01-23",
@@ -99,7 +127,10 @@
       "calorieBalanceKcal": 1215.0,
       "sleepHours": 13.92,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 67.2,
+      "restingHeartRateBpm": 49.0,
+      "oxygenSaturationPct": 97.0
     },
     {
       "day": "2026-01-24",
@@ -112,7 +143,10 @@
       "calorieBalanceKcal": 201.0,
       "sleepHours": 11.25,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 68.4,
+      "restingHeartRateBpm": 52.0,
+      "oxygenSaturationPct": 95.0
     },
     {
       "day": "2026-01-25",
@@ -125,7 +159,10 @@
       "calorieBalanceKcal": 132.6,
       "sleepHours": 11.04,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 58.5,
+      "restingHeartRateBpm": 49.0,
+      "oxygenSaturationPct": 94.0
     },
     {
       "day": "2026-01-26",
@@ -138,7 +175,10 @@
       "calorieBalanceKcal": 63.8,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": 51.0,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-01-27",
@@ -151,7 +191,10 @@
       "calorieBalanceKcal": 356.8,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-01-28",
@@ -164,7 +207,10 @@
       "calorieBalanceKcal": 371.5,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 76.1,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": 96.0
     },
     {
       "day": "2026-01-29",
@@ -177,7 +223,10 @@
       "calorieBalanceKcal": 898.0,
       "sleepHours": 13.42,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 64.4,
+      "restingHeartRateBpm": 53.0,
+      "oxygenSaturationPct": 96.0
     },
     {
       "day": "2026-01-30",
@@ -190,7 +239,10 @@
       "calorieBalanceKcal": 1076.0,
       "sleepHours": 13.96,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 76.8,
+      "restingHeartRateBpm": 60.0,
+      "oxygenSaturationPct": 97.0
     },
     {
       "day": "2026-01-31",
@@ -203,7 +255,10 @@
       "calorieBalanceKcal": 96.1,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-01",
@@ -216,7 +271,10 @@
       "calorieBalanceKcal": 78.1,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-02",
@@ -229,7 +287,10 @@
       "calorieBalanceKcal": 402.4,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-03",
@@ -242,7 +303,10 @@
       "calorieBalanceKcal": 536.1,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-04",
@@ -255,7 +319,10 @@
       "calorieBalanceKcal": 738.9,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-05",
@@ -268,7 +335,10 @@
       "calorieBalanceKcal": 416.3,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-06",
@@ -281,7 +351,10 @@
       "calorieBalanceKcal": 280.9,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-07",
@@ -294,7 +367,10 @@
       "calorieBalanceKcal": 301.5,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": 0.0
+      "bodyFatPct": 0.0,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-08",
@@ -307,7 +383,10 @@
       "calorieBalanceKcal": 325.2,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-09",
@@ -320,7 +399,10 @@
       "calorieBalanceKcal": 28.9,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-10",
@@ -333,7 +415,10 @@
       "calorieBalanceKcal": 68.3,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-11",
@@ -346,7 +431,10 @@
       "calorieBalanceKcal": -22.9,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-12",
@@ -359,7 +447,10 @@
       "calorieBalanceKcal": 58.9,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-13",
@@ -372,7 +463,10 @@
       "calorieBalanceKcal": 217.2,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-14",
@@ -385,7 +479,10 @@
       "calorieBalanceKcal": 167.8,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": 0.0
+      "bodyFatPct": 0.0,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-15",
@@ -398,7 +495,10 @@
       "calorieBalanceKcal": 966.2,
       "sleepHours": null,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": null,
+      "restingHeartRateBpm": null,
+      "oxygenSaturationPct": null
     },
     {
       "day": "2026-02-16",
@@ -411,7 +511,10 @@
       "calorieBalanceKcal": 445.2,
       "sleepHours": 4.38,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 68.8,
+      "restingHeartRateBpm": 62.0,
+      "oxygenSaturationPct": 98.0
     },
     {
       "day": "2026-02-17",
@@ -424,7 +527,10 @@
       "calorieBalanceKcal": 473.9,
       "sleepHours": 9.74,
       "bmrKcalPerDay": 1680.0,
-      "bodyFatPct": null
+      "bodyFatPct": null,
+      "heartRateBpm": 65.7,
+      "restingHeartRateBpm": 50.0,
+      "oxygenSaturationPct": 95.0
     }
   ]
 }

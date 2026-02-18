@@ -7,81 +7,179 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0b1220;
-      --panel: #111d33;
-      --line: #21375f;
-      --txt: #ebf2ff;
-      --muted: #9fb4d8;
-      --accent: #49f66f;
-      --warn: #ffb26b;
+      --bg: #081120;
+      --panel: #101f37;
+      --line: #27466f;
+      --text: #e9f1ff;
+      --muted: #9db3d6;
+      --ok: #57f270;
+      --info: #75c2ff;
+      --warn: #ffbe75;
+      --danger: #ff889c;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      color: var(--text);
       font-family: "Noto Sans JP", sans-serif;
-      color: var(--txt);
-      background: radial-gradient(circle at 10% 0, #1a3259 0, #0b1220 40%, #08101d 100%);
+      background:
+        radial-gradient(circle at 8% -6%, #1f3f6e 0, rgba(31, 63, 110, 0) 42%),
+        radial-gradient(circle at 100% 0%, #11263f 0, rgba(17, 38, 63, 0) 44%),
+        linear-gradient(180deg, #081120, #070d19);
+      min-height: 100vh;
     }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 18px; display: grid; gap: 12px; }
-    .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .head h1 { margin: 0; font-size: 30px; }
-    .sub { color: var(--muted); font-size: 13px; }
-    .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .head h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: .02em;
+    }
+    .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .toggle {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0d1a30;
+    }
     .toggle button {
       border: 0;
+      background: transparent;
       color: var(--muted);
-      background: #10203a;
-      padding: 8px 12px;
+      padding: 8px 14px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
     }
-    .toggle button.on { color: #0f230f; background: linear-gradient(180deg, #85ff8b, #49f66f); }
+    .toggle button.on {
+      color: #05220d;
+      background: linear-gradient(180deg, #8dff98, #57f270);
+    }
     .banner {
-      border: 1px solid #34557f;
-      background: rgba(73, 246, 111, .08);
-      color: #d9ffe3;
-      padding: 10px 12px;
+      border: 1px solid #356088;
+      background: rgba(88, 235, 131, .08);
+      color: #d6ffe1;
       border-radius: 10px;
+      padding: 10px 12px;
       font-size: 13px;
     }
-    .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .error {
+      display: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #7f444e;
+      background: rgba(255, 103, 130, .15);
+      color: #ffd3da;
+      font-size: 13px;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
     .card {
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: linear-gradient(165deg, rgba(21, 35, 61, .96), rgba(12, 21, 36, .96));
+      background: linear-gradient(165deg, rgba(17, 31, 55, .96), rgba(9, 17, 30, .96));
       padding: 12px;
-      min-height: 96px;
+      min-height: 102px;
     }
-    .label { color: var(--muted); font-size: 12px; }
-    .value { margin-top: 3px; font-size: 28px; font-weight: 800; line-height: 1.1; }
-    .unit { font-size: 12px; color: var(--muted); margin-left: 4px; }
-    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .01em;
+    }
+    .value {
+      margin-top: 4px;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: #f4f8ff;
+    }
+    .unit {
+      margin-left: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
     .panel {
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: linear-gradient(165deg, rgba(21, 35, 61, .96), rgba(12, 21, 36, .96));
+      background: linear-gradient(165deg, rgba(17, 31, 55, .96), rgba(9, 17, 30, .96));
       padding: 12px;
       min-width: 0;
     }
-    .panel h3 { margin: 0 0 8px 0; }
-    .canvas { height: 300px; }
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .canvas {
+      height: 290px;
+    }
+    .insights {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+    .insights li {
+      border: 1px solid #32557e;
+      background: rgba(17, 45, 76, .5);
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: start;
+      font-size: 13px;
+    }
+    .badge {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-weight: 700;
+      line-height: 1;
+      align-self: center;
+    }
+    .badge.warn {
+      color: #2f1700;
+      background: var(--warn);
+    }
+    .badge.info {
+      color: #06253f;
+      background: var(--info);
+    }
     .foot {
       color: var(--muted);
       font-size: 12px;
       border-top: 1px solid var(--line);
       padding-top: 10px;
+      line-height: 1.8;
     }
-    .error {
-      border: 1px solid #7f3f3f;
-      background: rgba(255, 88, 88, .14);
-      color: #ffd1d1;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 13px;
-      display: none;
-    }
-    @media (max-width: 960px) {
-      .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .panels { grid-template-columns: 1fr; }
       .head h1 { font-size: 24px; }
       .canvas { height: 260px; }
@@ -92,7 +190,7 @@
   <div class="wrap">
     <div class="head">
       <div>
-        <h1>公開用ヘルスダッシュボード</h1>
+        <h1>健康管理ダッシュボード</h1>
         <div id="meta" class="sub">loading...</div>
       </div>
       <div class="toggle">
@@ -103,43 +201,62 @@
     </div>
 
     <div class="banner">
-      このページは公開用サマリーのみを表示します（生レコード/GPS/タイムスタンプは含まれません）。
+      公開用の要約データのみを表示しています。GPS・生レコード・詳細タイムスタンプは含みません。
     </div>
-
     <div id="err" class="error"></div>
 
-    <section class="grid4">
+    <section class="kpis">
       <article class="card"><div class="label">体重</div><div class="value"><span id="w">-</span><span class="unit">kg</span></div></article>
       <article class="card"><div class="label">歩数</div><div class="value"><span id="s">-</span><span class="unit">歩</span></div></article>
-      <article class="card"><div class="label">総消費 / 摂取</div><div class="value"><span id="c">-</span><span class="unit">kcal</span></div></article>
-      <article class="card"><div class="label">収支 (総消費-摂取)</div><div class="value"><span id="b">-</span><span class="unit">kcal</span></div></article>
+      <article class="card"><div class="label">総消費 / 摂取カロリー</div><div class="value"><span id="c">-</span><span class="unit">kcal</span></div></article>
+      <article class="card"><div class="label">カロリー収支</div><div class="value"><span id="b">-</span><span class="unit">kcal</span></div></article>
+      <article class="card"><div class="label">睡眠</div><div class="value"><span id="sl">-</span><span class="unit">h</span></div></article>
+      <article class="card"><div class="label">安静時心拍</div><div class="value"><span id="rhr">-</span><span class="unit">bpm</span></div></article>
+      <article class="card"><div class="label">酸素飽和度</div><div class="value"><span id="spo2">-</span><span class="unit">%</span></div></article>
+      <article class="card"><div class="label">体脂肪率</div><div class="value"><span id="bf">-</span><span class="unit">%</span></div></article>
     </section>
 
     <section class="panels">
       <article class="panel">
-        <h3>体重推移 (目標 75kg)</h3>
+        <h3>体重推移（目標 75kg）</h3>
         <div class="canvas"><canvas id="weightChart"></canvas></div>
       </article>
       <article class="panel">
-        <h3>カロリー収支</h3>
+        <h3>カロリー収支（総消費 / 摂取 / 収支）</h3>
         <div class="canvas"><canvas id="calChart"></canvas></div>
       </article>
     </section>
 
     <section class="panels">
       <article class="panel">
-        <h3>活動 (歩数/距離/睡眠)</h3>
+        <h3>活動量（歩数・距離・睡眠）</h3>
         <div class="canvas"><canvas id="actChart"></canvas></div>
       </article>
       <article class="panel">
-        <h3>代謝と体組成</h3>
+        <h3>睡眠トレンド</h3>
+        <div class="canvas"><canvas id="sleepChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="panels">
+      <article class="panel">
+        <h3>バイタル（心拍・酸素飽和度）</h3>
+        <div class="canvas"><canvas id="vitalChart"></canvas></div>
+      </article>
+      <article class="panel">
+        <h3>体組成・代謝（体脂肪率・基礎代謝）</h3>
         <div class="canvas"><canvas id="bodyChart"></canvas></div>
       </article>
     </section>
 
+    <section class="panel">
+      <h3>健康インサイト</h3>
+      <ul id="insights" class="insights"></ul>
+    </section>
+
     <div class="foot">
       <div>データ: <code>docs/data/summary.json</code></div>
-      <div>更新方法: <code>cd pc-server; python export_public_summary.py</code></div>
+      <div>更新: <code>cd pc-server; python export_public_summary.py</code></div>
     </div>
   </div>
 
@@ -147,13 +264,13 @@
     const S = { raw: null, range: "week" };
     const CH = {};
     const C = {
-      green: "#49f66f",
-      blue: "#77b8ff",
-      red: "#ff8ea6",
-      orange: "#ffbe73",
-      cyan: "#7de9ff",
-      purple: "#b3a2ff",
-      slate: "#97abd1",
+      green: "#57f270",
+      blue: "#75c2ff",
+      cyan: "#7be8ff",
+      orange: "#ffbe75",
+      red: "#ff889c",
+      purple: "#b8a8ff",
+      slate: "#a7bde0",
     };
 
     const fmt0 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : Math.round(Number(v)).toLocaleString("ja-JP"));
@@ -165,14 +282,40 @@
       const n = days();
       return n >= arr.length ? arr : arr.slice(-n);
     }
+
     function dayLabel(day) {
       if (typeof day !== "string") return String(day ?? "");
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
       if (!m) return day;
       return `${Number(m[2])}/${Number(m[3])}`;
     }
-    function labels(rows) { return rows.map((x) => dayLabel(x.day)); }
-    function vals(rows, key) { return rows.map((x) => x[key] ?? null); }
+
+    function labels(rows) {
+      return rows.map((x) => dayLabel(x.day));
+    }
+
+    function vals(rows, key) {
+      return rows.map((x) => x[key] ?? null);
+    }
+
+    function lastValue(rows, key) {
+      for (let i = rows.length - 1; i >= 0; i -= 1) {
+        const v = rows[i]?.[key];
+        if (v !== null && v !== undefined && !Number.isNaN(Number(v))) return Number(v);
+      }
+      return null;
+    }
+
+    function movingAverage(rows, key, window = 7, minPoints = 3) {
+      const out = [];
+      for (let i = 0; i < rows.length; i += 1) {
+        const start = Math.max(0, i - window + 1);
+        const slice = rows.slice(start, i + 1).map((x) => x[key]).filter((v) => v !== null && v !== undefined && !Number.isNaN(Number(v))).map((v) => Number(v));
+        if (slice.length < minPoints) out.push(null);
+        else out.push(slice.reduce((a, b) => a + b, 0) / slice.length);
+      }
+      return out;
+    }
 
     function opts() {
       return {
@@ -180,27 +323,57 @@
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         scales: {
-          x: { ticks: { color: "rgba(220,232,255,.8)" }, grid: { color: "rgba(85,118,167,.15)" } },
-          y: { ticks: { color: "rgba(220,232,255,.8)" }, grid: { color: "rgba(85,118,167,.15)" } },
+          x: { ticks: { color: "rgba(220,232,255,.84)" }, grid: { color: "rgba(85,118,167,.16)" } },
+          y: { ticks: { color: "rgba(220,232,255,.84)" }, grid: { color: "rgba(85,118,167,.16)" } },
         },
         plugins: {
-          legend: { labels: { color: "rgba(229,238,255,.9)", usePointStyle: true } },
-          tooltip: { backgroundColor: "rgba(8,17,33,.95)", borderColor: "rgba(98,132,183,.6)", borderWidth: 1 },
+          legend: { labels: { color: "rgba(234,241,255,.92)", usePointStyle: true } },
+          tooltip: {
+            backgroundColor: "rgba(8,17,33,.95)",
+            borderColor: "rgba(98,132,183,.6)",
+            borderWidth: 1,
+          },
         },
       };
     }
-    function draw(id, type, labels, datasets, o) {
+
+    function draw(id, type, ls, datasets, customOpts) {
       if (CH[id]) CH[id].destroy();
-      CH[id] = new Chart(document.getElementById(id), { type, data: { labels, datasets }, options: o || opts() });
+      CH[id] = new Chart(document.getElementById(id), {
+        type,
+        data: { labels: ls, datasets },
+        options: customOpts || opts(),
+      });
     }
-    function set(id, v) {
+
+    function setText(id, value) {
       const el = document.getElementById(id);
-      if (el) el.textContent = v;
+      if (el) el.textContent = value;
     }
+
     function showError(msg) {
       const e = document.getElementById("err");
       e.style.display = "block";
       e.textContent = msg;
+    }
+
+    function fillInsights(items) {
+      const ul = document.getElementById("insights");
+      ul.innerHTML = "";
+      if (!Array.isArray(items) || items.length === 0) {
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="badge info">INFO</span><span>まだインサイトがありません。データが増えると表示されます。</span>';
+        ul.appendChild(li);
+        return;
+      }
+      items.forEach((item) => {
+        const level = (item?.level || "info").toLowerCase() === "warn" ? "warn" : "info";
+        const badgeText = level === "warn" ? "WARN" : "INFO";
+        const message = typeof item?.message === "string" ? item.message : "-";
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="badge ${level}">${badgeText}</span><span>${message}</span>`;
+        ul.appendChild(li);
+      });
     }
 
     function render() {
@@ -210,36 +383,78 @@
         showError("summary.json に表示可能な metrics がありません。");
         return;
       }
-      const last = rows[rows.length - 1];
 
-      set("w", fmt1(last.weightKg));
-      set("s", fmt0(last.steps));
-      set("c", `${fmt0(last.totalCaloriesKcal)} / ${fmt0(last.intakeCaloriesKcal)}`);
-      set("b", fmt0(last.calorieBalanceKcal));
-
+      const singleDay = rows.length === 1;
       const l = labels(rows);
-      draw("weightChart", "line", l, [
-        { label: "体重", data: vals(rows, "weightKg"), borderColor: C.green, backgroundColor: "rgba(73,246,111,.18)", fill: true, pointRadius: 2, tension: .28 },
-        { label: "目標", data: l.map(() => Number(S.raw?.goals?.targetWeightKg ?? 75)), borderColor: C.orange, pointRadius: 0, borderDash: [6, 4], tension: 0 },
+
+      setText("w", fmt1(lastValue(rows, "weightKg")));
+      setText("s", fmt0(lastValue(rows, "steps")));
+      setText("c", `${fmt0(lastValue(rows, "totalCaloriesKcal"))} / ${fmt0(lastValue(rows, "intakeCaloriesKcal"))}`);
+      setText("b", fmt0(lastValue(rows, "calorieBalanceKcal")));
+      setText("sl", fmt1(lastValue(rows, "sleepHours")));
+      setText("rhr", fmt0(lastValue(rows, "restingHeartRateBpm")));
+      setText("spo2", fmt1(lastValue(rows, "oxygenSaturationPct")));
+      setText("bf", fmt1(lastValue(rows, "bodyFatPct")));
+
+      const targetWeight = Number(S.raw?.goals?.targetWeightKg ?? 75);
+      draw("weightChart", singleDay ? "bar" : "line", l, [
+        {
+          type: singleDay ? "bar" : "line",
+          label: "体重",
+          data: vals(rows, "weightKg"),
+          borderColor: C.green,
+          backgroundColor: singleDay ? "rgba(87,242,112,.38)" : "rgba(87,242,112,.16)",
+          fill: !singleDay,
+          pointRadius: 2,
+          tension: .25,
+        },
+        {
+          type: "line",
+          label: "目標",
+          data: l.map(() => targetWeight),
+          borderColor: C.orange,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          tension: 0,
+        },
       ]);
+
       draw("calChart", "bar", l, [
-        { label: "総消費", data: vals(rows, "totalCaloriesKcal"), backgroundColor: "rgba(255,142,166,.45)", borderColor: C.red },
-        { label: "摂取", data: vals(rows, "intakeCaloriesKcal"), backgroundColor: "rgba(119,184,255,.45)", borderColor: C.blue },
-        { label: "収支", data: vals(rows, "calorieBalanceKcal"), backgroundColor: "rgba(255,190,115,.45)", borderColor: C.orange },
+        { label: "総消費", data: vals(rows, "totalCaloriesKcal"), backgroundColor: "rgba(255,136,156,.45)", borderColor: C.red },
+        { label: "摂取", data: vals(rows, "intakeCaloriesKcal"), backgroundColor: "rgba(117,194,255,.45)", borderColor: C.blue },
+        { label: "収支", data: vals(rows, "calorieBalanceKcal"), backgroundColor: "rgba(255,190,117,.45)", borderColor: C.orange },
       ]);
 
-      const oa = opts();
-      oa.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.8)" } };
-      draw("actChart", "line", l, [
-        { label: "歩数", data: vals(rows, "steps"), borderColor: C.green, yAxisID: "y", pointRadius: 2, tension: .28 },
-        { label: "距離(km)", data: vals(rows, "distanceKm"), borderColor: C.cyan, yAxisID: "y1", pointRadius: 2, tension: .28 },
-        { label: "睡眠(h)", data: vals(rows, "sleepHours"), borderColor: C.slate, yAxisID: "y1", pointRadius: 2, tension: .28 },
-      ], oa);
+      const oAct = opts();
+      oAct.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
+      draw("actChart", singleDay ? "bar" : "line", l, [
+        { label: "歩数", data: vals(rows, "steps"), borderColor: C.green, backgroundColor: "rgba(87,242,112,.36)", yAxisID: "y", pointRadius: 2, tension: .25 },
+        { label: "距離(km)", data: vals(rows, "distanceKm"), borderColor: C.cyan, backgroundColor: "rgba(123,232,255,.30)", yAxisID: "y1", pointRadius: 2, tension: .25 },
+        { label: "睡眠(h)", data: vals(rows, "sleepHours"), borderColor: C.slate, backgroundColor: "rgba(167,189,224,.28)", yAxisID: "y1", pointRadius: 2, tension: .25 },
+      ], oAct);
 
-      draw("bodyChart", "line", l, [
-        { label: "基礎代謝", data: vals(rows, "bmrKcalPerDay"), borderColor: C.purple, pointRadius: 2, tension: .2 },
-        { label: "体脂肪率(%)", data: vals(rows, "bodyFatPct"), borderColor: C.blue, pointRadius: 2, tension: .2 },
+      const sleepMA = movingAverage(rows, "sleepHours", 7, 3);
+      draw("sleepChart", "bar", l, [
+        { label: "睡眠(h)", data: vals(rows, "sleepHours"), backgroundColor: "rgba(117,194,255,.44)", borderColor: C.blue },
+        { type: "line", label: "移動平均(7)", data: sleepMA, borderColor: C.purple, pointRadius: 1.5, tension: .25 },
       ]);
+
+      const oVital = opts();
+      oVital.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
+      draw("vitalChart", singleDay ? "bar" : "line", l, [
+        { label: "心拍(bpm)", data: vals(rows, "heartRateBpm"), borderColor: C.red, backgroundColor: "rgba(255,136,156,.34)", yAxisID: "y", pointRadius: 2, tension: .2 },
+        { label: "安静時心拍(bpm)", data: vals(rows, "restingHeartRateBpm"), borderColor: C.orange, backgroundColor: "rgba(255,190,117,.34)", yAxisID: "y", pointRadius: 2, tension: .2 },
+        { label: "SpO2(%)", data: vals(rows, "oxygenSaturationPct"), borderColor: C.green, backgroundColor: "rgba(87,242,112,.32)", yAxisID: "y1", pointRadius: 2, tension: .2 },
+      ], oVital);
+
+      const oBody = opts();
+      oBody.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
+      draw("bodyChart", "bar", l, [
+        { label: "基礎代謝(kcal/日)", data: vals(rows, "bmrKcalPerDay"), backgroundColor: "rgba(184,168,255,.42)", borderColor: C.purple, yAxisID: "y" },
+        { type: "line", label: "体脂肪率(%)", data: vals(rows, "bodyFatPct"), borderColor: C.blue, backgroundColor: "rgba(117,194,255,.2)", yAxisID: "y1", pointRadius: 2, tension: .2 },
+      ], oBody);
+
+      fillInsights(S.raw?.insights);
     }
 
     async function load() {
@@ -247,9 +462,11 @@
         const r = await fetch("./data/summary.json?ts=" + Date.now());
         if (!r.ok) throw new Error("summary.json の取得に失敗: " + r.status);
         S.raw = await r.json();
-        const meta = document.getElementById("meta");
-        const p = S.raw.privacy || {};
-        meta.textContent = `generatedAt: ${S.raw.generatedAt || "-"} / dateMode: ${p.dateMode || "-"} / gps: ${p.containsGps ? "あり" : "なし"}`;
+        const p = S.raw?.privacy || {};
+        setText(
+          "meta",
+          `generatedAt: ${S.raw?.generatedAt || "-"} / dateMode: ${p.dateMode || "-"} / gps: ${p.containsGps ? "あり" : "なし"}`
+        );
         render();
       } catch (e) {
         showError((e && e.message) ? e.message : String(e));

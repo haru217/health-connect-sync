@@ -50,6 +50,20 @@ def _round_or_none(v: float | None, digits: int = 2) -> float | None:
     return round(float(v), digits)
 
 
+def _sanitize_insights(raw: Any) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        level = item.get("level")
+        message = item.get("message")
+        if isinstance(level, str) and isinstance(message, str):
+            out.append({"level": level, "message": message})
+    return out[:20]
+
+
 def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
     s = build_summary()
 
@@ -63,6 +77,9 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
     sleep = _series_to_map(s.get("sleepHoursByDate"), "hours")
     bmr = _series_to_map(s.get("basalMetabolicRateKcalByDate"), "kcalPerDay")
     body_fat = _series_to_map(s.get("bodyFatPctByDate"), "pct")
+    heart_rate = _series_to_map(s.get("heartRateBpmByDate"), "bpm")
+    resting_heart_rate = _series_to_map(s.get("restingHeartRateBpmByDate"), "bpm")
+    oxygen_saturation = _series_to_map(s.get("oxygenSaturationPctByDate"), "pct")
 
     all_days = sorted(
         set(weight.keys())
@@ -75,6 +92,9 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
         | set(sleep.keys())
         | set(bmr.keys())
         | set(body_fat.keys())
+        | set(heart_rate.keys())
+        | set(resting_heart_rate.keys())
+        | set(oxygen_saturation.keys())
     )
 
     labels = _relative_labels(all_days)
@@ -93,6 +113,9 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
                 "sleepHours": _round_or_none(sleep.get(day), 2),
                 "bmrKcalPerDay": _round_or_none(bmr.get(day), 1),
                 "bodyFatPct": _round_or_none(body_fat.get(day), 2),
+                "heartRateBpm": _round_or_none(heart_rate.get(day), 1),
+                "restingHeartRateBpm": _round_or_none(resting_heart_rate.get(day), 1),
+                "oxygenSaturationPct": _round_or_none(oxygen_saturation.get(day), 1),
             }
         )
 
@@ -129,7 +152,15 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
                 _latest_value(s.get("basalMetabolicRateKcalByDate"), "kcalPerDay"), 1
             ),
             "bodyFatPct": _round_or_none(_latest_value(s.get("bodyFatPctByDate"), "pct"), 2),
+            "heartRateBpm": _round_or_none(_latest_value(s.get("heartRateBpmByDate"), "bpm"), 1),
+            "restingHeartRateBpm": _round_or_none(
+                _latest_value(s.get("restingHeartRateBpmByDate"), "bpm"), 1
+            ),
+            "oxygenSaturationPct": _round_or_none(
+                _latest_value(s.get("oxygenSaturationPctByDate"), "pct"), 1
+            ),
         },
+        "insights": _sanitize_insights(s.get("insights")),
         "metrics": points,
     }
 
