@@ -306,6 +306,14 @@
       return null;
     }
 
+    function displayValue(rows, key) {
+      const v = lastValue(rows, key);
+      if (v !== null) return v;
+      const latest = S.raw?.latest?.[key];
+      if (latest === null || latest === undefined || Number.isNaN(Number(latest))) return null;
+      return Number(latest);
+    }
+
     function movingAverage(rows, key, window = 7, minPoints = 3) {
       const out = [];
       for (let i = 0; i < rows.length; i += 1) {
@@ -399,14 +407,14 @@
       const singleDay = rows.length === 1;
       const l = labels(rows);
 
-      setText("w", fmt1(lastValue(rows, "weightKg")));
-      setText("s", fmt0(lastValue(rows, "steps")));
-      setText("c", `${fmt0(lastValue(rows, "totalCaloriesKcal"))} / ${fmt0(lastValue(rows, "intakeCaloriesKcal"))}`);
-      setText("b", fmt0(lastValue(rows, "calorieBalanceKcal")));
-      setText("sl", fmt1(lastValue(rows, "sleepHours")));
-      setText("rhr", fmt0(lastValue(rows, "restingHeartRateBpm")));
-      setText("spo2", fmt1(lastValue(rows, "oxygenSaturationPct")));
-      setText("bf", fmt1(lastValue(rows, "bodyFatPct")));
+      setText("w", fmt1(displayValue(rows, "weightKg")));
+      setText("s", fmt0(displayValue(rows, "steps")));
+      setText("c", `${fmt0(displayValue(rows, "totalCaloriesKcal"))} / ${fmt0(displayValue(rows, "intakeCaloriesKcal"))}`);
+      setText("b", fmt0(displayValue(rows, "calorieBalanceKcal")));
+      setText("sl", fmt1(displayValue(rows, "sleepHours")));
+      setText("rhr", fmt0(displayValue(rows, "restingHeartRateBpm")));
+      setText("spo2", fmt1(displayValue(rows, "oxygenSaturationPct")));
+      setText("bf", fmt1(displayValue(rows, "bodyFatPct")));
 
       const targetWeight = Number(S.raw?.goals?.targetWeightKg ?? 75);
       draw("weightChart", singleDay ? "bar" : "line", l, [
