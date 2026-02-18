@@ -17,6 +17,16 @@ SEED_KEYS: list[NutrientKey] = [
     NutrientKey("protein_g", "g", "Protein", "macros"),
     NutrientKey("fat_g", "g", "Fat", "macros"),
     NutrientKey("carbs_g", "g", "Carbs", "macros"),
+    NutrientKey("sugar_g", "g", "Sugar", "macros"),
+    NutrientKey("dietary_fiber_g", "g", "Dietary fiber", "macros"),
+
+    NutrientKey("sodium_mg", "mg", "Sodium", "minerals"),
+    NutrientKey("potassium_mg", "mg", "Potassium", "minerals"),
+    NutrientKey("phosphorus_mg", "mg", "Phosphorus", "minerals"),
+    NutrientKey("iron_mg", "mg", "Iron", "minerals"),
+    NutrientKey("manganese_mg", "mg", "Manganese", "minerals"),
+    NutrientKey("iodine_mcg", "mcg", "Iodine", "minerals"),
+    NutrientKey("molybdenum_mcg", "mcg", "Molybdenum", "minerals"),
 
     NutrientKey("vitamin_a_mcg", "mcg", "Vitamin A", "vitamins"),
     NutrientKey("vitamin_b1_mg", "mg", "Vitamin B1", "vitamins"),
@@ -30,6 +40,7 @@ SEED_KEYS: list[NutrientKey] = [
     NutrientKey("vitamin_c_mg", "mg", "Vitamin C", "vitamins"),
     NutrientKey("vitamin_d_mcg", "mcg", "Vitamin D", "vitamins"),
     NutrientKey("vitamin_e_mg", "mg", "Vitamin E", "vitamins"),
+    NutrientKey("vitamin_k_mcg", "mcg", "Vitamin K", "vitamins"),
     NutrientKey("vitamin_d3_iu", "iu", "Vitamin D3", "vitamins"),
     NutrientKey("vitamin_d3_mcg", "mcg", "Vitamin D3", "vitamins"),
 
@@ -43,6 +54,14 @@ SEED_KEYS: list[NutrientKey] = [
     NutrientKey("epa_mg", "mg", "EPA", "lipids"),
     NutrientKey("dha_mg", "mg", "DHA", "lipids"),
     NutrientKey("omega3_mg", "mg", "Omega-3 (EPA+DHA)", "lipids"),
+    NutrientKey("omega6_mg", "mg", "Omega-6", "lipids"),
 
+    NutrientKey("cholesterol_mg", "mg", "Cholesterol", "other"),
+    NutrientKey("saturated_fat_g", "g", "Saturated fat", "other"),
+    NutrientKey("trans_fat_g", "g", "Trans fat", "other"),
+    NutrientKey("alcohol_g", "g", "Alcohol", "other"),
+    NutrientKey("caffeine_mg", "mg", "Caffeine", "other"),
+
+    NutrientKey("salt_equivalent_g", "g", "Salt equivalent", "other"),
     NutrientKey("salt_equivalent_g_max", "g", "Salt equivalent (max)", "other"),
 ]
