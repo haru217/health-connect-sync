@@ -149,16 +149,32 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
                 if alias:
                     log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
                 elif label:
+                    k2 = float(kcal) if kcal is not None else None
+                    p2 = float(protein_g) if protein_g is not None else None
+                    f2 = float(fat_g) if fat_g is not None else None
+                    c2 = float(carbs_g) if carbs_g is not None else None
+
+                    # Estimate micros to avoid missing micronutrients for unlabeled meals.
+                    from .estimator import estimate_micros
+
+                    est = estimate_micros(str(label), kcal=k2, protein_g=p2, fat_g=f2, carbs_g=c2)
+                    if isinstance(micros, dict):
+                        # user-provided micros override estimates
+                        for mk, mv in micros.items():
+                            if isinstance(mv, (int, float)):
+                                est[mk] = float(mv)
+                    micros2 = est or (micros if isinstance(micros, dict) else None)
+
                     log_event(
                         consumed_at=consumed_at,
                         alias=None,
                         label=str(label),
                         count=count,
-                        kcal=float(kcal) if kcal is not None else None,
-                        protein_g=float(protein_g) if protein_g is not None else None,
-                        fat_g=float(fat_g) if fat_g is not None else None,
-                        carbs_g=float(carbs_g) if carbs_g is not None else None,
-                        micros=micros if isinstance(micros, dict) else None,
+                        kcal=k2,
+                        protein_g=p2,
+                        fat_g=f2,
+                        carbs_g=c2,
+                        micros=micros2,
                         note=note,
                     )
             return {"ok": True, "count": len(items)}
@@ -181,16 +197,31 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
             fat_g = payload.get("fat_g")
             carbs_g = payload.get("carbs_g")
             micros = payload.get("micros")
+
+            k2 = float(kcal) if kcal is not None else None
+            p2 = float(protein_g) if protein_g is not None else None
+            f2 = float(fat_g) if fat_g is not None else None
+            c2 = float(carbs_g) if carbs_g is not None else None
+
+            from .estimator import estimate_micros
+
+            est = estimate_micros(str(label), kcal=k2, protein_g=p2, fat_g=f2, carbs_g=c2)
+            if isinstance(micros, dict):
+                for mk, mv in micros.items():
+                    if isinstance(mv, (int, float)):
+                        est[mk] = float(mv)
+            micros2 = est or (micros if isinstance(micros, dict) else None)
+
             log_event(
                 consumed_at=consumed_at,
                 alias=None,
                 label=str(label),
                 count=count,
-                kcal=float(kcal) if kcal is not None else None,
-                protein_g=float(protein_g) if protein_g is not None else None,
-                fat_g=float(fat_g) if fat_g is not None else None,
-                carbs_g=float(carbs_g) if carbs_g is not None else None,
-                micros=micros if isinstance(micros, dict) else None,
+                kcal=k2,
+                protein_g=p2,
+                fat_g=f2,
+                carbs_g=c2,
+                micros=micros2,
                 note=note,
             )
             return {"ok": True}
