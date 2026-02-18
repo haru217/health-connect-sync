@@ -19,9 +19,15 @@ PowerShellスクリプト版:
 出力先（既定）:
 - `../docs/data/summary.json`
 
-日付を相対表記ではなくISOで出したい場合:
+既定では日付は `YYYY-MM-DD` で出力されます（画面表示は `M/D`）。
+
+日付を相対表記（`D-6` 等）で出したい場合:
 ```powershell
-python export_public_summary.py --keep-dates
+python export_public_summary.py --relative-dates
+```
+PowerShellスクリプト版:
+```powershell
+.\export-public-summary.ps1 -RelativeDates
 ```
 
 ## 2. ローカル確認
@@ -56,4 +62,4 @@ GitHubリポジトリ設定:
 ## セキュリティ注意
 - コミットしてよいのは `docs/data/summary.json` のみ（公開用）
 - `pc-server/hc_sync.db`, `.env`, 生payloadはコミットしない
-- さらに匿名性を上げたい場合は `--keep-dates` を使わず、既定の相対日付（`D-6` 等）で公開する
+- さらに匿名性を上げたい場合は `--relative-dates` を使って相対日付（`D-6` 等）で公開する

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-02-17T13:07:40.018204+00:00",
+  "generatedAt": "2026-02-18T10:26:35.442518+00:00",
   "privacy": {
     "containsRawRecords": false,
     "containsGps": false,
     "containsTimestamps": false,
-    "dateMode": "relative"
+    "dateMode": "iso"
   },
   "goals": {
     "targetWeightKg": 75.0
@@ -24,7 +24,7 @@
   },
   "metrics": [
     {
-      "day": "D-30",
+      "day": "2026-01-18",
       "weightKg": null,
       "steps": 557.0,
       "distanceKm": 0.21,
@@ -37,7 +37,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-29",
+      "day": "2026-01-19",
       "weightKg": null,
       "steps": 4455.0,
       "distanceKm": 3.56,
@@ -50,7 +50,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-28",
+      "day": "2026-01-20",
       "weightKg": null,
       "steps": 6746.0,
       "distanceKm": 4.19,
@@ -63,7 +63,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-27",
+      "day": "2026-01-21",
       "weightKg": null,
       "steps": 5292.0,
       "distanceKm": 4.42,
@@ -76,7 +76,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-26",
+      "day": "2026-01-22",
       "weightKg": null,
       "steps": 4188.0,
       "distanceKm": 3.52,
@@ -89,7 +89,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-25",
+      "day": "2026-01-23",
       "weightKg": null,
       "steps": 12411.0,
       "distanceKm": 8.82,
@@ -102,7 +102,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-24",
+      "day": "2026-01-24",
       "weightKg": null,
       "steps": 1544.0,
       "distanceKm": 0.37,
@@ -115,7 +115,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-23",
+      "day": "2026-01-25",
       "weightKg": null,
       "steps": 2746.0,
       "distanceKm": 1.84,
@@ -128,7 +128,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-22",
+      "day": "2026-01-26",
       "weightKg": null,
       "steps": 2139.0,
       "distanceKm": 1.13,
@@ -141,7 +141,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-21",
+      "day": "2026-01-27",
       "weightKg": null,
       "steps": 4356.0,
       "distanceKm": 3.89,
@@ -154,7 +154,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-20",
+      "day": "2026-01-28",
       "weightKg": null,
       "steps": 4910.0,
       "distanceKm": 4.17,
@@ -167,7 +167,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-19",
+      "day": "2026-01-29",
       "weightKg": null,
       "steps": 7664.0,
       "distanceKm": 5.2,
@@ -180,7 +180,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-18",
+      "day": "2026-01-30",
       "weightKg": null,
       "steps": 14497.0,
       "distanceKm": 8.58,
@@ -193,7 +193,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-17",
+      "day": "2026-01-31",
       "weightKg": null,
       "steps": 2511.0,
       "distanceKm": 1.5,
@@ -206,7 +206,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-16",
+      "day": "2026-02-01",
       "weightKg": null,
       "steps": 2197.0,
       "distanceKm": 1.24,
@@ -219,7 +219,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-15",
+      "day": "2026-02-02",
       "weightKg": null,
       "steps": 4829.0,
       "distanceKm": 4.06,
@@ -232,7 +232,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-14",
+      "day": "2026-02-03",
       "weightKg": null,
       "steps": 7593.0,
       "distanceKm": 5.78,
@@ -245,7 +245,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-13",
+      "day": "2026-02-04",
       "weightKg": null,
       "steps": 9729.0,
       "distanceKm": 7.48,
@@ -258,7 +258,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-12",
+      "day": "2026-02-05",
       "weightKg": null,
       "steps": 4967.0,
       "distanceKm": 4.17,
@@ -271,7 +271,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-11",
+      "day": "2026-02-06",
       "weightKg": null,
       "steps": 3417.0,
       "distanceKm": 4.47,
@@ -284,7 +284,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-10",
+      "day": "2026-02-07",
       "weightKg": 83.2,
       "steps": 4868.0,
       "distanceKm": 3.68,
@@ -297,7 +297,7 @@
       "bodyFatPct": 0.0
     },
     {
-      "day": "D-9",
+      "day": "2026-02-08",
       "weightKg": null,
       "steps": 4806.0,
       "distanceKm": 3.32,
@@ -310,7 +310,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-8",
+      "day": "2026-02-09",
       "weightKg": null,
       "steps": 1242.0,
       "distanceKm": 0.66,
@@ -323,7 +323,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-7",
+      "day": "2026-02-10",
       "weightKg": null,
       "steps": 1839.0,
       "distanceKm": 0.98,
@@ -336,7 +336,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-6",
+      "day": "2026-02-11",
       "weightKg": null,
       "steps": 738.0,
       "distanceKm": 0.41,
@@ -349,7 +349,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-5",
+      "day": "2026-02-12",
       "weightKg": null,
       "steps": 1841.0,
       "distanceKm": 0.96,
@@ -362,7 +362,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-4",
+      "day": "2026-02-13",
       "weightKg": null,
       "steps": 3712.0,
       "distanceKm": 2.35,
@@ -375,7 +375,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-3",
+      "day": "2026-02-14",
       "weightKg": 84.4,
       "steps": 3222.0,
       "distanceKm": 1.94,
@@ -388,7 +388,7 @@
       "bodyFatPct": 0.0
     },
     {
-      "day": "D-2",
+      "day": "2026-02-15",
       "weightKg": null,
       "steps": 13545.0,
       "distanceKm": 10.59,
@@ -401,7 +401,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D-1",
+      "day": "2026-02-16",
       "weightKg": null,
       "steps": 5241.0,
       "distanceKm": 4.2,
@@ -414,7 +414,7 @@
       "bodyFatPct": null
     },
     {
-      "day": "D0",
+      "day": "2026-02-17",
       "weightKg": null,
       "steps": 4660.0,
       "distanceKm": 4.21,

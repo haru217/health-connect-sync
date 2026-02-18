@@ -50,7 +50,7 @@ def _round_or_none(v: float | None, digits: int = 2) -> float | None:
     return round(float(v), digits)
 
 
-def build_public_payload(keep_dates: bool = False) -> dict[str, Any]:
+def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
     s = build_summary()
 
     weight = _series_to_map(s.get("weightByDate"), "kg")
@@ -146,11 +146,21 @@ def main() -> None:
     parser.add_argument(
         "--keep-dates",
         action="store_true",
-        help="Keep ISO dates instead of relative labels (D-6 ... D0).",
+        help="Keep ISO dates (YYYY-MM-DD). This is the default behavior.",
+    )
+    parser.add_argument(
+        "--relative-dates",
+        action="store_true",
+        help="Use relative labels (D-6 ... D0) instead of ISO dates.",
     )
     args = parser.parse_args()
+    keep_dates = True
+    if args.relative_dates:
+        keep_dates = False
+    elif args.keep_dates:
+        keep_dates = True
 
-    payload = build_public_payload(keep_dates=args.keep_dates)
+    payload = build_public_payload(keep_dates=keep_dates)
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = (Path(__file__).resolve().parent / out_path).resolve()

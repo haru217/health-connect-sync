@@ -165,7 +165,13 @@
       const n = days();
       return n >= arr.length ? arr : arr.slice(-n);
     }
-    function labels(rows) { return rows.map((x) => x.day); }
+    function dayLabel(day) {
+      if (typeof day !== "string") return String(day ?? "");
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+      if (!m) return day;
+      return `${Number(m[2])}/${Number(m[3])}`;
+    }
+    function labels(rows) { return rows.map((x) => dayLabel(x.day)); }
     function vals(rows, key) { return rows.map((x) => x[key] ?? null); }
 
     function opts() {
