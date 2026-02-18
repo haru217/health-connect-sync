@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -7,29 +7,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #081120;
-      --panel: #101f37;
-      --line: #27466f;
-      --text: #e9f1ff;
-      --muted: #9db3d6;
-      --ok: #57f270;
-      --info: #75c2ff;
-      --warn: #ffbe75;
-      --danger: #ff889c;
+      --bg: #0a1324;
+      --panel: #12213b;
+      --line: rgba(120, 156, 214, 0.22);
+      --text: #ecf3ff;
+      --muted: #9fb3d8;
+      --ok: #66ff8f;
+      --accent: #7cc6ff;
+      --warn: #ffbf7a;
+      --danger: #ff8ea4;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       color: var(--text);
-      font-family: "Noto Sans JP", sans-serif;
-      background:
-        radial-gradient(circle at 8% -6%, #1f3f6e 0, rgba(31, 63, 110, 0) 42%),
-        radial-gradient(circle at 100% 0%, #11263f 0, rgba(17, 38, 63, 0) 44%),
-        linear-gradient(180deg, #081120, #070d19);
+      font-family: "Segoe UI", "Noto Sans JP", sans-serif;
+      background: radial-gradient(circle at 10% 0%, #1b3a68 0, rgba(27,58,104,0) 40%), linear-gradient(180deg, #0a1324, #070d18);
       min-height: 100vh;
     }
     .wrap {
-      max-width: 1180px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 18px;
       display: grid;
@@ -42,22 +39,15 @@
       gap: 12px;
       flex-wrap: wrap;
     }
-    .head h1 {
-      margin: 0;
-      font-size: 30px;
-      letter-spacing: .02em;
-    }
-    .sub {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+    .title h1 { margin: 0; font-size: 30px; }
+    .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .control-stack { display: grid; gap: 8px; justify-items: end; }
     .toggle {
       display: inline-flex;
       border: 1px solid var(--line);
       border-radius: 10px;
       overflow: hidden;
-      background: #0d1a30;
+      background: rgba(12, 24, 45, 0.9);
     }
     .toggle button {
       border: 0;
@@ -69,26 +59,28 @@
       cursor: pointer;
     }
     .toggle button.on {
-      color: #05220d;
-      background: linear-gradient(180deg, #8dff98, #57f270);
+      color: #07220f;
+      background: linear-gradient(180deg, #8fff9a, #55ed73);
     }
     .banner {
-      border: 1px solid #356088;
-      background: rgba(88, 235, 131, .08);
-      color: #d6ffe1;
+      border: 1px solid #2f5786;
       border-radius: 10px;
+      background: rgba(93, 232, 138, 0.08);
+      color: #dbffe5;
       padding: 10px 12px;
       font-size: 13px;
     }
     .error {
       display: none;
+      border: 1px solid rgba(255, 142, 164, 0.45);
       border-radius: 10px;
+      background: rgba(255, 110, 140, 0.15);
+      color: #ffdbe3;
       padding: 10px 12px;
-      border: 1px solid #7f444e;
-      background: rgba(255, 103, 130, .15);
-      color: #ffd3da;
       font-size: 13px;
     }
+    .view { display: none; gap: 12px; }
+    .view.on { display: grid; }
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -97,27 +89,18 @@
     .card {
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: linear-gradient(165deg, rgba(17, 31, 55, .96), rgba(9, 17, 30, .96));
+      background: linear-gradient(165deg, rgba(18, 33, 59, .96), rgba(10, 18, 34, .96));
       padding: 12px;
-      min-height: 102px;
     }
-    .label {
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: .01em;
-    }
+    .label { color: var(--muted); font-size: 12px; }
     .value {
       margin-top: 4px;
       font-size: 28px;
       line-height: 1.1;
       font-weight: 800;
-      color: #f4f8ff;
+      color: #f5f9ff;
     }
-    .unit {
-      margin-left: 4px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .unit { margin-left: 4px; color: var(--muted); font-size: 12px; }
     .panels {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -126,17 +109,12 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: linear-gradient(165deg, rgba(17, 31, 55, .96), rgba(9, 17, 30, .96));
+      background: linear-gradient(165deg, rgba(18, 33, 59, .96), rgba(10, 18, 34, .96));
       padding: 12px;
       min-width: 0;
     }
-    .panel h3 {
-      margin: 0 0 8px;
-      font-size: 16px;
-    }
-    .canvas {
-      height: 290px;
-    }
+    .panel h3 { margin: 0 0 8px; font-size: 16px; }
+    .canvas { height: 300px; }
     .insights {
       margin: 0;
       padding: 0;
@@ -145,9 +123,9 @@
       gap: 8px;
     }
     .insights li {
-      border: 1px solid #32557e;
-      background: rgba(17, 45, 76, .5);
+      border: 1px solid #30527c;
       border-radius: 10px;
+      background: rgba(15, 41, 70, .5);
       padding: 9px 10px;
       display: grid;
       grid-template-columns: auto 1fr;
@@ -163,13 +141,52 @@
       line-height: 1;
       align-self: center;
     }
-    .badge.warn {
-      color: #2f1700;
-      background: var(--warn);
+    .badge.warn { color: #2f1700; background: var(--warn); }
+    .badge.info { color: #06253f; background: var(--accent); }
+    .nutri-controls {
+      display: flex;
+      gap: 8px;
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
     }
-    .badge.info {
-      color: #06253f;
-      background: var(--info);
+    .nutri-controls input {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(10, 19, 36, .8);
+      color: var(--text);
+      padding: 7px 9px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: linear-gradient(180deg, #8fff9a, #55ed73);
+      color: #07220f;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .table-wrap {
+      max-height: 380px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(120, 156, 214, 0.2);
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: rgba(10, 18, 34, .96);
+      color: var(--muted);
     }
     .foot {
       color: var(--muted);
@@ -181,7 +198,7 @@
     @media (max-width: 980px) {
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .panels { grid-template-columns: 1fr; }
-      .head h1 { font-size: 24px; }
+      .title h1 { font-size: 24px; }
       .canvas { height: 260px; }
     }
   </style>
@@ -189,99 +206,111 @@
 <body>
   <div class="wrap">
     <div class="head">
-      <div>
-        <h1>健康管理ダッシュボード</h1>
+      <div class="title">
+        <h1>Health Dashboard</h1>
         <div id="meta" class="sub">loading...</div>
-        <div id="kpiMode" class="sub">カード: 当日値</div>
+        <div id="kpiMode" class="sub">KPI mode</div>
       </div>
-      <div class="toggle">
-        <button class="r on" data-r="day">日</button>
-        <button class="r" data-r="week">週</button>
-        <button class="r" data-r="month">月</button>
+      <div class="control-stack">
+        <div class="toggle">
+          <button class="v on" data-v="overview">Overview</button>
+          <button class="v" data-v="nutrition">Nutrition</button>
+        </div>
+        <div class="toggle">
+          <button class="r on" data-r="day">Day</button>
+          <button class="r" data-r="week">Week</button>
+          <button class="r" data-r="month">Month</button>
+        </div>
       </div>
     </div>
 
-    <div class="banner">
-      公開用の要約データのみを表示しています。GPS・生レコード・詳細タイムスタンプは含みません。
-    </div>
-    <div id="err" class="error"></div>
+    <section id="view-overview" class="view on">
+      <div class="banner">
+        Public dashboard view. Source: <code>docs/data/summary.json</code>
+      </div>
+      <div id="err" class="error"></div>
 
-    <section class="kpis">
-      <article class="card"><div class="label">体重</div><div class="value"><span id="w">-</span><span class="unit">kg</span></div></article>
-      <article class="card"><div class="label">歩数</div><div class="value"><span id="s">-</span><span class="unit">歩</span></div></article>
-      <article class="card"><div class="label">総消費 / 摂取カロリー</div><div class="value"><span id="c">-</span><span class="unit">kcal</span></div></article>
-      <article class="card"><div class="label">カロリー収支</div><div class="value"><span id="b">-</span><span class="unit">kcal</span></div></article>
-      <article class="card"><div class="label">睡眠</div><div class="value"><span id="sl">-</span><span class="unit">h</span></div></article>
-      <article class="card"><div class="label">安静時心拍</div><div class="value"><span id="rhr">-</span><span class="unit">bpm</span></div></article>
-      <article class="card"><div class="label">酸素飽和度</div><div class="value"><span id="spo2">-</span><span class="unit">%</span></div></article>
-      <article class="card"><div class="label">体脂肪率</div><div class="value"><span id="bf">-</span><span class="unit">%</span></div></article>
+      <section class="kpis">
+        <article class="card"><div class="label">Weight</div><div class="value"><span id="w">-</span><span class="unit">kg</span></div></article>
+        <article class="card"><div class="label">Steps</div><div class="value"><span id="s">-</span><span class="unit">steps</span></div></article>
+        <article class="card"><div class="label">Burned / Intake</div><div class="value"><span id="c">-</span><span class="unit">kcal</span></div></article>
+        <article class="card"><div class="label">Sleep</div><div class="value"><span id="sl">-</span><span class="unit">h</span></div></article>
+      </section>
+
+      <section class="panels">
+        <article class="panel">
+          <h3>Weight Trend</h3>
+          <div class="canvas"><canvas id="weightChart"></canvas></div>
+        </article>
+        <article class="panel">
+          <h3>Calories</h3>
+          <div class="canvas"><canvas id="calChart"></canvas></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h3>Insights</h3>
+        <ul id="insights" class="insights"></ul>
+      </section>
     </section>
 
-    <section class="panels">
-      <article class="panel">
-        <h3>体重推移（目標 75kg）</h3>
-        <div class="canvas"><canvas id="weightChart"></canvas></div>
-      </article>
-      <article class="panel">
-        <h3>カロリー収支（総消費 / 摂取 / 収支）</h3>
-        <div class="canvas"><canvas id="calChart"></canvas></div>
-      </article>
-    </section>
+    <section id="view-nutrition" class="view">
+      <section class="panel">
+        <h3>Nutrition Details</h3>
+        <div class="sub">Daily totals from exported nutrition data</div>
+        <div class="nutri-controls">
+          <label class="sub">Date<br /><input id="nutritionDay" type="date" /></label>
+          <button id="nutritionRefresh" class="btn">Refresh</button>
+          <span id="nutritionMsg" class="sub">-</span>
+        </div>
+      </section>
 
-    <section class="panels">
-      <article class="panel">
-        <h3>活動量（歩数・距離・睡眠）</h3>
-        <div class="canvas"><canvas id="actChart"></canvas></div>
-      </article>
-      <article class="panel">
-        <h3>睡眠トレンド</h3>
-        <div class="canvas"><canvas id="sleepChart"></canvas></div>
-      </article>
-    </section>
+      <section class="kpis">
+        <article class="card"><div class="label">Total kcal</div><div class="value"><span id="nK">-</span><span class="unit">kcal</span></div></article>
+        <article class="card"><div class="label">Protein</div><div class="value"><span id="nP">-</span><span class="unit">g</span></div></article>
+        <article class="card"><div class="label">Fat</div><div class="value"><span id="nF">-</span><span class="unit">g</span></div></article>
+        <article class="card"><div class="label">Carbs</div><div class="value"><span id="nC">-</span><span class="unit">g</span></div></article>
+      </section>
 
-    <section class="panels">
-      <article class="panel">
-        <h3>バイタル（心拍・酸素飽和度）</h3>
-        <div class="canvas"><canvas id="vitalChart"></canvas></div>
-      </article>
-      <article class="panel">
-        <h3>体組成・代謝（体脂肪率・基礎代謝）</h3>
-        <div class="canvas"><canvas id="bodyChart"></canvas></div>
-      </article>
-    </section>
-
-    <section class="panel">
-      <h3>健康インサイト</h3>
-      <ul id="insights" class="insights"></ul>
+      <section class="panel">
+        <h3>Micronutrients</h3>
+        <div class="table-wrap">
+          <table id="nMicrosTable"></table>
+        </div>
+      </section>
     </section>
 
     <div class="foot">
-      <div>データ: <code>docs/data/summary.json</code></div>
-      <div>更新: <code>cd pc-server; python export_public_summary.py</code></div>
+      <div>Data: <code>docs/data/summary.json</code></div>
+      <div>Refresh source file: <code>cd pc-server; python export_public_summary.py</code></div>
     </div>
   </div>
 
   <script>
-    const S = { raw: null, range: "week" };
+    const S = { raw: null, range: "week", view: "overview" };
     const CH = {};
     const C = {
-      green: "#57f270",
-      blue: "#75c2ff",
-      cyan: "#7be8ff",
-      orange: "#ffbe75",
-      red: "#ff889c",
-      purple: "#b8a8ff",
-      slate: "#a7bde0",
+      green: "#66ff8f",
+      blue: "#7cc6ff",
+      orange: "#ffbf7a",
+      red: "#ff8ea4",
+      purple: "#b9a7ff",
     };
 
     const fmt0 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : Math.round(Number(v)).toLocaleString("ja-JP"));
     const fmt1 = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : (Math.round(Number(v) * 10) / 10).toLocaleString("ja-JP"));
     const days = () => (S.range === "day" ? 1 : S.range === "week" ? 7 : 30);
+    const todayStr = () => new Date().toISOString().slice(0, 10);
 
     function useRows() {
       const arr = Array.isArray(S.raw?.metrics) ? S.raw.metrics : [];
       const n = days();
       return n >= arr.length ? arr : arr.slice(-n);
+    }
+
+    function nutritionRows() {
+      const arr = Array.isArray(S.raw?.nutritionDaily) ? S.raw.nutritionDaily : [];
+      return arr.slice().sort((a, b) => String(a.day).localeCompare(String(b.day)));
     }
 
     function dayLabel(day) {
@@ -291,58 +320,8 @@
       return `${Number(m[2])}/${Number(m[3])}`;
     }
 
-    function labels(rows) {
-      return rows.map((x) => dayLabel(x.day));
-    }
-
-    function vals(rows, key) {
-      return rows.map((x) => x[key] ?? null);
-    }
-
-    function lastValue(rows, key) {
-      for (let i = rows.length - 1; i >= 0; i -= 1) {
-        const v = rows[i]?.[key];
-        if (v !== null && v !== undefined && !Number.isNaN(Number(v))) return Number(v);
-      }
-      return null;
-    }
-
-    function displayValue(rows, key) {
-      const v = lastValue(rows, key);
-      if (v !== null) return v;
-      const latest = S.raw?.latest?.[key];
-      if (latest === null || latest === undefined || Number.isNaN(Number(latest))) return null;
-      return Number(latest);
-    }
-
-    function meanValue(rows, key) {
-      const arr = rows
-        .map((x) => x?.[key])
-        .filter((v) => v !== null && v !== undefined && !Number.isNaN(Number(v)))
-        .map((v) => Number(v));
-      if (!arr.length) return null;
-      return arr.reduce((a, b) => a + b, 0) / arr.length;
-    }
-
-    function cardValue(rows, key, useAverageForRange = true) {
-      if (S.range === "day" || !useAverageForRange) {
-        return displayValue(rows, key);
-      }
-      const avg = meanValue(rows, key);
-      if (avg !== null) return avg;
-      return displayValue(rows, key);
-    }
-
-    function movingAverage(rows, key, window = 7, minPoints = 3) {
-      const out = [];
-      for (let i = 0; i < rows.length; i += 1) {
-        const start = Math.max(0, i - window + 1);
-        const slice = rows.slice(start, i + 1).map((x) => x[key]).filter((v) => v !== null && v !== undefined && !Number.isNaN(Number(v))).map((v) => Number(v));
-        if (slice.length < minPoints) out.push(null);
-        else out.push(slice.reduce((a, b) => a + b, 0) / slice.length);
-      }
-      return out;
-    }
+    function labels(rows) { return rows.map((x) => dayLabel(x.day)); }
+    function vals(rows, key) { return rows.map((x) => x[key] ?? null); }
 
     function opts() {
       return {
@@ -380,6 +359,7 @@
 
     function showError(msg) {
       const e = document.getElementById("err");
+      if (!e) return;
       e.style.display = "block";
       e.textContent = msg;
     }
@@ -387,13 +367,13 @@
     function fillInsights(items) {
       const ul = document.getElementById("insights");
       ul.innerHTML = "";
-      if (!Array.isArray(items) || items.length === 0) {
+      if (!Array.isArray(items) || !items.length) {
         const li = document.createElement("li");
         const badge = document.createElement("span");
         badge.className = "badge info";
         badge.textContent = "INFO";
         const text = document.createElement("span");
-        text.textContent = "まだインサイトがありません。データが増えると表示されます。";
+        text.textContent = "No insights available.";
         li.appendChild(badge);
         li.appendChild(text);
         ul.appendChild(li);
@@ -401,57 +381,72 @@
       }
       items.forEach((item) => {
         const level = (item?.level || "info").toLowerCase() === "warn" ? "warn" : "info";
-        const badgeText = level === "warn" ? "WARN" : "INFO";
-        const message = typeof item?.message === "string" ? item.message : "-";
-        const li = document.createElement("li");
         const badge = document.createElement("span");
         badge.className = `badge ${level}`;
-        badge.textContent = badgeText;
+        badge.textContent = level === "warn" ? "WARN" : "INFO";
         const text = document.createElement("span");
-        text.textContent = message;
+        text.textContent = typeof item?.message === "string" ? item.message : "-";
+        const li = document.createElement("li");
         li.appendChild(badge);
         li.appendChild(text);
         ul.appendChild(li);
       });
     }
 
-    function render() {
-      if (!S.raw) return;
+    function setView(nextView) {
+      const v = nextView === "nutrition" ? "nutrition" : "overview";
+      S.view = v;
+      const o = document.getElementById("view-overview");
+      const n = document.getElementById("view-nutrition");
+      if (o) o.classList.toggle("on", v === "overview");
+      if (n) n.classList.toggle("on", v === "nutrition");
+      document.querySelectorAll(".v").forEach((b) => {
+        b.classList.toggle("on", b.dataset.v === v);
+      });
+      if (v === "nutrition") renderNutrition();
+    }
+
+    function renderOverview() {
       const rows = useRows();
       if (!rows.length) {
-        showError("summary.json に表示可能な metrics がありません。");
+        showError("No metrics available in summary.json");
         return;
       }
 
-      const singleDay = rows.length === 1;
+      setText("kpiMode", S.range === "day" ? "KPI mode: latest day" : "KPI mode: range average");
+      const latest = rows[rows.length - 1] || {};
+      const mean = (key) => {
+        if (S.range === "day") return latest[key] ?? null;
+        const arr = rows
+          .map((x) => x?.[key])
+          .filter((v) => v !== null && v !== undefined && !Number.isNaN(Number(v)))
+          .map((v) => Number(v));
+        if (!arr.length) return latest[key] ?? null;
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+      };
+
+      setText("w", fmt1(latest.weightKg));
+      setText("s", fmt0(mean("steps")));
+      setText("c", `${fmt0(mean("totalCaloriesKcal"))} / ${fmt0(mean("intakeCaloriesKcal"))}`);
+      setText("sl", fmt1(mean("sleepHours")));
+
       const l = labels(rows);
-      setText("kpiMode", S.range === "day" ? "カード: 当日値" : "カード: 期間平均");
-
-      // Weight is kept as latest measured value; other KPI cards use range average on week/month.
-      setText("w", fmt1(cardValue(rows, "weightKg", false)));
-      setText("s", fmt0(cardValue(rows, "steps")));
-      setText("c", `${fmt0(cardValue(rows, "totalCaloriesKcal"))} / ${fmt0(cardValue(rows, "intakeCaloriesKcal"))}`);
-      setText("b", fmt0(cardValue(rows, "calorieBalanceKcal")));
-      setText("sl", fmt1(cardValue(rows, "sleepHours")));
-      setText("rhr", fmt0(cardValue(rows, "restingHeartRateBpm")));
-      setText("spo2", fmt1(cardValue(rows, "oxygenSaturationPct")));
-      setText("bf", fmt1(cardValue(rows, "bodyFatPct")));
-
+      const singleDay = rows.length === 1;
       const targetWeight = Number(S.raw?.goals?.targetWeightKg ?? 75);
       draw("weightChart", singleDay ? "bar" : "line", l, [
         {
           type: singleDay ? "bar" : "line",
-          label: "体重",
+          label: "Weight",
           data: vals(rows, "weightKg"),
           borderColor: C.green,
-          backgroundColor: singleDay ? "rgba(87,242,112,.38)" : "rgba(87,242,112,.16)",
+          backgroundColor: singleDay ? "rgba(102,255,143,.4)" : "rgba(102,255,143,.16)",
           fill: !singleDay,
           pointRadius: 2,
           tension: .25,
         },
         {
           type: "line",
-          label: "目標",
+          label: "Target",
           data: l.map(() => targetWeight),
           borderColor: C.orange,
           borderDash: [6, 4],
@@ -461,53 +456,79 @@
       ]);
 
       draw("calChart", "bar", l, [
-        { label: "総消費", data: vals(rows, "totalCaloriesKcal"), backgroundColor: "rgba(255,136,156,.45)", borderColor: C.red },
-        { label: "摂取", data: vals(rows, "intakeCaloriesKcal"), backgroundColor: "rgba(117,194,255,.45)", borderColor: C.blue },
-        { label: "収支", data: vals(rows, "calorieBalanceKcal"), backgroundColor: "rgba(255,190,117,.45)", borderColor: C.orange },
+        { label: "Burned", data: vals(rows, "totalCaloriesKcal"), backgroundColor: "rgba(255,142,164,.42)", borderColor: C.red },
+        { label: "Intake", data: vals(rows, "intakeCaloriesKcal"), backgroundColor: "rgba(124,198,255,.42)", borderColor: C.blue },
+        { label: "Balance", data: vals(rows, "calorieBalanceKcal"), backgroundColor: "rgba(255,191,122,.42)", borderColor: C.orange },
       ]);
-
-      const oAct = opts();
-      oAct.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
-      draw("actChart", singleDay ? "bar" : "line", l, [
-        { label: "歩数", data: vals(rows, "steps"), borderColor: C.green, backgroundColor: "rgba(87,242,112,.36)", yAxisID: "y", pointRadius: 2, tension: .25 },
-        { label: "距離(km)", data: vals(rows, "distanceKm"), borderColor: C.cyan, backgroundColor: "rgba(123,232,255,.30)", yAxisID: "y1", pointRadius: 2, tension: .25 },
-        { label: "睡眠(h)", data: vals(rows, "sleepHours"), borderColor: C.slate, backgroundColor: "rgba(167,189,224,.28)", yAxisID: "y1", pointRadius: 2, tension: .25 },
-      ], oAct);
-
-      const sleepMA = movingAverage(rows, "sleepHours", 7, 3);
-      draw("sleepChart", "bar", l, [
-        { label: "睡眠(h)", data: vals(rows, "sleepHours"), backgroundColor: "rgba(117,194,255,.44)", borderColor: C.blue },
-        { type: "line", label: "移動平均(7)", data: sleepMA, borderColor: C.purple, pointRadius: 1.5, tension: .25 },
-      ]);
-
-      const oVital = opts();
-      oVital.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
-      draw("vitalChart", singleDay ? "bar" : "line", l, [
-        { label: "心拍(bpm)", data: vals(rows, "heartRateBpm"), borderColor: C.red, backgroundColor: "rgba(255,136,156,.34)", yAxisID: "y", pointRadius: 2, tension: .2 },
-        { label: "安静時心拍(bpm)", data: vals(rows, "restingHeartRateBpm"), borderColor: C.orange, backgroundColor: "rgba(255,190,117,.34)", yAxisID: "y", pointRadius: 2, tension: .2 },
-        { label: "SpO2(%)", data: vals(rows, "oxygenSaturationPct"), borderColor: C.green, backgroundColor: "rgba(87,242,112,.32)", yAxisID: "y1", pointRadius: 2, tension: .2 },
-      ], oVital);
-
-      const oBody = opts();
-      oBody.scales.y1 = { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "rgba(220,232,255,.84)" } };
-      draw("bodyChart", "bar", l, [
-        { label: "基礎代謝(kcal/日)", data: vals(rows, "bmrKcalPerDay"), backgroundColor: "rgba(184,168,255,.42)", borderColor: C.purple, yAxisID: "y" },
-        { type: "line", label: "体脂肪率(%)", data: vals(rows, "bodyFatPct"), borderColor: C.blue, backgroundColor: "rgba(117,194,255,.2)", yAxisID: "y1", pointRadius: 2, tension: .2 },
-      ], oBody);
 
       fillInsights(S.raw?.insights);
+    }
+
+    function renderNutrition() {
+      const dayInput = document.getElementById("nutritionDay");
+      const msg = document.getElementById("nutritionMsg");
+      const table = document.getElementById("nMicrosTable");
+      if (!dayInput || !msg || !table) return;
+
+      const rows = nutritionRows();
+      if (!rows.length) {
+        setText("nK", "-");
+        setText("nP", "-");
+        setText("nF", "-");
+        setText("nC", "-");
+        table.innerHTML = "<tr><th>Nutrient</th><th>Total</th></tr><tr><td colspan='2'>No nutrition data</td></tr>";
+        msg.textContent = "No nutritionDaily in summary.json";
+        return;
+      }
+
+      const daysAvailable = new Set(rows.map((r) => String(r.day)));
+      if (!dayInput.value || !daysAvailable.has(dayInput.value)) {
+        dayInput.value = String(rows[rows.length - 1].day || todayStr());
+      }
+      const row = rows.find((r) => String(r.day) === dayInput.value) || rows[rows.length - 1];
+
+      setText("nK", fmt1(row.kcal));
+      setText("nP", fmt1(row.protein_g));
+      setText("nF", fmt1(row.fat_g));
+      setText("nC", fmt1(row.carbs_g));
+
+      const micros = row && typeof row.micros === "object" && row.micros
+        ? Object.entries(row.micros).filter(([, v]) => Number.isFinite(Number(v)))
+        : [];
+      micros.sort((a, b) => Number(b[1]) - Number(a[1]));
+
+      table.innerHTML = "<tr><th>Nutrient</th><th>Total</th></tr>";
+      if (!micros.length) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = "<td colspan='2'>No micronutrients</td>";
+        table.appendChild(tr);
+      } else {
+        micros.forEach(([k, v]) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td>" + k + "</td><td>" + fmt1(v) + "</td>";
+          table.appendChild(tr);
+        });
+      }
+
+      msg.textContent = `${dayInput.value} | micros: ${micros.length}`;
+    }
+
+    function render() {
+      if (!S.raw) return;
+      setView(S.view);
+      renderOverview();
+      if (S.view === "nutrition") renderNutrition();
     }
 
     async function load() {
       try {
         const r = await fetch("./data/summary.json?ts=" + Date.now());
-        if (!r.ok) throw new Error("summary.json の取得に失敗: " + r.status);
+        if (!r.ok) throw new Error("summary.json fetch failed: " + r.status);
         S.raw = await r.json();
         const p = S.raw?.privacy || {};
-        setText(
-          "meta",
-          `generatedAt: ${S.raw?.generatedAt || "-"} / dateMode: ${p.dateMode || "-"} / gps: ${p.containsGps ? "あり" : "なし"}`
-        );
+        setText("meta", `generatedAt: ${S.raw?.generatedAt || "-"} / dateMode: ${p.dateMode || "-"} / gps: ${p.containsGps ? "yes" : "no"}`);
+        const d = document.getElementById("nutritionDay");
+        if (d && !d.value) d.value = todayStr();
         render();
       } catch (e) {
         showError((e && e.message) ? e.message : String(e));
@@ -519,9 +540,16 @@
         document.querySelectorAll(".r").forEach((x) => x.classList.remove("on"));
         b.classList.add("on");
         S.range = b.dataset.r;
-        render();
+        renderOverview();
       });
     });
+
+    document.querySelectorAll(".v").forEach((b) => {
+      b.addEventListener("click", () => setView(b.dataset.v));
+    });
+
+    document.getElementById("nutritionRefresh").addEventListener("click", renderNutrition);
+    document.getElementById("nutritionDay").addEventListener("change", renderNutrition);
 
     load();
   </script>

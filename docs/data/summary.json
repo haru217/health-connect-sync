@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-02-18T12:37:09.125295+00:00",
+  "generatedAt": "2026-02-18T13:46:01.174041+00:00",
   "privacy": {
     "containsRawRecords": false,
     "containsGps": false,
@@ -12,18 +12,18 @@
   },
   "latest": {
     "weightKg": 84.4,
-    "steps": 4660.0,
-    "distanceKm": 4.21,
-    "sleepHours": 5.24,
-    "activeCaloriesKcal": 593.9,
-    "totalCaloriesKcal": 2273.9,
+    "steps": 6304.0,
+    "distanceKm": 5.71,
+    "sleepHours": 4.76,
+    "activeCaloriesKcal": 815.6,
+    "totalCaloriesKcal": 2495.7,
     "intakeCaloriesKcal": 1800.0,
-    "calorieBalanceKcal": 473.9,
+    "calorieBalanceKcal": 695.7,
     "bmrKcalPerDay": 1680.0,
     "bodyFatPct": 0.0,
-    "heartRateBpm": 65.7,
-    "restingHeartRateBpm": 50.0,
-    "oxygenSaturationPct": 95.0
+    "heartRateBpm": 75.4,
+    "restingHeartRateBpm": 56.0,
+    "oxygenSaturationPct": 98.0
   },
   "insights": [
     {
@@ -32,7 +32,7 @@
     },
     {
       "level": "info",
-      "message": "直近7日平均の収支（摂取-総消費）は 329 kcal/日"
+      "message": "直近7日平均の収支（摂取-総消費）は 442 kcal/日"
     }
   ],
   "metrics": [
@@ -519,18 +519,44 @@
     {
       "day": "2026-02-17",
       "weightKg": null,
-      "steps": 4660.0,
-      "distanceKm": 4.21,
-      "activeCaloriesKcal": 593.9,
-      "totalCaloriesKcal": 2273.9,
+      "steps": 4945.0,
+      "distanceKm": 4.37,
+      "activeCaloriesKcal": 664.9,
+      "totalCaloriesKcal": 2344.9,
       "intakeCaloriesKcal": 1800.0,
-      "calorieBalanceKcal": 473.9,
+      "calorieBalanceKcal": 544.9,
       "sleepHours": 5.24,
       "bmrKcalPerDay": 1680.0,
       "bodyFatPct": null,
-      "heartRateBpm": 65.7,
+      "heartRateBpm": 67.6,
       "restingHeartRateBpm": 50.0,
-      "oxygenSaturationPct": 95.0
+      "oxygenSaturationPct": 93.0
+    },
+    {
+      "day": "2026-02-18",
+      "weightKg": null,
+      "steps": 6304.0,
+      "distanceKm": 5.71,
+      "activeCaloriesKcal": 815.6,
+      "totalCaloriesKcal": 2495.7,
+      "intakeCaloriesKcal": 1800.0,
+      "calorieBalanceKcal": 695.7,
+      "sleepHours": 4.76,
+      "bmrKcalPerDay": 1680.0,
+      "bodyFatPct": null,
+      "heartRateBpm": 75.4,
+      "restingHeartRateBpm": 56.0,
+      "oxygenSaturationPct": 98.0
+    }
+  ],
+  "nutritionDaily": [
+    {
+      "day": "2026-02-18",
+      "kcal": 1035.0,
+      "protein_g": 130.0,
+      "fat_g": 10.0,
+      "carbs_g": 94.0,
+      "micros": {}
     }
   ]
 }

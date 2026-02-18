@@ -76,6 +76,75 @@ class OpenClawIngestTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(float(row["intake_kcal"]), 2000.0)
 
+    def test_label_item_estimates_micros_when_missing(self) -> None:
+        payload = {
+            "event_id": "test:event:estimate:1",
+            "local_date": "2026-02-18",
+            "items": [
+                {
+                    "label": "izakaya set meal",
+                    "count": 1,
+                    "kcal": 800,
+                    "protein_g": 25,
+                    "fat_g": 30,
+                    "carbs_g": 90,
+                }
+            ],
+        }
+        self.ingest_mod.ingest_openclaw_payload(payload)
+
+        with self.db_mod.db() as conn:
+            rows = conn.execute(
+                """
+                SELECT nutrient_key, value
+                FROM nutrition_nutrients
+                WHERE local_date = ?
+                """,
+                ("2026-02-18",),
+            ).fetchall()
+        totals = {str(r["nutrient_key"]): float(r["value"]) for r in rows}
+        self.assertGreater(totals.get("sodium_mg", 0.0), 0.0)
+        self.assertGreater(totals.get("dietary_fiber_g", 0.0), 0.0)
+        self.assertGreater(totals.get("vitamin_c_mg", 0.0), 0.0)
+
+    def test_label_item_provided_micros_override_estimate(self) -> None:
+        payload = {
+            "event_id": "test:event:estimate:override",
+            "local_date": "2026-02-18",
+            "items": [
+                {
+                    "label": "restaurant menu",
+                    "count": 1,
+                    "kcal": 600,
+                    "protein_g": 20,
+                    "fat_g": 25,
+                    "carbs_g": 65,
+                    "micros": {"sodium_mg": 10, "vitamin_c_mg": 1.5},
+                }
+            ],
+        }
+        self.ingest_mod.ingest_openclaw_payload(payload)
+
+        with self.db_mod.db() as conn:
+            sodium = conn.execute(
+                """
+                SELECT value FROM nutrition_nutrients
+                WHERE local_date = ? AND nutrient_key = 'sodium_mg'
+                """,
+                ("2026-02-18",),
+            ).fetchone()
+            vitamin_c = conn.execute(
+                """
+                SELECT value FROM nutrition_nutrients
+                WHERE local_date = ? AND nutrient_key = 'vitamin_c_mg'
+                """,
+                ("2026-02-18",),
+            ).fetchone()
+        self.assertIsNotNone(sodium)
+        self.assertIsNotNone(vitamin_c)
+        self.assertEqual(float(sodium["value"]), 10.0)
+        self.assertEqual(float(vitamin_c["value"]), 1.5)
+
     def test_event_id_is_required(self) -> None:
         payload = {"local_date": "2026-02-18", "items": [{"alias": "protein", "count": 1}]}
         with self.assertRaises(ValueError):

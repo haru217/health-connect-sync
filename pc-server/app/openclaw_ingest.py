@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from .db import LOCAL_TZ, db, now_iso
+from .estimator import merge_micros_with_estimate
 from .nutrition import CATALOG, log_alias, log_event
 
 
@@ -215,6 +216,14 @@ def ingest_openclaw_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 note=item.get("note"),
             )
         else:
+            micros = merge_micros_with_estimate(
+                str(item["label"]),
+                kcal=item.get("kcal"),
+                protein_g=item.get("protein_g"),
+                fat_g=item.get("fat_g"),
+                carbs_g=item.get("carbs_g"),
+                provided_micros=item.get("micros"),
+            )
             log_event(
                 consumed_at=item.get("consumed_at"),
                 alias=None,
@@ -224,7 +233,7 @@ def ingest_openclaw_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 protein_g=item.get("protein_g"),
                 fat_g=item.get("fat_g"),
                 carbs_g=item.get("carbs_g"),
-                micros=item.get("micros"),
+                micros=micros,
                 note=item.get("note"),
             )
 

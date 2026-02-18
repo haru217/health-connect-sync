@@ -69,10 +69,23 @@
     }
     .set { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); font-size: 13px; font-weight: 700; }
     .main { padding: 18px; display: grid; gap: 12px; }
+    .view { display: none; gap: 12px; }
+    .view.on { display: grid; }
     .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .top h1 { font-size: 36px; line-height: 1.1; }
     .top p { margin: 4px 0 0; color: var(--muted); }
     .sw { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(18, 34, 60, .8); }
+    .vw { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(18, 34, 60, .8); margin-right: 8px; }
+    .vb {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 12px;
+      font-weight: 700;
+      min-width: 90px;
+      cursor: pointer;
+    }
+    .vb.on { color: #07220f; background: linear-gradient(180deg, #8dff88, #41e63b); }
     .rb {
       border: 0;
       background: transparent;
@@ -196,6 +209,7 @@
       <div class="set">設定</div>
     </aside>
     <main class="main">
+      <section id="view-overview" class="view on">
       <div class="top">
         <div>
           <h1>健康管理ダッシュボード</h1>
@@ -206,6 +220,11 @@
           <button class="rb" data-r="week">週間</button>
           <button class="rb" data-r="month">月間</button>
         </div>
+      </div>
+
+      <div class="vw" style="margin-bottom:2px;">
+        <button class="vb on" data-v="overview">Overview</button>
+        <button class="vb" data-v="nutrition">Nutrition</button>
       </div>
 
       <section class="hero">
@@ -299,9 +318,42 @@
           <div class="tbl"><table id="byType"></table></div>
         </article>
       </section>
+      </section>
+
+      <section id="view-nutrition" class="view">
+        <div class="top">
+          <div>
+            <h1>Nutrition Details</h1>
+            <p id="nutritionSubline">Daily nutrition totals and meal logs</p>
+          </div>
+          <div class="controls">
+            <label class="f">Date<input id="nutritionDay" type="date" /></label>
+            <button id="nutritionRefreshBtn" class="save">Refresh</button>
+          </div>
+        </div>
+
+        <section class="kpis">
+          <article class="k"><div class="kl">Total kcal</div><div class="kv"><span id="nKcal">-</span><span class="u">kcal</span></div></article>
+          <article class="k"><div class="kl">Protein</div><div class="kv"><span id="nProtein">-</span><span class="u">g</span></div></article>
+          <article class="k"><div class="kl">Fat</div><div class="kv"><span id="nFat">-</span><span class="u">g</span></div></article>
+          <article class="k"><div class="kl">Carbs</div><div class="kv"><span id="nCarbs">-</span><span class="u">g</span></div></article>
+        </section>
+
+        <section class="tw">
+          <article class="panel">
+            <h3>Micronutrients (daily totals)</h3>
+            <div class="tbl"><table id="nutritionTotalsTable"></table></div>
+          </article>
+          <article class="panel">
+            <h3>Meal Events</h3>
+            <div class="tbl"><table id="nutritionEventsTable"></table></div>
+            <div id="nutritionMsg" class="msg">-</div>
+          </article>
+        </section>
+      </section>
 
       <script>
-        const S = { apiKey: "", data: null, range: "day" };
+        const S = { apiKey: "", data: null, range: "day", view: "overview", nutritionData: null };
         const CH = {};
         const C = {
           acc: "#33ff20",
@@ -323,6 +375,7 @@
         const pct = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "--" : (Number(v) > 0 ? "+" : "") + (Math.round(Number(v) * 10) / 10) + "%");
         const last = (a) => (a && a.length ? a[a.length - 1] : null);
         const map = (a, k) => Object.fromEntries((a || []).map((x) => [x.date, x[k]]));
+        const todayStr = () => new Date().toISOString().slice(0, 10);
         const dayDate = (s) => new Date(s + "T00:00:00");
         const rangeDays = () => (S.range === "day" ? 1 : S.range === "week" ? 7 : 30);
         const chartType = () => (S.range === "day" ? "bar" : "line");
@@ -417,6 +470,93 @@
           const r = await fetch("/api/summary", { headers: { "X-Api-Key": S.apiKey } });
           if (!r.ok) throw new Error("summary fetch failed: " + r.status);
           return r.json();
+        }
+        async function getNutritionDay(day) {
+          const r = await fetch("/api/nutrition/day?date=" + encodeURIComponent(day), {
+            headers: { "X-Api-Key": S.apiKey },
+          });
+          if (!r.ok) throw new Error("nutrition/day fetch failed: " + r.status);
+          return r.json();
+        }
+        function setView(v) {
+          const next = v === "nutrition" ? "nutrition" : "overview";
+          const changed = next !== S.view;
+          S.view = next;
+          const o = document.getElementById("view-overview");
+          const n = document.getElementById("view-nutrition");
+          if (o) o.classList.toggle("on", S.view === "overview");
+          if (n) n.classList.toggle("on", S.view === "nutrition");
+          document.querySelectorAll(".vb").forEach((b) => {
+            b.classList.toggle("on", b.dataset.v === S.view);
+          });
+          if (S.view === "nutrition" && changed) refreshNutrition();
+        }
+        function renderNutritionDay(D) {
+          const totals = (D && D.totals) || {};
+          set("nKcal", fmt1(totals.kcal));
+          set("nProtein", fmt1(totals.protein_g));
+          set("nFat", fmt1(totals.fat_g));
+          set("nCarbs", fmt1(totals.carbs_g));
+
+          const micros = totals && typeof totals.micros === "object" && totals.micros
+            ? Object.entries(totals.micros).filter(([, v]) => Number.isFinite(Number(v)))
+            : [];
+          micros.sort((a, b) => Number(b[1]) - Number(a[1]));
+          const mt = document.getElementById("nutritionTotalsTable");
+          mt.innerHTML = "<tr><th>Nutrient</th><th>Total</th></tr>";
+          if (!micros.length) {
+            const r = document.createElement("tr");
+            r.innerHTML = "<td colspan='2'>No micronutrients logged</td>";
+            mt.appendChild(r);
+          } else {
+            for (const [k, v] of micros) {
+              const r = document.createElement("tr");
+              r.innerHTML = "<td>" + k + "</td><td>" + fmt1(v) + "</td>";
+              mt.appendChild(r);
+            }
+          }
+
+          const events = Array.isArray(D && D.events) ? D.events : [];
+          const et = document.getElementById("nutritionEventsTable");
+          et.innerHTML = "<tr><th>Time</th><th>Meal</th><th>Count</th><th>kcal</th><th>P</th><th>F</th><th>C</th></tr>";
+          if (!events.length) {
+            const r = document.createElement("tr");
+            r.innerHTML = "<td colspan='7'>No meal events</td>";
+            et.appendChild(r);
+          } else {
+            for (const ev of events) {
+              const t = String(ev.consumed_at || "").replace("T", " ").slice(0, 16);
+              const name = ev.label || ev.alias || "-";
+              const r = document.createElement("tr");
+              r.innerHTML =
+                "<td>" + t + "</td>" +
+                "<td>" + name + "</td>" +
+                "<td>" + fmt1(ev.count) + "</td>" +
+                "<td>" + fmt1(ev.kcal) + "</td>" +
+                "<td>" + fmt1(ev.protein_g) + "</td>" +
+                "<td>" + fmt1(ev.fat_g) + "</td>" +
+                "<td>" + fmt1(ev.carbs_g) + "</td>";
+              et.appendChild(r);
+            }
+          }
+
+          const m = document.getElementById("nutritionMsg");
+          m.className = "msg";
+          m.textContent = (D.date || "-") + " | events: " + events.length + " | micros: " + micros.length;
+        }
+        async function refreshNutrition() {
+          const dayInput = document.getElementById("nutritionDay");
+          const msg = document.getElementById("nutritionMsg");
+          if (!dayInput.value) dayInput.value = todayStr();
+          msg.className = "msg";
+          msg.textContent = "Loading...";
+          try {
+            S.nutritionData = await getNutritionDay(dayInput.value);
+            renderNutritionDay(S.nutritionData);
+          } catch (e) {
+            msg.className = "msg w";
+            msg.textContent = "Load failed: " + (e.message || e);
+          }
         }
 
         function renderGoal(D) {
@@ -622,6 +762,7 @@
         }
         function render() {
           if (!S.data) return;
+          setView(S.view);
           rb();
           renderGoal(S.data);
           renderKpi(S.data);
@@ -664,11 +805,20 @@
         async function load() {
           await key();
           if (!S.apiKey) return;
+          const nd = document.getElementById("nutritionDay");
+          if (nd && !nd.value) nd.value = todayStr();
           S.data = await get();
           render();
         }
 
         document.getElementById("saveIntakeBtn").addEventListener("click", save);
+        document.querySelectorAll(".vb").forEach((b) =>
+          b.addEventListener("click", () => {
+            setView(b.dataset.v);
+          })
+        );
+        document.getElementById("nutritionRefreshBtn").addEventListener("click", refreshNutrition);
+        document.getElementById("nutritionDay").addEventListener("change", refreshNutrition);
         document.getElementById("intakeDay").addEventListener("change", () => {
           if (S.data) intakeSync(S.data);
         });

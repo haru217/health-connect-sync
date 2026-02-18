@@ -190,6 +190,20 @@ def log_alias(alias: str, *, consumed_at: datetime | None = None, count: float =
     item = CATALOG.get(alias)
     if item is None:
         raise ValueError(f"Unknown alias: {alias}")
+
+    # If an alias item lacks micros, estimate them to avoid missing micronutrients.
+    micros = item.micros
+    if micros is None and item.kcal is not None and float(item.kcal) > 0:
+        from .estimator import estimate_micros
+
+        micros = estimate_micros(
+            item.label,
+            kcal=float(item.kcal),
+            protein_g=item.protein_g,
+            fat_g=item.fat_g,
+            carbs_g=item.carbs_g,
+        )
+
     log_event(
         consumed_at=consumed_at,
         alias=item.alias,
@@ -200,7 +214,7 @@ def log_alias(alias: str, *, consumed_at: datetime | None = None, count: float =
         protein_g=item.protein_g,
         fat_g=item.fat_g,
         carbs_g=item.carbs_g,
-        micros=item.micros,
+        micros=micros,
         note=note,
     )
 

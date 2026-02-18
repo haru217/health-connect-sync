@@ -32,6 +32,11 @@ Manual nutrition/supplement logging.
 }
 ```
 
+Behavior for `label` items:
+- The server auto-estimates micronutrients to reduce missing coverage.
+- If `micros` is provided, provided values override estimated values per key.
+- This applies to both `POST /api/nutrition/log` and `POST /api/openclaw/ingest`.
+
 ### Batch example
 
 ```json

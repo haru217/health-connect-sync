@@ -154,16 +154,17 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
                     f2 = float(fat_g) if fat_g is not None else None
                     c2 = float(carbs_g) if carbs_g is not None else None
 
-                    # Estimate micros to avoid missing micronutrients for unlabeled meals.
-                    from .estimator import estimate_micros
+                    # Estimate micronutrients first, then let provided values override.
+                    from .estimator import merge_micros_with_estimate
 
-                    est = estimate_micros(str(label), kcal=k2, protein_g=p2, fat_g=f2, carbs_g=c2)
-                    if isinstance(micros, dict):
-                        # user-provided micros override estimates
-                        for mk, mv in micros.items():
-                            if isinstance(mv, (int, float)):
-                                est[mk] = float(mv)
-                    micros2 = est or (micros if isinstance(micros, dict) else None)
+                    micros2 = merge_micros_with_estimate(
+                        str(label),
+                        kcal=k2,
+                        protein_g=p2,
+                        fat_g=f2,
+                        carbs_g=c2,
+                        provided_micros=micros,
+                    )
 
                     log_event(
                         consumed_at=consumed_at,
@@ -203,14 +204,16 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
             f2 = float(fat_g) if fat_g is not None else None
             c2 = float(carbs_g) if carbs_g is not None else None
 
-            from .estimator import estimate_micros
+            from .estimator import merge_micros_with_estimate
 
-            est = estimate_micros(str(label), kcal=k2, protein_g=p2, fat_g=f2, carbs_g=c2)
-            if isinstance(micros, dict):
-                for mk, mv in micros.items():
-                    if isinstance(mv, (int, float)):
-                        est[mk] = float(mv)
-            micros2 = est or (micros if isinstance(micros, dict) else None)
+            micros2 = merge_micros_with_estimate(
+                str(label),
+                kcal=k2,
+                protein_g=p2,
+                fat_g=f2,
+                carbs_g=c2,
+                provided_micros=micros,
+            )
 
             log_event(
                 consumed_at=consumed_at,

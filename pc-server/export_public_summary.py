@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.nutrition import get_day_totals
 from app.summary import build_summary
 
 TARGET_WEIGHT_KG = 75.0
@@ -64,6 +65,40 @@ def _sanitize_insights(raw: Any) -> list[dict[str, str]]:
     return out[:20]
 
 
+def _sanitize_micros(raw: Any) -> dict[str, float]:
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, float] = {}
+    for k, v in raw.items():
+        if isinstance(k, str) and isinstance(v, (int, float)):
+            out[k] = round(float(v), 4)
+    return out
+
+
+def _build_nutrition_daily(days: list[str], keep_dates: bool, labels: dict[str, str]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for day in days:
+        totals = get_day_totals(day)
+        kcal = _round_or_none(totals.get("kcal"), 1)
+        protein = _round_or_none(totals.get("protein_g"), 2)
+        fat = _round_or_none(totals.get("fat_g"), 2)
+        carbs = _round_or_none(totals.get("carbs_g"), 2)
+        micros = _sanitize_micros(totals.get("micros"))
+        if kcal is None and protein is None and fat is None and carbs is None and not micros:
+            continue
+        out.append(
+            {
+                "day": day if keep_dates else labels[day],
+                "kcal": kcal,
+                "protein_g": protein,
+                "fat_g": fat,
+                "carbs_g": carbs,
+                "micros": micros,
+            }
+        )
+    return out
+
+
 def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
     s = build_summary()
 
@@ -98,6 +133,7 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
     )
 
     labels = _relative_labels(all_days)
+    nutrition_daily = _build_nutrition_daily(all_days, keep_dates, labels)
     points: list[dict[str, Any]] = []
     for day in all_days:
         points.append(
@@ -162,6 +198,7 @@ def build_public_payload(keep_dates: bool = True) -> dict[str, Any]:
         },
         "insights": _sanitize_insights(s.get("insights")),
         "metrics": points,
+        "nutritionDaily": nutrition_daily,
     }
 
 

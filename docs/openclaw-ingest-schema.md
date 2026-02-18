@@ -57,6 +57,11 @@ Custom nutrition item fields (when `label` is used):
 - `carbs_g`
 - `micros` (optional object)
 
+Micronutrient policy for `label` items:
+- If `micros` is missing (or partially missing), server-side estimation fills gaps.
+- If `micros` has a key, that value overrides the estimated value for that key.
+- Goal is to avoid false "not consumed" diagnostics caused by missing data.
+
 ## Legacy Compatibility
 
 Legacy pending format is still accepted by importer:
