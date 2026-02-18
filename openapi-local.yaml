@@ -151,6 +151,66 @@ components:
       description: Summary payload for dashboard
 
 paths:
+  /api/nutrition/day:
+    get:
+      summary: Get nutrition events for a local date
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+          description: Local date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/nutrition/log:
+    post:
+      summary: Log manual nutrition/supplement event(s)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: |
+                Payload examples:
+                - {"alias":"protein","count":1}
+                - {"items":[{"alias":"protein","count":1},{"alias":"vitamin_d","count":1}]}
+                - {"label":"rice","count":1,"kcal":300,"protein_g":6,"fat_g":1,"carbs_g":70}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/report/yesterday:
+    get:
+      summary: Yesterday report (text; includes manual nutrition PFC+micros)
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+
   /api/status:
     get:
       summary: Server status
