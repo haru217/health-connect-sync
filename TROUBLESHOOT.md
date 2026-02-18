@@ -93,3 +93,50 @@
 
 診断：
 - `GET /api/export.csv?type=WeightRecord` を取得して payload_json を見る
+
+---
+
+## OpenClaw ingest troubleshooting (new)
+
+### `HTTP_400` on `/api/openclaw/ingest`
+
+Common causes:
+- `event_id` missing
+- `items` empty
+- alias not in catalog
+
+Check payload against: `docs/openclaw-ingest-schema.md`
+
+### Duplicate handling
+
+If the same payload is sent again with the same `event_id`, server returns:
+
+```json
+{"ok":true,"ingested":0,"duplicate":1}
+```
+
+This is expected and does not double-count nutrition totals.
+
+### Pending importer did not pick files
+
+- Place files in `pending/inbox/*.jsonl` (preferred)
+- Legacy `pending/*.jsonl` is still supported
+- Manual run:
+
+```powershell
+cd pc-server
+.\import-pending.ps1
+```
+
+- Auto watch run:
+
+```powershell
+cd pc-server
+.\run.ps1 -WatchPending
+```
+
+### Where failed files go
+
+- `pending/error/*.jsonl`
+- reason file: same filename + `.err`
+- fix file and move it back to `pending/inbox/` for retry

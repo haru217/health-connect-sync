@@ -1,7 +1,9 @@
 param(
   [int]$Port = 8765,
   [string]$HostAddr = "0.0.0.0",
-  [string]$DbPath = "hc_sync.db"
+  [string]$DbPath = "hc_sync.db",
+  [switch]$WatchPending,
+  [int]$PendingWatchIntervalSec = 30
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,4 +54,28 @@ if (-not (Test-Path ".venv")) {
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python server.py
+$watchProc = $null
+if ($WatchPending) {
+  $watchScript = Join-Path (Get-Location) "watch-pending.ps1"
+  $pythonExe = Join-Path (Get-Location) ".venv\Scripts\python.exe"
+  $watchArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $watchScript,
+    "-IntervalSec", "$PendingWatchIntervalSec",
+    "-BaseUrl", "http://localhost:$Port",
+    "-PythonExe", $pythonExe
+  )
+  $watchProc = Start-Process -FilePath "powershell" -ArgumentList $watchArgs -WorkingDirectory (Get-Location) -PassThru
+  Write-Host "Pending watcher started (PID=$($watchProc.Id), interval=${PendingWatchIntervalSec}s)." -ForegroundColor Cyan
+}
+
+try {
+  python server.py
+}
+finally {
+  if ($watchProc -and -not $watchProc.HasExited) {
+    Stop-Process -Id $watchProc.Id -Force
+    Write-Host "Pending watcher stopped." -ForegroundColor Cyan
+  }
+}

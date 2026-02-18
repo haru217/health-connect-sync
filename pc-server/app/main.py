@@ -23,6 +23,7 @@ from .security import require_api_key
 from .summary import build_summary
 from .report import build_yesterday_report
 from .nutrition import log_alias, log_event
+from .openclaw_ingest import ingest_openclaw_payload
 
 app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
 
@@ -195,6 +196,14 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
             return {"ok": True}
 
         raise HTTPException(status_code=400, detail="Invalid payload")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
+
+
+@app.post("/api/openclaw/ingest")
+def openclaw_ingest(payload: dict[str, Any], _: None = Depends(require_api_key)) -> dict[str, Any]:
+    try:
+        return ingest_openclaw_payload(payload)
     except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
 

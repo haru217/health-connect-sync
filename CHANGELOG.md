@@ -21,3 +21,22 @@
 
 NOTE:
 - APIは `X-Api-Key` 必須（PC内の `.env` に保存）。チャットに貼る必要なし。
+
+## 2026-02-18 (OpenClaw ingest)
+- Added idempotent OpenClaw ingest endpoint: `POST /api/openclaw/ingest` (keyed by `event_id`).
+- Added ingest ledger table: `openclaw_ingest_events`.
+- Added new service module: `pc-server/app/openclaw_ingest.py`.
+- Added pending importer automation:
+  - `pc-server/import_pending.py`
+  - `pc-server/import-pending.ps1`
+  - `pc-server/watch-pending.ps1`
+  - `pc-server/run.ps1 -WatchPending`
+- Added docs:
+  - `docs/openclaw-ingest-schema.md`
+  - `docs/openclaw-handoff-runbook.md`
+- Updated API docs:
+  - `pc-server/NUTRITION_API.md`
+  - `openapi-local.yaml`
+- Added tests:
+  - `pc-server/tests/test_openclaw_ingest.py`
+  - `pc-server/tests/test_pending_importer.py`

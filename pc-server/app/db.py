@@ -144,6 +144,19 @@ def init_db() -> None:
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_intake_calories_updated_at ON intake_calories_daily(updated_at);")
 
+        # OpenClaw ingest idempotency ledger
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS openclaw_ingest_events (
+              event_id TEXT PRIMARY KEY,
+              ingested_at TEXT NOT NULL,
+              source TEXT,
+              payload_hash TEXT
+            );
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_openclaw_ingest_events_ingested_at ON openclaw_ingest_events(ingested_at);")
+
 
 def iso(dt: datetime | None) -> str | None:
     if dt is None:

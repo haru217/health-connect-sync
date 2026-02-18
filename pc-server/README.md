@@ -78,3 +78,23 @@ Android側（雛形）は `../android-app` に追加済み。
 ```
 
 - PCのIPが変わる場合はルータで固定するか、Android側で送信先を変更できるようにする
+
+## OpenClaw ingest (new)
+
+- Endpoint: `POST /api/openclaw/ingest`
+- Auth: `X-Api-Key`
+- Schema: `../docs/openclaw-ingest-schema.md`
+
+Pending fallback:
+
+```powershell
+.\import-pending.ps1
+```
+
+Auto watch mode:
+
+```powershell
+.\run.ps1 -WatchPending
+```
+
+Runbook: `../docs/openclaw-handoff-runbook.md`
