@@ -362,7 +362,13 @@
       ul.innerHTML = "";
       if (!Array.isArray(items) || items.length === 0) {
         const li = document.createElement("li");
-        li.innerHTML = '<span class="badge info">INFO</span><span>まだインサイトがありません。データが増えると表示されます。</span>';
+        const badge = document.createElement("span");
+        badge.className = "badge info";
+        badge.textContent = "INFO";
+        const text = document.createElement("span");
+        text.textContent = "まだインサイトがありません。データが増えると表示されます。";
+        li.appendChild(badge);
+        li.appendChild(text);
         ul.appendChild(li);
         return;
       }
@@ -371,7 +377,13 @@
         const badgeText = level === "warn" ? "WARN" : "INFO";
         const message = typeof item?.message === "string" ? item.message : "-";
         const li = document.createElement("li");
-        li.innerHTML = `<span class="badge ${level}">${badgeText}</span><span>${message}</span>`;
+        const badge = document.createElement("span");
+        badge.className = `badge ${level}`;
+        badge.textContent = badgeText;
+        const text = document.createElement("span");
+        text.textContent = message;
+        li.appendChild(badge);
+        li.appendChild(text);
         ul.appendChild(li);
       });
     }
