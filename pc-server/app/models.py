@@ -1,7 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -59,3 +59,18 @@ class IntakeCaloriesUpsertResponse(BaseModel):
     source: str
     note: Optional[str] = None
     updatedAt: datetime
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    height_cm: Optional[float] = Field(default=None, ge=50, le=250)
+    birth_year: Optional[int] = Field(default=None, ge=1900, le=2020)
+    sex: Optional[Literal["male", "female", "other"]] = None
+    goal_weight_kg: Optional[float] = Field(default=None, ge=20, le=300)
+
+
+class ReportSaveRequest(BaseModel):
+    report_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    report_type: Literal["daily", "weekly", "monthly"]
+    prompt_used: str
+    content: str
+

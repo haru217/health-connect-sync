@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -158,6 +158,39 @@ def init_db() -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_openclaw_ingest_events_ingested_at ON openclaw_ingest_events(ingested_at);")
 
 
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_profile (
+              id INTEGER PRIMARY KEY,
+              name TEXT,
+              height_cm REAL,
+              birth_year INTEGER,
+              sex TEXT,
+              goal_weight_kg REAL,
+              updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ai_reports (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              report_date TEXT NOT NULL,
+              report_type TEXT NOT NULL,
+              prompt_used TEXT NOT NULL,
+              content TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_reports_date ON ai_reports(report_date);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_reports_type ON ai_reports(report_type);"
+        )
+
 def iso(dt: datetime | None) -> str | None:
     if dt is None:
         return None
@@ -172,3 +205,4 @@ def dumps_payload(payload: Any) -> str:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+

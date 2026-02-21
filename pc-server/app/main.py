@@ -18,12 +18,17 @@ from .models import (
     StatusResponse,
     SyncRequest,
     SyncResponse,
+    ProfileUpdateRequest,
+    ReportSaveRequest,
 )
 from .security import require_api_key
 from .summary import build_summary
 from .report import build_yesterday_report
 from .nutrition import log_alias, log_event
 from .openclaw_ingest import ingest_openclaw_payload
+from .profile import get_profile, upsert_profile
+from .reports import save_report, list_reports, get_report, delete_report
+from .prompt_gen import build_prompt, calc_nutrient_targets
 
 app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
 
@@ -379,4 +384,130 @@ def export_csv(type: str | None = None, _: None = Depends(require_api_key)) -> R
         w.writerow([r[c] for c in r.keys()])
 
     return Response(content=out.getvalue(), media_type="text/csv")
+
+# ── プロフィール ──────────────────────────────────────────────
+
+@app.get("/api/profile")
+def profile_get(_: None = Depends(require_api_key)) -> dict:
+    data = get_profile()
+    return data if data is not None else {}
+
+
+@app.put("/api/profile")
+def profile_put(
+    req: ProfileUpdateRequest,
+    _: None = Depends(require_api_key),
+) -> dict:
+    return upsert_profile(**req.model_dump(exclude_none=True))
+
+
+# ── サプリカタログ ────────────────────────────────────────────
+
+@app.get("/api/supplements")
+def supplements_get(_: None = Depends(require_api_key)) -> dict:
+    from .nutrition import CATALOG
+    return {
+        "supplements": [
+            {
+                "alias": item.alias,
+                "label": item.label,
+                "kcal": item.kcal,
+                "protein_g": item.protein_g,
+                "fat_g": item.fat_g,
+                "carbs_g": item.carbs_g,
+            }
+            for item in CATALOG.values()
+        ]
+    }
+
+
+# ── AIプロンプト生成 ──────────────────────────────────────────
+
+@app.get("/api/prompt")
+def prompt_get(
+    type: str = "daily",
+    _: None = Depends(require_api_key),
+) -> dict:
+    if type not in ("daily", "weekly", "monthly"):
+        raise HTTPException(status_code=400, detail="type must be daily | weekly | monthly")
+    try:
+        prompt = build_prompt(type)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"type": type, "prompt": prompt}
+
+
+# ── AIレポート CRUD ───────────────────────────────────────────
+
+@app.post("/api/reports", status_code=201)
+def reports_create(
+    req: ReportSaveRequest,
+    _: None = Depends(require_api_key),
+) -> dict:
+    return save_report(
+        report_date=req.report_date,
+        report_type=req.report_type,
+        prompt_used=req.prompt_used,
+        content=req.content,
+    )
+
+
+@app.get("/api/reports")
+def reports_list(
+    report_type: str | None = None,
+    _: None = Depends(require_api_key),
+) -> dict:
+    return {"reports": list_reports(report_type=report_type)}
+
+
+@app.get("/api/reports/{report_id}")
+def reports_get(
+    report_id: int,
+    _: None = Depends(require_api_key),
+) -> dict:
+    data = get_report(report_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return data
+
+
+@app.delete("/api/reports/{report_id}")
+def reports_delete(
+    report_id: int,
+    _: None = Depends(require_api_key),
+) -> dict:
+    ok = delete_report(report_id)
+    return {"ok": ok, "deleted_id": report_id}
+
+
+# ── 栄養素ターゲット ──────────────────────────────────────────
+
+@app.get("/api/nutrients/targets")
+def nutrients_targets(_: None = Depends(require_api_key)) -> dict:
+    profile = get_profile()
+    if profile is None:
+        raise HTTPException(status_code=400, detail="プロフィール未設定。先に /api/profile を設定してください")
+    height = profile.get("height_cm")
+    birth_year = profile.get("birth_year")
+    sex = profile.get("sex") or "male"
+    if height is None or birth_year is None:
+        raise HTTPException(status_code=400, detail="height_cm または birth_year が未設定です")
+
+    # 最新体重を health_records から取得
+    from .summary import build_summary
+    summary = build_summary()
+    weight_series = summary.get("weightByDate", [])
+    latest_weight = 70.0  # fallback
+    for x in reversed(weight_series):
+        if x.get("kg") is not None:
+            latest_weight = float(x["kg"])
+            break
+
+    targets = calc_nutrient_targets(
+        height_cm=float(height),
+        weight_kg=latest_weight,
+        birth_year=int(birth_year),
+        sex=sex,
+    )
+    return {"targets": targets}
 
