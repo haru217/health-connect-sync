@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Local Vercel/env artifacts
+.env.production.vercel
+vercel_api_*.txt

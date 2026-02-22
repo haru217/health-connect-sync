@@ -22,3 +22,7 @@ Thumbs.db
 
 # Node (mobile-app)
 node_modules/
+
+# Local debug artifacts
+job_*.html
+run_*.html
