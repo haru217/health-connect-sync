@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/HomeScreen'
 import MealScreen from './screens/MealScreen'
@@ -7,9 +7,57 @@ import HealthScreen from './screens/HealthScreen'
 import AiScreen from './screens/AiScreen'
 
 type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'ai'
+type InstallChoice = 'accepted' | 'dismissed'
+
+type BeforeInstallPromptEvent = Event & {
+  readonly platforms: string[]
+  readonly userChoice: Promise<{ outcome: InstallChoice; platform: string }>
+  prompt: () => Promise<void>
+}
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home')
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isStandalone, setIsStandalone] = useState(false)
+  const [showInstallHint, setShowInstallHint] = useState(false)
+  const [showIosHelp, setShowIosHelp] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(display-mode: standalone)')
+
+    const updateStandalone = () => {
+      const iosStandalone = Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
+      setIsStandalone(media.matches || iosStandalone)
+    }
+
+    updateStandalone()
+    media.addEventListener('change', updateStandalone)
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setDeferredPrompt(event as BeforeInstallPromptEvent)
+      setShowInstallHint(true)
+    }
+
+    const onAppInstalled = () => {
+      setDeferredPrompt(null)
+      setShowInstallHint(false)
+      setShowIosHelp(false)
+      setIsStandalone(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    window.addEventListener('appinstalled', onAppInstalled)
+
+    return () => {
+      media.removeEventListener('change', updateStandalone)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', onAppInstalled)
+    }
+  }, [])
+
+  const isiOS = useMemo(() => /iphone|ipad|ipod/i.test(window.navigator.userAgent), [])
+  const canShowInstallCta = !isStandalone && (showInstallHint || Boolean(deferredPrompt) || isiOS)
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -30,6 +78,20 @@ function App() {
 
   return (
     <div className="app-container">
+      {canShowInstallCta ? (
+        <InstallBanner
+          isiOS={isiOS}
+          deferredPrompt={deferredPrompt}
+          onHide={() => {
+            setShowInstallHint(false)
+            setShowIosHelp(false)
+          }}
+          onPromptStateChange={(prompt) => setDeferredPrompt(prompt)}
+          showIosHelp={showIosHelp}
+          onShowIosHelp={() => setShowIosHelp(true)}
+        />
+      ) : null}
+
       {/* Header */}
       <header className="header">
         <div className="header-title">Health AI Advisor</div>
@@ -75,7 +137,12 @@ function App() {
         <NavItem
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              <circle cx="14" cy="4" r="1.5"></circle>
+              <path d="M12 7.5l-2.5 4.5 4 .5"></path>
+              <path d="M14 8l2.5-2"></path>
+              <path d="M9.5 12l-2.5 2.5"></path>
+              <path d="M13.5 13L15 18l2-1"></path>
+              <path d="M13.5 13L11 18l-2.5-.5"></path>
             </svg>
           }
           label="運動"
@@ -85,7 +152,10 @@ function App() {
         <NavItem
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <polyline points="6 10 9 7 11 12 14 8 16 10 18 10"></polyline>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           }
           label="健康"
@@ -97,15 +167,74 @@ function App() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="8 16 11 12 14 15 16 11"></polyline>
+              <polyline points="8 17 10.5 13 13 15.5 15 12"></polyline>
+              <path d="M18 3l.5 1.5L20 5l-1.5.5L18 7l-.5-1.5L16 5l1.5-.5z" strokeWidth="1.2"></path>
             </svg>
           }
-          label="AIレポート"
+          label="AIカルテ"
           isActive={currentScreen === 'ai'}
           onClick={() => setCurrentScreen('ai')}
         />
       </nav>
     </div>
+  )
+}
+
+type InstallBannerProps = {
+  readonly isiOS: boolean
+  readonly deferredPrompt: BeforeInstallPromptEvent | null
+  readonly onHide: () => void
+  readonly onPromptStateChange: (prompt: BeforeInstallPromptEvent | null) => void
+  readonly showIosHelp: boolean
+  readonly onShowIosHelp: () => void
+}
+
+function InstallBanner({
+  isiOS,
+  deferredPrompt,
+  onHide,
+  onPromptStateChange,
+  showIosHelp,
+  onShowIosHelp,
+}: InstallBannerProps) {
+  const onInstallClick = async () => {
+    if (!deferredPrompt) {
+      if (isiOS) {
+        onShowIosHelp()
+      }
+      return
+    }
+
+    await deferredPrompt.prompt()
+    const choice = await deferredPrompt.userChoice
+    if (choice.outcome === 'accepted') {
+      onHide()
+    }
+    onPromptStateChange(null)
+  }
+
+  return (
+    <section className="install-banner" role="status" aria-live="polite">
+      <div className="install-banner-text">
+        <p className="install-banner-title">アプリをホーム画面に追加</p>
+        <p className="install-banner-caption">
+          オフラインでも起動しやすくなります。
+        </p>
+        {isiOS && showIosHelp ? (
+          <p className="install-banner-ios-help">
+            Safari の共有メニューから「ホーム画面に追加」を選択してください。
+          </p>
+        ) : null}
+      </div>
+      <div className="install-banner-actions">
+        <button type="button" className="install-button" onClick={onInstallClick}>
+          追加する
+        </button>
+        <button type="button" className="dismiss-install-button" onClick={onHide} aria-label="インストール案内を閉じる">
+          ×
+        </button>
+      </div>
+    </section>
   )
 }
 

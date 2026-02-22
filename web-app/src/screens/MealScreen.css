@@ -68,6 +68,82 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+.meal-balance-card {
+    margin-bottom: 14px;
+}
+
+.meal-balance-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.meal-balance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.meal-balance-row strong {
+    font-family: var(--font-family-num);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.meal-balance-progress-row {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px;
+}
+
+.meal-balance-status {
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.meal-balance-status.good {
+    color: #4f9f6b;
+}
+
+.meal-balance-status.warning {
+    color: #bf8b3f;
+}
+
+.meal-balance-status.danger {
+    color: #d36b4d;
+}
+
+.meal-balance-progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: #E8F2ED;
+    overflow: hidden;
+}
+
+.meal-balance-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.meal-balance-progress-fill.good {
+    background: var(--good-color);
+}
+
+.meal-balance-progress-fill.warning {
+    background: var(--warning-color);
+}
+
+.meal-balance-progress-fill.danger {
+    background: var(--danger-color);
+}
+
 .meal-group {
     margin-bottom: 24px;
 }

@@ -213,6 +213,10 @@ def _extract_distance_km(payload: dict[str, Any]) -> float | None:
     km = _find_number(payload, {"inKilometers", "kilometers"})
     if km is not None:
         return km
+    # Android sync payload uses meters at payload.distance.
+    direct_m = _find_number(payload, {"distance"})
+    if direct_m is not None:
+        return direct_m / 1000.0
     m = _find_number(payload, {"inMeters", "meters"})
     if m is not None:
         return m / 1000.0
@@ -226,7 +230,8 @@ def _extract_speed_kmh(sample_or_payload: dict[str, Any]) -> float | None:
     kmh = _find_number(sample_or_payload, {"kilometersPerHour", "inKilometersPerHour"})
     if kmh is not None:
         return kmh
-    mps = _find_number(sample_or_payload, {"metersPerSecond", "inMetersPerSecond"})
+    # Android sync payload uses m/s at payload.samples[].speed.
+    mps = _find_number(sample_or_payload, {"metersPerSecond", "inMetersPerSecond", "speed"})
     if mps is not None:
         return mps * 3.6
     mph = _find_number(sample_or_payload, {"milesPerHour", "inMilesPerHour"})
@@ -382,7 +387,7 @@ def build_summary() -> dict[str, Any]:
             day = _local_day(dt)
             try:
                 payload = json.loads(r["payload_json"])
-                kcal = _find_number(payload, {"inKilocalories", "kilocalories", "kcal"})
+                kcal = _find_number(payload, {"inKilocalories", "kilocalories", "kcal", "energy"})
                 if kcal is None:
                     continue
                 source = r["source"] or "unknown"
@@ -403,7 +408,7 @@ def build_summary() -> dict[str, Any]:
             day = _local_day(dt)
             try:
                 payload = json.loads(r["payload_json"])
-                kcal = _find_number(payload, {"inKilocalories", "kilocalories", "kcal"})
+                kcal = _find_number(payload, {"inKilocalories", "kilocalories", "kcal", "energy"})
                 if kcal is None:
                     continue
                 source = r["source"] or "unknown"
@@ -411,6 +416,7 @@ def build_summary() -> dict[str, Any]:
             except Exception:
                 continue
         total_kcal_by_date = _collapse_day_source_max(total_kcal_by_day_source)
+        total_kcal_recorded_by_date = dict(total_kcal_by_date)
 
         # Intake calories (manual/openclaw input)
         intake_rows = conn.execute("SELECT day, intake_kcal FROM intake_calories_daily").fetchall()
@@ -546,6 +552,31 @@ def build_summary() -> dict[str, Any]:
                 continue
         resting_heart_rate_bpm_by_date = _latest_per_day(rhr_points)
 
+        # Blood pressure (latest per day)
+        bp_rows = conn.execute(
+            "SELECT time, start_time, end_time, payload_json FROM health_records WHERE type='BloodPressureRecord'"
+        ).fetchall()
+        bp_best: dict[str, tuple[datetime, float, float]] = {}
+        for r in bp_rows:
+            dt = _parse_iso(r["time"]) or _parse_iso(r["end_time"]) or _parse_iso(r["start_time"])
+            if not dt:
+                continue
+            try:
+                payload = json.loads(r["payload_json"])
+                systolic = _find_number(payload, {"systolic", "systolicMmHg"})
+                diastolic = _find_number(payload, {"diastolic", "diastolicMmHg"})
+                if systolic is None or diastolic is None:
+                    continue
+                day = _local_day(dt)
+                cur = bp_best.get(day)
+                if cur is None or dt > cur[0]:
+                    bp_best[day] = (dt, float(systolic), float(diastolic))
+            except Exception:
+                continue
+        blood_pressure_by_date = {
+            day: {"systolic": values[1], "diastolic": values[2]} for day, values in bp_best.items()
+        }
+
         # Oxygen saturation (% , latest per day)
         spo2_rows = conn.execute(
             "SELECT time, start_time, end_time, payload_json FROM health_records WHERE type='OxygenSaturationRecord'"
@@ -591,7 +622,8 @@ def build_summary() -> dict[str, Any]:
             for dt, v in bmr_candidates
             if (not has_plausible_bmr) or _is_plausible_bmr(v)
         ]
-        basal_metabolic_rate_kcal_by_date = _latest_per_day(bmr_points)
+        basal_metabolic_rate_measured_by_date = _latest_per_day(bmr_points)
+        basal_metabolic_rate_kcal_by_date = dict(basal_metabolic_rate_measured_by_date)
 
         # Body fat (% , latest per day)
         bf_rows = conn.execute(
@@ -612,6 +644,65 @@ def build_summary() -> dict[str, Any]:
             except Exception:
                 continue
         body_fat_pct_by_date = _latest_per_day(bf_points)
+
+        # Height (m, latest per day + latest value)
+        height_rows = conn.execute(
+            "SELECT time, start_time, end_time, payload_json FROM health_records WHERE type='HeightRecord'"
+        ).fetchall()
+        height_points: list[tuple[datetime, float]] = []
+        for r in height_rows:
+            dt = _parse_iso(r["time"]) or _parse_iso(r["end_time"]) or _parse_iso(r["start_time"])
+            if not dt:
+                continue
+            try:
+                payload = json.loads(r["payload_json"])
+                height_m = _find_number(payload, {"height", "inMeters", "meters"})
+                if height_m is None:
+                    continue
+                height_points.append((dt, float(height_m)))
+            except Exception:
+                continue
+        height_m_latest = None
+        if height_points:
+            height_m_latest = sorted(height_points, key=lambda x: x[0])[-1][1]
+
+        # Exercise sessions (latest 30)
+        exercise_rows = conn.execute(
+            "SELECT start_time, end_time, payload_json FROM health_records WHERE type='ExerciseSessionRecord'"
+        ).fetchall()
+        exercise_sessions_raw: list[tuple[datetime, dict[str, Any]]] = []
+        for r in exercise_rows:
+            start_dt = _parse_iso(r["start_time"])
+            end_dt = _parse_iso(r["end_time"])
+            if not start_dt and not end_dt:
+                continue
+            record_dt = start_dt or end_dt
+            if record_dt is None:
+                continue
+            try:
+                payload = json.loads(r["payload_json"])
+            except Exception:
+                payload = {}
+
+            duration_minutes: int | None = None
+            if start_dt and end_dt and end_dt > start_dt:
+                duration_minutes = int(round((end_dt - start_dt).total_seconds() / 60.0))
+            else:
+                duration_raw = _find_number(payload, {"durationMinutes"})
+                if duration_raw is not None:
+                    duration_minutes = int(round(duration_raw))
+
+            item = {
+                "date": _local_day(record_dt),
+                "exerciseType": int(_find_number(payload, {"exerciseType"}) or 0),
+                "title": payload.get("title"),
+                "durationMinutes": duration_minutes,
+                "startTime": (start_dt or record_dt).isoformat(),
+            }
+            exercise_sessions_raw.append((record_dt, item))
+        exercise_sessions = [
+            item for _dt, item in sorted(exercise_sessions_raw, key=lambda x: x[0], reverse=True)[:30]
+        ]
 
     # User preference: keep BMR fixed at 1680 kcal/day across the dashboard timeline.
     bmr_anchor_days = (
@@ -682,6 +773,26 @@ def build_summary() -> dict[str, Any]:
     # Carry-forward for BMR so the latest valid value remains visible day-to-day.
     bmr_series = _build_daily_carry_forward(basal_metabolic_rate_kcal_by_date, "kcalPerDay")
     body_fat_series = _series_from_map_num(body_fat_pct_by_date, "pct")
+    blood_pressure_series = [
+        {"date": day, "systolic": item["systolic"], "diastolic": item["diastolic"]}
+        for day, item in sorted(blood_pressure_by_date.items())
+    ]
+
+    # Step 6 API aliases (keep existing keys for backward compatibility)
+    distance_meter_series = [{"date": x["date"], "meters": x["km"] * 1000.0} for x in distance_series]
+    active_cal_series = [{"date": x["date"], "kcal": x["kcal"]} for x in active_series]
+    total_cal_series = [
+        {"date": day, "kcal": float(value)} for day, value in sorted(total_kcal_recorded_by_date.items())
+    ]
+    body_fat_percentage_series = [
+        {"date": x["date"], "percentage": x["pct"]} for x in body_fat_series
+    ]
+    resting_heart_rate_series = [{"date": x["date"], "bpm": x["bpm"]} for x in rhr_series]
+    oxygen_saturation_series = [{"date": x["date"], "percentage": x["pct"]} for x in spo2_series]
+    bmr_measured_series = [
+        {"date": day, "kcalPerDay": float(value)}
+        for day, value in sorted(basal_metabolic_rate_measured_by_date.items())
+    ]
 
     calorie_balance_by_date: dict[str, float] = {}
     for d in sorted(set(total_kcal_by_date.keys()) | set(intake_kcal_by_date.keys())):
@@ -843,6 +954,16 @@ def build_summary() -> dict[str, Any]:
         "oxygenSaturationPctByDate": spo2_series,
         "basalMetabolicRateKcalByDate": bmr_series,
         "bodyFatPctByDate": body_fat_series,
+        "bodyFatByDate": body_fat_percentage_series,
+        "heightM": height_m_latest,
+        "bmrByDate": bmr_measured_series,
+        "bloodPressureByDate": blood_pressure_series,
+        "restingHeartRateByDate": resting_heart_rate_series,
+        "oxygenSaturationByDate": oxygen_saturation_series,
+        "distanceByDate": distance_meter_series,
+        "activeCalByDate": active_cal_series,
+        "totalCalByDate": total_cal_series,
+        "exerciseSessions": exercise_sessions,
         "diet": diet,
         "insights": insights,
     }

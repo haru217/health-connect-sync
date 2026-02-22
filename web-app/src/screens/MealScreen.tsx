@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   deleteNutritionLog,
+  fetchSummary,
   fetchNutrientTargets,
   fetchNutritionDay,
   fetchSupplements,
@@ -10,6 +11,7 @@ import type {
   NutrientTargetItem,
   NutritionDayResponse,
   RequestState,
+  SummaryResponse,
   SupplementItem,
 } from '../api/types'
 import './MealScreen.css'
@@ -28,6 +30,7 @@ interface MealScreenData {
   day: NutritionDayResponse
   supplements: SupplementView[]
   targets: NutrientTargetItem[]
+  summary: SummaryResponse | null
 }
 
 function todayLocal(): string {
@@ -112,6 +115,26 @@ function formatActualText(actual: number | null, target: number, unit: string): 
   return `${actual.toFixed(1)} / ${target}${unit}`
 }
 
+function findTodayOrLatest<T extends { date: string }>(
+  series: T[],
+  valueSelector: (item: T) => number,
+): number | null {
+  if (series.length === 0) {
+    return null
+  }
+  const today = todayLocal()
+  const todayPoint = series.find((item) => item.date === today)
+  if (todayPoint) {
+    return valueSelector(todayPoint)
+  }
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date))
+  const latest = sorted[sorted.length - 1]
+  if (!latest) {
+    return null
+  }
+  return valueSelector(latest)
+}
+
 export default function MealScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('log')
   const [date, setDate] = useState<string>(todayLocal())
@@ -121,10 +144,11 @@ export default function MealScreen() {
   const loadData = useCallback(async () => {
     setState({ status: 'loading' })
     try {
-      const [day, supplementRes, targetRes] = await Promise.all([
+      const [day, supplementRes, targetRes, summary] = await Promise.all([
         fetchNutritionDay(date),
         fetchSupplements(),
         fetchNutrientTargets(date),
+        fetchSummary().catch(() => null),
       ])
       const supplements = toSupplementViews(supplementRes.supplements, day)
       setState({
@@ -133,6 +157,7 @@ export default function MealScreen() {
           day,
           supplements,
           targets: targetRes.targets,
+          summary,
         },
       })
     } catch (error) {
@@ -241,8 +266,17 @@ export default function MealScreen() {
     )
   }
 
-  const { day, supplements, targets } = state.data
+  const { day, supplements, targets, summary } = state.data
   const hasMeals = Object.values(mealsByTiming).some((items) => items.length > 0)
+  const totalSeries = summary ? summary.totalCalByDate ?? summary.totalCaloriesByDate : []
+  const consumedKcal = day.totals.kcal
+  const burnedKcal = totalSeries.length > 0 ? findTodayOrLatest(totalSeries, (item) => item.kcal) : null
+  const balanceKcal = consumedKcal != null && burnedKcal != null ? consumedKcal - burnedKcal : null
+  const balanceTone =
+    balanceKcal == null ? 'warning' : balanceKcal < -150 ? 'good' : balanceKcal > 150 ? 'danger' : 'warning'
+  const balanceLabel =
+    balanceKcal == null ? '--' : balanceKcal < -150 ? '減量中' : balanceKcal > 150 ? '増量寄り' : '維持'
+  const balanceProgress = balanceKcal == null ? null : Math.min(100, (Math.abs(balanceKcal) / 600) * 100)
 
   return (
     <>
@@ -280,6 +314,36 @@ export default function MealScreen() {
         <div className="tab-content">
           {activeTab === 'log' && (
             <div className="meal-log-list fade-in">
+              <div className="card meal-balance-card">
+                <div className="meal-balance-title">今日のカロリー収支</div>
+                <div className="meal-balance-row">
+                  <span>摂取</span>
+                  <strong>{consumedKcal == null ? '--' : consumedKcal.toFixed(0)} kcal</strong>
+                </div>
+                <div className="meal-balance-row">
+                  <span>消費</span>
+                  <strong>{burnedKcal == null ? '--' : burnedKcal.toFixed(0)} kcal</strong>
+                </div>
+                <div className="meal-balance-row">
+                  <span>収支</span>
+                  <strong>
+                    {balanceKcal == null
+                      ? '--'
+                      : `${balanceKcal > 0 ? '+' : ''}${Math.round(balanceKcal).toLocaleString('ja-JP')}`}{' '}
+                    kcal
+                  </strong>
+                </div>
+                <div className="meal-balance-progress-row">
+                  <span className={`meal-balance-status ${balanceTone}`}>{balanceLabel}</span>
+                  <div className="meal-balance-progress-track">
+                    <div
+                      className={`meal-balance-progress-fill ${balanceTone}`}
+                      style={{ width: `${balanceProgress ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {!hasMeals ? (
                 <div className="empty-state stagger-1">
                   <div className="empty-state-icon">🍽️</div>

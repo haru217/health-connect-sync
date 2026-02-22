@@ -43,6 +43,25 @@ export interface BodyFatByDateItem {
   pct: number
 }
 
+export interface BodyFatPercentageItem {
+  date: string
+  percentage: number
+}
+
+export interface BloodPressureByDateItem {
+  date: string
+  systolic: number
+  diastolic: number
+}
+
+export interface ExerciseSessionItem {
+  date: string
+  exerciseType: number
+  title?: string | null
+  durationMinutes?: number | null
+  startTime?: string | null
+}
+
 export interface DietSummary {
   trend: string
   ma7Delta7d?: number | null
@@ -68,6 +87,16 @@ export interface SummaryResponse {
   oxygenSaturationPctByDate: OxygenSaturationByDateItem[]
   basalMetabolicRateKcalByDate: Array<{ date: string; kcalPerDay: number; measured?: boolean }>
   bodyFatPctByDate: BodyFatByDateItem[]
+  bodyFatByDate?: BodyFatPercentageItem[]
+  heightM?: number | null
+  bmrByDate?: Array<{ date: string; kcalPerDay: number }>
+  bloodPressureByDate?: BloodPressureByDateItem[]
+  restingHeartRateByDate?: HeartRateByDateItem[]
+  oxygenSaturationByDate?: BodyFatPercentageItem[]
+  distanceByDate?: Array<{ date: string; meters: number }>
+  activeCalByDate?: CaloriesByDateItem[]
+  totalCalByDate?: CaloriesByDateItem[]
+  exerciseSessions?: ExerciseSessionItem[]
   diet: DietSummary | null
   insights: InsightItem[]
 }
