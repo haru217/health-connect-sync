@@ -562,10 +562,10 @@ export default function HealthScreen() {
               </div>
               <div className="health-metric-item">
                 <span>BMR</span>
-                <strong>{formatNullable(latestBmr, 0)} kcal/日</strong>
+                <strong>{formatNullable(displayBmr, 0)} kcal/日</strong>
               </div>
             </div>
-            <p className="health-note">体脂肪判定: {bodyFatText}</p>
+            <p className="health-note">体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '自動推定' : '連携値'}</p>
           </section>
 
           <section className="card">
