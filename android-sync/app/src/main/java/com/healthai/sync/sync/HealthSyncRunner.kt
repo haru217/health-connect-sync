@@ -35,7 +35,7 @@ class HealthSyncRunner(
         )
     }
 
-    fun sdkStatus(): Int = HealthConnectClient.getSdkStatus(appContext)
+    fun sdkStatus(): Int = HealthConnectClient.sdkStatus(appContext)
 
     suspend fun getGrantedPermissionsSafe(): Set<String> {
         return runCatching { reader.getGrantedPermissions() }.getOrDefault(emptySet())
