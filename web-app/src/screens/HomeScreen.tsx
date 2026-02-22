@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchSummary } from '../api/healthApi'
 import type { RequestState, SummaryResponse } from '../api/types'
+import aiAdvisor from '../assets/anime_style_human_advisor.png'
 import './HomeScreen.css'
 
 interface HomeMetrics {
@@ -290,10 +291,7 @@ export default function HomeScreen() {
 
       <section className="home-insight-section">
         <div className="home-insight-avatar">
-          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" />
-          </svg>
+          <img src={aiAdvisor} alt="AI Advisor" />
         </div>
         <div className="home-insight-bubble">
           <p className="home-insight-text">{metrics.insight}</p>

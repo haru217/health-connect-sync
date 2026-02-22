@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { fetchProfile, fetchSummary } from '../api/healthApi'
 import type { ProfileResponse, RequestState, SummaryResponse } from '../api/types'
+import advisorDoctor from '../assets/advisor_doctor.png'
 import './HealthScreen.css'
 
 type HealthTab = 'composition' | 'circulation' | 'sleep'
@@ -250,31 +251,6 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
-function estimateBmrKcalPerDay(
-  profile: ProfileResponse,
-  weightKg: number | null,
-  heightM: number | null,
-): number | null {
-  const heightCm = profile.height_cm ?? (heightM != null ? heightM * 100 : null)
-  const birthYear = profile.birth_year ?? null
-  if (weightKg == null || heightCm == null || birthYear == null) {
-    return null
-  }
-  const age = new Date().getFullYear() - birthYear
-  if (!Number.isFinite(age) || age <= 0) {
-    return null
-  }
-
-  const base = 10 * weightKg + 6.25 * heightCm - 5 * age
-  if (profile.sex === 'male') {
-    return Math.round(base + 5)
-  }
-  if (profile.sex === 'female') {
-    return Math.round(base - 161)
-  }
-  return Math.round(base - 78)
-}
-
 function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
   if (value == null) {
     return { tone: 'warning', message: 'データ不足' }
@@ -364,8 +340,6 @@ export default function HealthScreen() {
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
-  const estimatedBmr = estimateBmrKcalPerDay(profile, latestWeight, heightM)
-  const displayBmr = estimatedBmr ?? latestBmr
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
@@ -427,9 +401,14 @@ export default function HealthScreen() {
         </button>
       </div>
 
-      <section className="card health-ai-comment">
-        <div className="health-ai-title">医師コメント</div>
-        <p>{doctorComment}</p>
+      <section className="health-insight-section">
+        <div className="health-insight-avatar">
+          <img src={advisorDoctor} alt="Doctor" />
+        </div>
+        <div className="health-insight-bubble">
+          <div className="health-insight-title">医師</div>
+          <p className="health-insight-text">{doctorComment}</p>
+        </div>
       </section>
 
       {tab === 'composition' && (

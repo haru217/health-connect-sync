@@ -14,6 +14,7 @@ import type {
   SummaryResponse,
   SupplementItem,
 } from '../api/types'
+import advisorNutritionist from '../assets/advisor_nutritionist.png'
 import './MealScreen.css'
 
 type TabType = 'log' | 'supplement' | 'nutrition'
@@ -317,9 +318,14 @@ export default function MealScreen() {
           </div>
         </div>
 
-        <section className="card meal-ai-comment">
-          <div className="meal-ai-title">管理栄養士コメント</div>
-          <p>{nutritionistComment}</p>
+        <section className="meal-insight-section">
+          <div className="meal-insight-avatar">
+            <img src={advisorNutritionist} alt="Nutritionist" />
+          </div>
+          <div className="meal-insight-bubble">
+            <div className="meal-insight-title">管理栄養士</div>
+            <p className="meal-insight-text">{nutritionistComment}</p>
+          </div>
         </section>
 
         {actionError && <div className="card">操作エラー: {actionError}</div>}

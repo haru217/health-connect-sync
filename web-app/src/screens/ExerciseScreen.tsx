@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import { fetchSummary } from '../api/healthApi'
 import type { ExerciseSessionItem, RequestState, SummaryResponse } from '../api/types'
+import advisorTrainer from '../assets/advisor_trainer.png'
 import './ExerciseScreen.css'
 
 type PeriodType = 'today' | 'weekly' | 'monthly'
@@ -256,11 +257,6 @@ export default function ExerciseScreen() {
 
   return (
     <div className="exercise-container fade-in">
-      <section className="card exercise-ai-comment">
-        <div className="exercise-ai-title">フィジカルトレーナーコメント</div>
-        <p>{trainerComment}</p>
-      </section>
-
       <div className="exercise-segment-control">
         <button
           type="button"
@@ -287,6 +283,16 @@ export default function ExerciseScreen() {
 
       {period === 'today' && (
         <>
+          <section className="exercise-insight-section">
+            <div className="exercise-insight-avatar">
+              <img src={advisorTrainer} alt="Trainer" />
+            </div>
+            <div className="exercise-insight-bubble">
+              <div className="exercise-insight-title">フィジカルトレーナー</div>
+              <p className="exercise-insight-text">{trainerComment}</p>
+            </div>
+          </section>
+
           <section className="card">
             <h3 className="exercise-title">アクティビティサマリー</h3>
             <div className="exercise-summary-grid">

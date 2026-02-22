@@ -43,60 +43,80 @@
     padding-left: 4px;
 }
 
-.agent-card {
+.ai-insight-section {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    margin-bottom: 0;
-    border-left-width: 4px;
-    border-left-style: solid;
+    align-items: flex-end;
+    gap: 16px;
+    margin: 8px 0 16px 0;
 }
 
-.agent-card:nth-of-type(1) {
-    border-left-color: var(--accent-color);
-}
-
-.agent-card:nth-of-type(2) {
-    border-left-color: var(--warning-color);
-}
-
-.agent-card:nth-of-type(3) {
-    border-left-color: var(--good-color);
-}
-
-.agent-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.agent-avatar {
-    width: 44px;
-    height: 44px;
+.ai-insight-avatar {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(47, 127, 100, 0.15);
+    background-color: white;
+}
+
+.ai-insight-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ai-insight-bubble {
+    position: relative;
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 20px;
+    flex: 1;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    margin-bottom: 16px;
+    min-width: 0;
+    /* Ensures content doesn't overflow flex container */
+}
+
+.ai-insight-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 24px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 16px 14px 0 0;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.ai-insight-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: pre-wrap;
 }
 
 .doc-avatar {
-    background-color: rgba(136, 212, 180, 0.2);
+    background-color: rgba(136, 212, 180, 0.1);
 }
 
 .trainer-avatar {
-    background-color: rgba(255, 204, 128, 0.2);
+    background-color: rgba(255, 204, 128, 0.1);
 }
 
 .nut-avatar {
-    background-color: rgba(165, 214, 167, 0.2);
+    background-color: rgba(165, 214, 167, 0.1);
 }
 
 .agent-info {
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed rgba(136, 212, 180, 0.5);
+    padding-bottom: 6px;
 }
 
 .agent-role {
@@ -106,31 +126,9 @@
 }
 
 .agent-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.agent-comment {
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: var(--text-primary);
-    background-color: var(--bg-color);
-    padding: 12px;
-    border-radius: var(--border-radius-btn);
-    position: relative;
-}
-
-/* Speech bubble arrow */
-.agent-comment::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: 20px;
-    width: 12px;
-    height: 12px;
-    background-color: var(--bg-color);
-    transform: rotate(45deg);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-color);
 }
 
 .primary-action-btn {

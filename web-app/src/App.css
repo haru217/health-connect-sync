@@ -20,6 +20,74 @@
   /* Spacing for bottom nav */
 }
 
+.install-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 12px 16px 0;
+  background: linear-gradient(135deg, #2f7f64 0%, #469f7f 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(47, 127, 100, 0.28);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.install-banner-text {
+  min-width: 0;
+}
+
+.install-banner-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.install-banner-caption {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  opacity: 0.95;
+}
+
+.install-banner-ios-help {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.install-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #1e604a;
+  background: #ecfff6;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dismiss-install-button {
+  border: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .header {
   padding: 20px 24px;
   display: flex;
