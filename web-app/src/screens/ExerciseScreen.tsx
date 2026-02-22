@@ -355,7 +355,12 @@ export default function ExerciseScreen() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <Bar dataKey="steps" radius={[6, 6, 0, 0]} onClick={(_, index) => setActiveStepsIndex(index)}>
+                  <Bar
+                    dataKey="steps"
+                    radius={[6, 6, 0, 0]}
+                    onClick={(_, index) => setActiveStepsIndex(index)}
+                    activeBar={{ fill: 'transparent', stroke: 'none' }}
+                  >
                     {rangePoints.map((_, index) => (
                       <Cell
                         key={`steps-${index}`}
@@ -434,7 +439,12 @@ export default function ExerciseScreen() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <Bar dataKey="distanceKm" radius={[6, 6, 0, 0]} onClick={(_, index) => setActiveDistanceIndex(index)}>
+                  <Bar
+                    dataKey="distanceKm"
+                    radius={[6, 6, 0, 0]}
+                    onClick={(_, index) => setActiveDistanceIndex(index)}
+                    activeBar={{ fill: 'transparent', stroke: 'none' }}
+                  >
                     {rangePoints.map((_, index) => (
                       <Cell
                         key={`distance-${index}`}
