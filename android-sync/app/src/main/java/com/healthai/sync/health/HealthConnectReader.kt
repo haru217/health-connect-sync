@@ -2,16 +2,28 @@ package com.healthai.sync.health
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
+import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.HeightRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.SkinTemperatureRecord
+import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.healthai.sync.sync.SyncRecordEnvelope
-import kotlin.reflect.KClass
 import java.time.Instant
+import kotlin.reflect.KClass
 
 class HealthConnectReader(context: Context) {
     private val client by lazy { HealthConnectClient.getOrCreate(context) }
@@ -27,6 +39,18 @@ class HealthConnectReader(context: Context) {
         out += readAllInRange(WeightRecord::class, filter).map { mapWeight(it) }
         out += readAllInRange(SleepSessionRecord::class, filter).map { mapSleep(it) }
         out += readAllInRange(HeartRateRecord::class, filter).map { mapHeartRate(it) }
+        out += readAllInRange(ExerciseSessionRecord::class, filter).map { mapExercise(it) }
+        out += readAllInRange(ActiveCaloriesBurnedRecord::class, filter).map { mapActiveCalories(it) }
+        out += readAllInRange(DistanceRecord::class, filter).map { mapDistance(it) }
+        out += readAllInRange(TotalCaloriesBurnedRecord::class, filter).map { mapTotalCalories(it) }
+        out += readAllInRange(SpeedRecord::class, filter).map { mapSpeed(it) }
+        out += readAllInRange(RestingHeartRateRecord::class, filter).map { mapRestingHeartRate(it) }
+        out += readAllInRange(BloodPressureRecord::class, filter).map { mapBloodPressure(it) }
+        out += readAllInRange(OxygenSaturationRecord::class, filter).map { mapOxygenSaturation(it) }
+        out += readAllInRange(SkinTemperatureRecord::class, filter).map { mapSkinTemperature(it) }
+        out += readAllInRange(BasalMetabolicRateRecord::class, filter).map { mapBasalMetabolicRate(it) }
+        out += readAllInRange(HeightRecord::class, filter).map { mapHeight(it) }
+        out += readAllInRange(BodyFatRecord::class, filter).map { mapBodyFat(it) }
         return out
     }
 
@@ -72,7 +96,7 @@ class HealthConnectReader(context: Context) {
             source = record.metadata.dataOrigin.packageName,
             time = record.time.toString(),
             lastModifiedTime = record.metadata.lastModifiedTime.toString(),
-            payload = mapOf("weight" to record.weight.inKilograms),
+            payload = mapOf("kg" to record.weight.inKilograms),
         )
     }
 
@@ -114,6 +138,159 @@ class HealthConnectReader(context: Context) {
             endTime = record.endTime.toString(),
             lastModifiedTime = record.metadata.lastModifiedTime.toString(),
             payload = mapOf("samples" to samples),
+        )
+    }
+
+    private fun mapExercise(record: ExerciseSessionRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "ExerciseSessionRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            startTime = record.startTime.toString(),
+            endTime = record.endTime.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf(
+                "exerciseType" to record.exerciseType,
+                "title" to record.title,
+                "notes" to record.notes,
+            ),
+        )
+    }
+
+    private fun mapActiveCalories(record: ActiveCaloriesBurnedRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "ActiveCaloriesBurnedRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            startTime = record.startTime.toString(),
+            endTime = record.endTime.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("energy" to record.energy.inKilocalories),
+        )
+    }
+
+    private fun mapDistance(record: DistanceRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "DistanceRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            startTime = record.startTime.toString(),
+            endTime = record.endTime.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("distance" to record.distance.inMeters),
+        )
+    }
+
+    private fun mapTotalCalories(record: TotalCaloriesBurnedRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "TotalCaloriesBurnedRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            startTime = record.startTime.toString(),
+            endTime = record.endTime.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("energy" to record.energy.inKilocalories),
+        )
+    }
+
+    private fun mapSpeed(record: SpeedRecord): SyncRecordEnvelope {
+        val samples = record.samples.map {
+            mapOf(
+                "time" to it.time.toString(),
+                "speed" to it.speed.inMetersPerSecond,
+            )
+        }
+        return SyncRecordEnvelope(
+            type = "SpeedRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            startTime = record.startTime.toString(),
+            endTime = record.endTime.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("samples" to samples),
+        )
+    }
+
+    private fun mapRestingHeartRate(record: RestingHeartRateRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "RestingHeartRateRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("beatsPerMinute" to record.beatsPerMinute),
+        )
+    }
+
+    private fun mapBloodPressure(record: BloodPressureRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "BloodPressureRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf(
+                "systolic" to record.systolic.inMillimetersOfMercury,
+                "diastolic" to record.diastolic.inMillimetersOfMercury,
+            ),
+        )
+    }
+
+    private fun mapOxygenSaturation(record: OxygenSaturationRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "OxygenSaturationRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("percentage" to record.percentage.value),
+        )
+    }
+
+    private fun mapSkinTemperature(record: SkinTemperatureRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "SkinTemperatureRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf(
+                "temperature" to record.baseline?.inCelsius,
+                "measurementLocation" to record.measurementLocation,
+            ),
+        )
+    }
+
+    private fun mapBasalMetabolicRate(record: BasalMetabolicRateRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "BasalMetabolicRateRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("kcalPerDay" to record.basalMetabolicRate.inKilocaloriesPerDay),
+        )
+    }
+
+    private fun mapHeight(record: HeightRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "HeightRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("height" to record.height.inMeters),
+        )
+    }
+
+    private fun mapBodyFat(record: BodyFatRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "BodyFatRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf("percentage" to record.percentage.value),
         )
     }
 }
