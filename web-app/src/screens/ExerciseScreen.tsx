@@ -22,6 +22,7 @@ interface ExercisePoint {
   steps: number | null
   activeKcal: number | null
   totalKcal: number | null
+  intakeKcal: number | null
   distanceKm: number | null
   speedKmh: number | null
 }
@@ -67,12 +68,14 @@ function buildPoints(summary: SummaryResponse, period: Extract<PeriodType, 'week
   const stepsMap = toMap(summary.stepsByDate, (item) => item.steps)
   const activeSeries = summary.activeCalByDate ?? summary.activeCaloriesByDate
   const totalSeries = summary.totalCalByDate ?? summary.totalCaloriesByDate
+  const intakeSeries = summary.intakeCaloriesByDate
   const distanceSeries =
     summary.distanceByDate?.map((item) => ({ date: item.date, km: item.meters / 1000 })) ??
     summary.distanceKmByDate
 
   const activeMap = toMap(activeSeries, (item) => item.kcal)
   const totalMap = toMap(totalSeries, (item) => item.kcal)
+  const intakeMap = toMap(intakeSeries, (item) => item.kcal)
   const distanceMap = toMap(distanceSeries, (item) => item.km)
   const speedMap = toMap(summary.speedKmhByDate, (item) => item.kmh)
 
@@ -87,6 +90,7 @@ function buildPoints(summary: SummaryResponse, period: Extract<PeriodType, 'week
       steps: stepsMap.get(isoDate) ?? null,
       activeKcal: activeMap.get(isoDate) ?? null,
       totalKcal: totalMap.get(isoDate) ?? null,
+      intakeKcal: intakeMap.get(isoDate) ?? null,
       distanceKm: distanceMap.get(isoDate) ?? null,
       speedKmh: speedMap.get(isoDate) ?? null,
     })
@@ -234,15 +238,29 @@ export default function ExerciseScreen() {
   const rangePoints = period === 'today' ? [] : buildPoints(summary, period)
 
   const avgSteps = averageRecorded(rangePoints.map((point) => point.steps))
-  const avgActiveKcal = averageRecorded(rangePoints.map((point) => point.activeKcal))
   const sumDistance = sumRecorded(rangePoints.map((point) => point.distanceKm))
 
   const selectedSteps = activeStepsIndex != null ? rangePoints[activeStepsIndex] : null
   const selectedCalories = activeCaloriesIndex != null ? rangePoints[activeCaloriesIndex] : null
   const selectedDistance = activeDistanceIndex != null ? rangePoints[activeDistanceIndex] : null
+  const balanceSum = (() => {
+    const recorded = rangePoints.filter((point) => point.intakeKcal != null && point.totalKcal != null)
+    if (recorded.length === 0) {
+      return null
+    }
+    return recorded.reduce((sum, point) => sum + (point.intakeKcal as number) - (point.totalKcal as number), 0)
+  })()
+  const trainerComment =
+    summary.insights[0]?.message ??
+    '活動データを元に、運動量と回復のバランスを毎日調整しましょう。'
 
   return (
     <div className="exercise-container fade-in">
+      <section className="card exercise-ai-comment">
+        <div className="exercise-ai-title">フィジカルトレーナーコメント</div>
+        <p>{trainerComment}</p>
+      </section>
+
       <div className="exercise-segment-control">
         <button
           type="button"
@@ -334,8 +352,10 @@ export default function ExerciseScreen() {
                 <div className="exercise-range-value">{formatNullable(sumDistance, 1)} km</div>
               </div>
               <div className="card exercise-range-card">
-                <div className="exercise-range-label">平均活動カロリー</div>
-                <div className="exercise-range-value">{formatNullable(avgActiveKcal, 0)} kcal/日</div>
+                <div className="exercise-range-label">収支（摂取-消費）</div>
+                <div className="exercise-range-value">
+                  {balanceSum == null ? '--' : `${balanceSum > 0 ? '+' : ''}${Math.round(balanceSum).toLocaleString('ja-JP')} kcal`}
+                </div>
               </div>
             </div>
           </section>
@@ -377,7 +397,7 @@ export default function ExerciseScreen() {
             <h3 className="exercise-title">消費カロリーグラフ</h3>
             {selectedCalories ? (
               <p className="exercise-selected-value">
-                {selectedCalories.label}: {formatNullable(selectedCalories.totalKcal, 0)} kcal
+                {selectedCalories.label}: 消費 {formatNullable(selectedCalories.totalKcal, 0)} kcal / 摂取 {formatNullable(selectedCalories.intakeKcal, 0)} kcal
               </p>
             ) : (
               <p className="exercise-selected-value">線をタップして値を表示</p>
@@ -418,6 +438,13 @@ export default function ExerciseScreen() {
                         />
                       )
                     }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="intakeKcal"
+                    stroke="var(--accent-color)"
+                    strokeWidth={2.5}
+                    dot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>

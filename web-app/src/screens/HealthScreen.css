@@ -4,6 +4,22 @@
   gap: 14px;
 }
 
+.health-ai-comment {
+  border-left: 4px solid var(--accent-color);
+}
+
+.health-ai-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.health-ai-comment p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .health-tab-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

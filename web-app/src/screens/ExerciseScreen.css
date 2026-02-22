@@ -4,6 +4,22 @@
   gap: 14px;
 }
 
+.exercise-ai-comment {
+  border-left: 4px solid var(--accent-color);
+}
+
+.exercise-ai-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.exercise-ai-comment p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .exercise-segment-control {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

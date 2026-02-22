@@ -250,6 +250,50 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
+function estimateBmrKcalPerDay(
+  profile: ProfileResponse,
+  weightKg: number | null,
+  heightM: number | null,
+): number | null {
+  const heightCm = profile.height_cm ?? (heightM != null ? heightM * 100 : null)
+  const birthYear = profile.birth_year ?? null
+  if (weightKg == null || heightCm == null || birthYear == null) {
+    return null
+  }
+  const age = new Date().getFullYear() - birthYear
+  if (!Number.isFinite(age) || age <= 0) {
+    return null
+  }
+
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age
+  if (profile.sex === 'male') {
+    return Math.round(base + 5)
+  }
+  if (profile.sex === 'female') {
+    return Math.round(base - 161)
+  }
+  return Math.round(base - 78)
+}
+
+function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
+  if (value == null) {
+    return { tone: 'warning', message: 'データ不足' }
+  }
+  if (value > 100) {
+    return { tone: 'danger', message: '高め（100超は要確認）' }
+  }
+  if (value >= 90) {
+    return { tone: 'warning', message: 'やや高め' }
+  }
+  if (value < 50) {
+    return { tone: 'warning', message: '低め（運動習慣の影響も）' }
+  }
+  if (value < 60) {
+    return { tone: 'good', message: '良好（60未満）' }
+  }
+  return { tone: 'good', message: '標準範囲（60-100）' }
+}
+
 export default function HealthScreen() {
   const [tab, setTab] = useState<HealthTab>('composition')
   const [compositionRange, setCompositionRange] = useState<CompositionRange>(14)
@@ -320,9 +364,20 @@ export default function HealthScreen() {
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
+  const estimatedBmr = estimateBmrKcalPerDay(profile, latestWeight, heightM)
+  const displayBmr = estimatedBmr ?? latestBmr
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
+  const hrStatus = restingStatus(latestResting)
+  const doctorComment =
+    latestBlood == null
+      ? '血圧データを計測すると循環器リスクをより正確に評価できます。'
+      : bpRisk.tone === 'danger'
+        ? '血圧が高めです。継続する場合は早めの受診を検討してください。'
+        : bpRisk.tone === 'warning'
+          ? '血圧は注意域です。睡眠・塩分・有酸素運動の調整を優先しましょう。'
+          : '血圧は安定しています。現状の生活習慣を維持してください。'
 
   const weightChange = weeklyChange(summary.weightByDate.map((item) => ({ date: item.date, value: item.kg })))
   const bodyFatChange = weeklyChange(bodyFatSeries.map((item) => ({ date: item.date, value: item.pct })))
@@ -371,6 +426,11 @@ export default function HealthScreen() {
           睡眠
         </button>
       </div>
+
+      <section className="card health-ai-comment">
+        <div className="health-ai-title">医師コメント</div>
+        <p>{doctorComment}</p>
+      </section>
 
       {tab === 'composition' && (
         <>
@@ -525,8 +585,27 @@ export default function HealthScreen() {
       {tab === 'circulation' && (
         <>
           <section className="card">
+            <h3 className="health-title">血圧</h3>
+            <div className="health-latest-row">
+              <strong>
+                {latestBlood == null
+                  ? '-- / --'
+                  : `${Math.round(latestBlood.systolic)} / ${Math.round(latestBlood.diastolic)}`}{' '}
+                mmHg
+              </strong>
+            </div>
+            <p className={`health-status ${bpRisk.tone}`}>{bpRisk.label}</p>
+          </section>
+
+          <section className="card">
             <div className="health-card-header">
-              <h3 className="health-title">血圧トレンド</h3>
+              <h3 className="health-title">
+                <div className="vital-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="vital-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16M8 8l4-4 4 4M8 20l4 4 4-4"></path></svg>
+                  </span> 血圧トレンド
+                </div>
+              </h3>
               <div className="health-range-row">
                 <button
                   type="button"
@@ -571,31 +650,24 @@ export default function HealthScreen() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <ReferenceLine y={120} stroke="#e59e8d" strokeDasharray="4 4" />
-                  <ReferenceLine y={80} stroke="#87a1d2" strokeDasharray="4 4" />
+                  <ReferenceLine y={140} stroke="#d36b4d" strokeDasharray="4 4" />
+                  <ReferenceLine y={90} stroke="#5f84c9" strokeDasharray="4 4" />
                   <Line type="monotone" dataKey="systolic" stroke="#f08d7f" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="diastolic" stroke="#78a2dc" strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            <p className="health-note">基準線: 140 / 90 mmHg（高血圧域の目安）</p>
           </section>
 
           <section className="card">
-            <h3 className="health-title">最新値</h3>
-            <div className="health-latest-row">
-              <strong>
-                血圧:{' '}
-                {latestBlood == null
-                  ? '-- / --'
-                  : `${Math.round(latestBlood.systolic)} / ${Math.round(latestBlood.diastolic)}`}{' '}
-                mmHg
-              </strong>
-            </div>
-            <p className={`health-status ${bpRisk.tone}`}>{bpRisk.label}</p>
-          </section>
-
-          <section className="card">
-            <h3 className="health-title">安静時心拍トレンド</h3>
+            <h3 className="health-title">
+              <div className="vital-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="vital-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h5l2-5 3 10 2-5h8"></path></svg>
+                </span> 安静時心拍トレンド
+              </div>
+            </h3>
             {selectedResting ? (
               <p className="health-selected-value">
                 {selectedResting.label}: {formatNullable(selectedResting.bpm, 0)} bpm
@@ -616,6 +688,8 @@ export default function HealthScreen() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
+                  <ReferenceLine y={60} stroke="#7ab97a" strokeDasharray="4 4" />
+                  <ReferenceLine y={100} stroke="#d36b4d" strokeDasharray="4 4" />
                   <Line
                     type="monotone"
                     dataKey="bpm"
@@ -640,7 +714,7 @@ export default function HealthScreen() {
               </ResponsiveContainer>
             </div>
             <p className="health-note">
-              最新: {formatNullable(latestResting, 0)} bpm / SpO₂: {formatNullable(latestSpo2, 1)}%
+              最新: {formatNullable(latestResting, 0)} bpm（{hrStatus.message}） / SpO₂: {formatNullable(latestSpo2, 1)}%
             </p>
           </section>
         </>
@@ -649,7 +723,10 @@ export default function HealthScreen() {
       {tab === 'sleep' && (
         <>
           <section className="card">
-            <h3 className="health-title">睡眠時間グラフ（7日）</h3>
+            <h3 className="health-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              睡眠時間グラフ（7日）
+            </h3>
             {selectedSleep ? (
               <p className="health-selected-value">
                 {selectedSleep.label}: {formatNullable(selectedSleep.hours, 2)} h

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { fetchSummary } from '../api/healthApi'
 import type { RequestState, SummaryResponse } from '../api/types'
 import './HomeScreen.css'
 
 interface HomeMetrics {
   insight: string
-  todayLabel: string
+  selectedDateLabel: string
   steps: number | null
   distanceKm: number | null
   activeKcal: number | null
@@ -35,6 +35,12 @@ function todayLocal(): string {
   return new Date().toLocaleDateString('sv-SE')
 }
 
+function addDays(baseDate: string, diffDays: number): string {
+  const base = new Date(`${baseDate}T00:00:00`)
+  base.setDate(base.getDate() + diffDays)
+  return base.toLocaleDateString('sv-SE')
+}
+
 function formatDateLabel(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00`)
   return date.toLocaleDateString('ja-JP', {
@@ -43,26 +49,6 @@ function formatDateLabel(isoDate: string): string {
     day: '2-digit',
     weekday: 'short',
   })
-}
-
-function latestByDate<T extends { date: string }>(series: T[]): T | null {
-  if (series.length === 0) {
-    return null
-  }
-  return [...series].sort((a, b) => a.date.localeCompare(b.date))[series.length - 1] ?? null
-}
-
-function todayOrLatestByDate<T extends { date: string }>(series: T[]): T | null {
-  const today = todayLocal()
-  const todayValue = series.find((item) => item.date === today)
-  if (todayValue) {
-    return todayValue
-  }
-  return latestByDate(series)
-}
-
-function asNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 function formatNullable(value: number | null, digits = 0): string {
@@ -92,36 +78,42 @@ function bloodPressureRisk(
 }
 
 function bmiStatus(bmi: number | null): string {
-  if (bmi == null) {
-    return '--'
-  }
-  if (bmi < 18.5) {
-    return '低体重'
-  }
-  if (bmi < 25) {
-    return '標準'
-  }
-  if (bmi < 30) {
-    return '過体重'
-  }
+  if (bmi == null) return '--'
+  if (bmi < 18.5) return '低体重'
+  if (bmi < 25) return '標準'
+  if (bmi < 30) return '過体重'
   return '肥満'
 }
 
-function toHomeMetrics(summary: SummaryResponse): HomeMetrics {
-  const today = todayLocal()
+function valueOnDate<T extends { date: string }>(
+  series: T[],
+  date: string,
+  valueSelector: (item: T) => number,
+): number | null {
+  const point = series.find((item) => item.date === date)
+  if (!point) {
+    return null
+  }
+  const value = valueSelector(point)
+  return Number.isFinite(value) ? value : null
+}
 
-  const todaySteps = todayOrLatestByDate(summary.stepsByDate)
+function latestOnOrBefore<T extends { date: string }>(series: T[], date: string): T | null {
+  const candidates = series
+    .filter((item) => item.date <= date)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  if (candidates.length === 0) {
+    return null
+  }
+  return candidates[candidates.length - 1] ?? null
+}
+
+function toHomeMetrics(summary: SummaryResponse, selectedDate: string): HomeMetrics {
   const distanceSeries =
     summary.distanceByDate?.map((item) => ({ date: item.date, km: item.meters / 1000 })) ??
     summary.distanceKmByDate
-  const todayDistance = todayOrLatestByDate(distanceSeries)
-
   const activeSeries = summary.activeCalByDate ?? summary.activeCaloriesByDate
   const totalSeries = summary.totalCalByDate ?? summary.totalCaloriesByDate
-  const todayActive = todayOrLatestByDate(activeSeries)
-  const todayTotal = todayOrLatestByDate(totalSeries)
-  const todayIntake = todayOrLatestByDate(summary.intakeCaloriesByDate)
-
   const bodyFatSeries =
     summary.bodyFatByDate?.map((item) => ({ date: item.date, pct: item.percentage })) ??
     summary.bodyFatPctByDate
@@ -131,29 +123,30 @@ function toHomeMetrics(summary: SummaryResponse): HomeMetrics {
   const restingSeries = summary.restingHeartRateByDate ?? summary.restingHeartRateBpmByDate
   const bloodPressureSeries = summary.bloodPressureByDate ?? []
 
-  const latestWeight = latestByDate(summary.weightByDate)
-  const latestBodyFat = latestByDate(bodyFatSeries)
-  const latestSpo2 = latestByDate(spo2Series)
-  const latestResting = latestByDate(restingSeries)
-  const latestBloodPressure = latestByDate(bloodPressureSeries)
-  const latestSleep = todayOrLatestByDate(summary.sleepHoursByDate)
+  const steps = valueOnDate(summary.stepsByDate, selectedDate, (item) => item.steps)
+  const distanceKm = valueOnDate(distanceSeries, selectedDate, (item) => item.km)
+  const activeKcal = valueOnDate(activeSeries, selectedDate, (item) => item.kcal)
+  const intakeKcal = valueOnDate(summary.intakeCaloriesByDate, selectedDate, (item) => item.kcal)
+  const totalKcal = valueOnDate(totalSeries, selectedDate, (item) => item.kcal)
+  const sleepHours = valueOnDate(summary.sleepHoursByDate, selectedDate, (item) => item.hours)
 
-  const weight = asNumber(latestWeight?.kg)
-  const height = asNumber(summary.heightM)
-  const bmi = weight != null && height != null && height > 0 ? weight / (height * height) : null
+  const latestWeight = latestOnOrBefore(summary.weightByDate, selectedDate)
+  const latestBodyFat = latestOnOrBefore(bodyFatSeries, selectedDate)
+  const latestSpo2 = latestOnOrBefore(spo2Series, selectedDate)
+  const latestResting = latestOnOrBefore(restingSeries, selectedDate)
+  const latestBloodPressure = latestOnOrBefore(bloodPressureSeries, selectedDate)
+
+  const weightKg = latestWeight?.kg ?? null
+  const heightM = summary.heightM ?? null
+  const bmi = weightKg != null && heightM != null && heightM > 0 ? weightKg / (heightM * heightM) : null
+
   const bp = latestBloodPressure
-    ? {
-        systolic: latestBloodPressure.systolic,
-        diastolic: latestBloodPressure.diastolic,
-      }
+    ? { systolic: latestBloodPressure.systolic, diastolic: latestBloodPressure.diastolic }
     : null
   const bpRisk = bloodPressureRisk(bp?.systolic ?? null, bp?.diastolic ?? null)
 
-  const intakeKcal = asNumber(todayIntake?.kcal)
-  const totalKcal = asNumber(todayTotal?.kcal)
   const balanceKcal =
     intakeKcal != null && totalKcal != null ? Number((intakeKcal - totalKcal).toFixed(0)) : null
-
   let balanceLabel = '--'
   let balanceTone: 'good' | 'warning' | 'danger' = 'warning'
   if (balanceKcal != null) {
@@ -169,7 +162,6 @@ function toHomeMetrics(summary: SummaryResponse): HomeMetrics {
     }
   }
 
-  const sleepHours = asNumber(latestSleep?.hours)
   let sleepLabel = '--'
   let sleepTone: 'good' | 'warning' | 'danger' = 'warning'
   if (sleepHours != null) {
@@ -189,28 +181,28 @@ function toHomeMetrics(summary: SummaryResponse): HomeMetrics {
     insight:
       summary.insights[0]?.message ??
       '最新データを同期するとここに一言アドバイスが表示されます。',
-    todayLabel: formatDateLabel(today),
-    steps: asNumber(todaySteps?.steps),
-    distanceKm: asNumber(todayDistance?.km),
-    activeKcal: asNumber(todayActive?.kcal),
+    selectedDateLabel: formatDateLabel(selectedDate),
+    steps,
+    distanceKm,
+    activeKcal,
     intakeKcal,
     totalKcal,
     balanceKcal,
     balanceLabel,
     balanceTone,
-    weightKg: weight,
-    bodyFatPct: asNumber(latestBodyFat?.pct),
+    weightKg,
+    bodyFatPct: latestBodyFat?.pct ?? null,
     bmi,
     bmiLabel: bmiStatus(bmi),
-    restingBpm: asNumber(latestResting?.bpm),
+    restingBpm: latestResting?.bpm ?? null,
     bloodPressure: bp,
     bloodPressureLabel: bpRisk.label,
     bloodPressureTone: bpRisk.tone,
-    spo2Pct: asNumber(latestSpo2?.pct),
+    spo2Pct: latestSpo2?.pct ?? null,
     sleepHours,
     sleepLabel,
     sleepTone,
-    stepProgress: todaySteps?.steps != null ? Math.min(100, (todaySteps.steps / 10000) * 100) : null,
+    stepProgress: steps != null ? Math.min(100, (steps / 10000) * 100) : null,
     calorieProgress:
       balanceKcal != null ? Math.min(100, (Math.abs(balanceKcal) / 600) * 100) : null,
     sleepProgress: sleepHours != null ? Math.min(100, (sleepHours / 8) * 100) : null,
@@ -235,21 +227,18 @@ function ProgressBar({
 }
 
 export default function HomeScreen() {
-  const [state, setState] = useState<RequestState<HomeMetrics>>({ status: 'loading' })
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocal())
+  const [state, setState] = useState<RequestState<SummaryResponse>>({ status: 'loading' })
 
   useEffect(() => {
     let alive = true
     const load = async () => {
       try {
         const summary = await fetchSummary()
-        if (!alive) {
-          return
-        }
-        setState({ status: 'success', data: toHomeMetrics(summary) })
+        if (!alive) return
+        setState({ status: 'success', data: summary })
       } catch (error) {
-        if (!alive) {
-          return
-        }
+        if (!alive) return
         const message = error instanceof Error ? error.message : '不明なエラー'
         setState({ status: 'error', error: message })
       }
@@ -260,7 +249,14 @@ export default function HomeScreen() {
     }
   }, [])
 
-  if (state.status === 'loading') {
+  const today = todayLocal()
+  const canGoNext = selectedDate < today
+  const metrics = useMemo(
+    () => (state.status === 'success' ? toHomeMetrics(state.data, selectedDate) : null),
+    [selectedDate, state],
+  )
+
+  if (state.status === 'loading' || metrics == null) {
     return (
       <div className="home-container fade-in">
         <div className="card">読み込み中...</div>
@@ -276,22 +272,36 @@ export default function HomeScreen() {
     )
   }
 
-  const metrics = state.data
-
   return (
     <div className="home-container fade-in">
-      <section className="home-headline">
-        <h2 className="home-title">今日のダッシュボード</h2>
-        <p className="home-date">{metrics.todayLabel}</p>
-      </section>
+      <div className="home-date-selector">
+        <button className="home-date-btn" onClick={() => setSelectedDate((prev) => addDays(prev, -1))}>
+          ‹
+        </button>
+        <div className="home-date-current">{metrics.selectedDateLabel}</div>
+        <button
+          className="home-date-btn"
+          disabled={!canGoNext}
+          onClick={() => setSelectedDate((prev) => (prev < today ? addDays(prev, 1) : prev))}
+        >
+          ›
+        </button>
+      </div>
 
-      <section className="card home-insight-card">
-        <h3 className="home-card-title">AI 一言アドバイス</h3>
-        <p className="home-insight-text">{metrics.insight}</p>
+      <section className="home-insight-section">
+        <div className="home-insight-avatar">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" />
+          </svg>
+        </div>
+        <div className="home-insight-bubble">
+          <p className="home-insight-text">{metrics.insight}</p>
+        </div>
       </section>
 
       <section className="card">
-        <h3 className="home-card-title">今日のアクティビティ</h3>
+        <h3 className="home-card-title">選択日のアクティビティ</h3>
         <div className="home-metric-grid three-col">
           <div className="home-metric">
             <div className="home-metric-label">歩数</div>

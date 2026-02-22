@@ -68,6 +68,22 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+.meal-ai-comment {
+    border-left: 4px solid var(--accent-color);
+}
+
+.meal-ai-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.meal-ai-comment p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
 .meal-balance-card {
     margin-bottom: 14px;
 }

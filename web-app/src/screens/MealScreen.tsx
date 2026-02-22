@@ -277,6 +277,14 @@ export default function MealScreen() {
   const balanceLabel =
     balanceKcal == null ? '--' : balanceKcal < -150 ? '減量中' : balanceKcal > 150 ? '増量寄り' : '維持'
   const balanceProgress = balanceKcal == null ? null : Math.min(100, (Math.abs(balanceKcal) / 600) * 100)
+  const nutritionistComment =
+    balanceKcal == null
+      ? '摂取量と消費量の両方が揃うと、より精度の高い食事調整ができます。'
+      : balanceKcal > 150
+        ? '摂取が消費を上回っています。まずは間食量と夜の炭水化物量を見直しましょう。'
+        : balanceKcal < -250
+          ? '減量ペースは十分です。たんぱく質と睡眠を維持して筋量低下を防ぎましょう。'
+          : '摂取と消費のバランスは良好です。この調子で継続しましょう。'
 
   return (
     <>
@@ -308,6 +316,11 @@ export default function MealScreen() {
             栄養素
           </div>
         </div>
+
+        <section className="card meal-ai-comment">
+          <div className="meal-ai-title">管理栄養士コメント</div>
+          <p>{nutritionistComment}</p>
+        </section>
 
         {actionError && <div className="card">操作エラー: {actionError}</div>}
 
@@ -397,7 +410,18 @@ export default function MealScreen() {
                     onClick={() => void toggleSupplement(item)}
                   >
                     <div className="suppl-item-name">{item.name}</div>
-                    <div className="suppl-item-check">{item.checked ? '✅' : '⬜'}</div>
+                    <div className="suppl-item-check">
+                      {item.checked ? (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                      ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
