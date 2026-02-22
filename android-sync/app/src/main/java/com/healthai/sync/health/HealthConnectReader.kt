@@ -3,8 +3,10 @@ package com.healthai.sync.health
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BasalBodyTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.BodyTemperatureRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -14,7 +16,6 @@ import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
@@ -47,7 +48,8 @@ class HealthConnectReader(context: Context) {
         out += readAllInRange(RestingHeartRateRecord::class, filter).map { mapRestingHeartRate(it) }
         out += readAllInRange(BloodPressureRecord::class, filter).map { mapBloodPressure(it) }
         out += readAllInRange(OxygenSaturationRecord::class, filter).map { mapOxygenSaturation(it) }
-        out += readAllInRange(SkinTemperatureRecord::class, filter).map { mapSkinTemperature(it) }
+        out += readAllInRange(BodyTemperatureRecord::class, filter).map { mapBodyTemperature(it) }
+        out += readAllInRange(BasalBodyTemperatureRecord::class, filter).map { mapBasalBodyTemperature(it) }
         out += readAllInRange(BasalMetabolicRateRecord::class, filter).map { mapBasalMetabolicRate(it) }
         out += readAllInRange(HeightRecord::class, filter).map { mapHeight(it) }
         out += readAllInRange(BodyFatRecord::class, filter).map { mapBodyFat(it) }
@@ -247,15 +249,29 @@ class HealthConnectReader(context: Context) {
         )
     }
 
-    private fun mapSkinTemperature(record: SkinTemperatureRecord): SyncRecordEnvelope {
+    private fun mapBodyTemperature(record: BodyTemperatureRecord): SyncRecordEnvelope {
         return SyncRecordEnvelope(
-            type = "SkinTemperatureRecord",
+            type = "BodyTemperatureRecord",
             recordId = record.metadata.id,
             source = record.metadata.dataOrigin.packageName,
             time = record.time.toString(),
             lastModifiedTime = record.metadata.lastModifiedTime.toString(),
             payload = mapOf(
-                "temperature" to record.baseline?.inCelsius,
+                "temperature" to record.temperature.inCelsius,
+                "measurementLocation" to record.measurementLocation,
+            ),
+        )
+    }
+
+    private fun mapBasalBodyTemperature(record: BasalBodyTemperatureRecord): SyncRecordEnvelope {
+        return SyncRecordEnvelope(
+            type = "BasalBodyTemperatureRecord",
+            recordId = record.metadata.id,
+            source = record.metadata.dataOrigin.packageName,
+            time = record.time.toString(),
+            lastModifiedTime = record.metadata.lastModifiedTime.toString(),
+            payload = mapOf(
+                "temperature" to record.temperature.inCelsius,
                 "measurementLocation" to record.measurementLocation,
             ),
         )
