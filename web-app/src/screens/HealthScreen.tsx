@@ -251,6 +251,31 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
+function estimateBmrKcalPerDay(
+  profile: ProfileResponse,
+  weightKg: number | null,
+  heightM: number | null,
+): number | null {
+  const heightCm = profile.height_cm ?? (heightM != null ? heightM * 100 : null)
+  const birthYear = profile.birth_year ?? null
+  if (weightKg == null || heightCm == null || birthYear == null) {
+    return null
+  }
+  const age = new Date().getFullYear() - birthYear
+  if (!Number.isFinite(age) || age <= 0) {
+    return null
+  }
+
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age
+  if (profile.sex === 'male') {
+    return Math.round(base + 5)
+  }
+  if (profile.sex === 'female') {
+    return Math.round(base - 161)
+  }
+  return Math.round(base - 78)
+}
+
 function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
   if (value == null) {
     return { tone: 'warning', message: 'データ不足' }
@@ -340,6 +365,8 @@ export default function HealthScreen() {
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
+  const estimatedBmr = estimateBmrKcalPerDay(profile, latestWeight, heightM)
+  const displayBmr = estimatedBmr ?? latestBmr
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
@@ -403,7 +430,7 @@ export default function HealthScreen() {
 
       <section className="health-insight-section">
         <div className="health-insight-avatar">
-          <img src={advisorDoctor} alt="Doctor" />
+          <img className="health-insight-avatar-image" src={advisorDoctor} alt="Doctor" width={48} height={48} />
         </div>
         <div className="health-insight-bubble">
           <div className="health-insight-title">医師</div>
@@ -693,7 +720,7 @@ export default function HealthScreen() {
               </ResponsiveContainer>
             </div>
             <p className="health-note">
-              最新: {formatNullable(latestResting, 0)} bpm（{hrStatus.message}） / SpO₂: {formatNullable(latestSpo2, 1)}%
+              最新: {formatNullable(latestResting, 0)} bpm（{hrStatus.message}） / 血中酸素飽和度: {formatNullable(latestSpo2, 1)}%
             </p>
           </section>
         </>

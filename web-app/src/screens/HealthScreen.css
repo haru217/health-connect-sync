@@ -26,6 +26,14 @@
   object-fit: cover;
 }
 
+.health-insight-avatar-image {
+  width: 48px;
+  height: 48px;
+  max-width: 48px;
+  max-height: 48px;
+  display: block;
+}
+
 .health-insight-bubble {
   position: relative;
   background: #f0f7f4;

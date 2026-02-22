@@ -397,7 +397,7 @@ export default function HomeScreen() {
             <div className={`home-sub-status ${metrics.bloodPressureTone}`}>{metrics.bloodPressureLabel}</div>
           </div>
           <div className="home-metric">
-            <div className="home-metric-label">SpO₂</div>
+            <div className="home-metric-label">血中酸素飽和度</div>
             <div className="home-metric-value">
               {formatNullable(metrics.spo2Pct, 1)}
               <span className="home-unit">%</span>
