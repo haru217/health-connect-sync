@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from .db import DB_PATH, db, dumps_payload, init_db, iso, now_iso
 from .discovery import start_discovery_thread
@@ -31,6 +32,13 @@ from .reports import save_report, list_reports, get_report, delete_report
 from .prompt_gen import build_prompt, calc_nutrient_targets
 
 app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
@@ -237,6 +245,19 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
         raise HTTPException(status_code=400, detail="Invalid payload")
     except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
+
+
+@app.delete("/api/nutrition/log/{event_id}")
+def nutrition_log_delete(
+    event_id: int,
+    _: None = Depends(require_api_key),
+) -> dict:
+    from .nutrition import delete_event
+
+    ok = delete_event(event_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"ok": True, "deleted_id": event_id}
 
 
 @app.post("/api/openclaw/ingest")
@@ -483,15 +504,20 @@ def reports_delete(
 # ── 栄養素ターゲット ──────────────────────────────────────────
 
 @app.get("/api/nutrients/targets")
-def nutrients_targets(_: None = Depends(require_api_key)) -> dict:
-    profile = get_profile()
-    if profile is None:
-        raise HTTPException(status_code=400, detail="プロフィール未設定。先に /api/profile を設定してください")
-    height = profile.get("height_cm")
-    birth_year = profile.get("birth_year")
-    sex = profile.get("sex") or "male"
-    if height is None or birth_year is None:
-        raise HTTPException(status_code=400, detail="height_cm または birth_year が未設定です")
+def nutrients_targets(
+    date: str | None = None,
+    _: None = Depends(require_api_key),
+) -> dict:
+    if date is not None:
+        try:
+            datetime.fromisoformat(f"{date}T00:00:00")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="date は YYYY-MM-DD 形式で指定してください") from exc
+
+    profile = get_profile() or {}
+    height = float(profile.get("height_cm") or 172.0)
+    birth_year = int(profile.get("birth_year") or 1985)
+    sex = str(profile.get("sex") or "male")
 
     # 最新体重を health_records から取得
     from .summary import build_summary
@@ -504,10 +530,11 @@ def nutrients_targets(_: None = Depends(require_api_key)) -> dict:
             break
 
     targets = calc_nutrient_targets(
-        height_cm=float(height),
+        height_cm=height,
         weight_kg=latest_weight,
-        birth_year=int(birth_year),
+        birth_year=birth_year,
         sex=sex,
+        local_date=date,
     )
     return {"targets": targets}
 

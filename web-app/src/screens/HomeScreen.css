@@ -1,0 +1,136 @@
+.home-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+}
+
+/* Sticky AI Character Section */
+.sticky-ai {
+    position: sticky;
+    top: 70px;
+    /* Offset for header */
+    z-index: 20;
+    margin-top: -10px;
+    /* pull up slightly */
+    transform: translateY(10px);
+}
+
+.ai-character-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 253, 245, 0.95) 100%);
+    backdrop-filter: blur(8px);
+    border-left: 4px solid var(--accent-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.ai-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.ai-emoji {
+    font-size: 2rem;
+}
+
+.ai-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.greeting {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.insight {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.metric-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.metric-icon {
+    font-size: 1.1rem;
+}
+
+.metric-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Typography Improvements here */
+.metric-value {
+    font-size: 2rem;
+    /* Increased size */
+    font-weight: 800;
+    /* Bolder */
+    color: var(--text-primary);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    letter-spacing: -0.5px;
+}
+
+.metric-unit {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-family: var(--font-family-body);
+    opacity: 0.7;
+    /* Lighter unit to emphasize number */
+}
+
+.metric-trend {
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.good {
+    color: var(--good-color);
+}
+
+.warning {
+    color: var(--warning-color);
+}
+
+.danger {
+    color: var(--danger-color);
+}

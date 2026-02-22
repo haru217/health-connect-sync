@@ -177,6 +177,7 @@ def calc_nutrient_targets(
     weight_kg: float,
     birth_year: int,
     sex: str,
+    local_date: str | None = None,
 ) -> list[dict]:
     """
     Harris-Benedict式でTDEEを算出し、各栄養素の推奨量を返す。
@@ -188,7 +189,6 @@ def calc_nutrient_targets(
     """
     from datetime import date as _date
     from .db import db
-    import json
 
     today = _date.today()
     age = today.year - birth_year
@@ -227,8 +227,8 @@ def calc_nutrient_targets(
         "omega3_mg": (2000.0, "mg", "オメガ3"),
     }
 
-    # 当日の実績値を取得
-    today_str = today.isoformat()
+    # 実績値を取得（指定日があればそれを優先）
+    target_day = local_date or today.isoformat()
     with db() as conn:
         rows = conn.execute(
             """
@@ -237,7 +237,7 @@ def calc_nutrient_targets(
             WHERE local_date = ?
             GROUP BY nutrient_key
             """,
-            (today_str,),
+            (target_day,),
         ).fetchall()
     actuals = {r["nutrient_key"]: float(r["total"]) for r in rows}
 

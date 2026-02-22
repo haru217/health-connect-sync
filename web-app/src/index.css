@@ -1,0 +1,132 @@
+:root {
+  /* Pastel color palette for Health AI Advisor UI */
+  --bg-color: #F9FDF5;
+  --surface-color: #FFFFFF;
+  --accent-color: #88D4B4;
+  --accent-color-hover: #6BCB9F;
+  --good-color: #A5D6A7;
+  --warning-color: #FFCC80;
+  --danger-color: #FFAB91;
+  --text-muted: #8FA39A;
+  --text-primary: #4A4A4A;
+  --text-inverse: #FFFFFF;
+
+  /* Fonts */
+  --font-family-body: 'M PLUS 1p', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family-num: 'Lexend', 'Inter', system-ui, sans-serif;
+
+  /* Shadows for glass/soft UI */
+  --shadow-sm: 0 4px 12px rgba(136, 212, 180, 0.15);
+  --shadow-md: 0 8px 24px rgba(136, 212, 180, 0.2);
+  --border-radius-card: 20px;
+  --border-radius-btn: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family-body);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base styles for numbers */
+.num {
+  font-family: var(--font-family-num);
+}
+
+/* Animations that are reusable */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Staggered entry animation */
+.stagger-1 {
+  animation: fadeIn 0.4s ease-out 0.1s both;
+}
+
+.stagger-2 {
+  animation: fadeIn 0.4s ease-out 0.2s both;
+}
+
+.stagger-3 {
+  animation: fadeIn 0.4s ease-out 0.3s both;
+}
+
+.stagger-4 {
+  animation: fadeIn 0.4s ease-out 0.4s both;
+}
+
+.stagger-5 {
+  animation: fadeIn 0.4s ease-out 0.5s both;
+}
+
+/* Scale animation for clicks / active states */
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Base button and active tap effect */
+button:active,
+.card:active {
+  transform: scale(0.98);
+}
+
+/* Ripple effect container */
+.ripple {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.ripple::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform .5s, opacity 1s;
+}
+
+.ripple:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}

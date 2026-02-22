@@ -1,0 +1,146 @@
+.exercise-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.segment-control {
+    display: flex;
+    background-color: #E8F2ED;
+    border-radius: var(--border-radius-btn);
+    padding: 4px;
+}
+
+.segment-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.segment-btn.active {
+    background-color: var(--surface-color);
+    color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.summary-card {
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.summary-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    /* Increased size */
+    font-weight: 800;
+    /* Bolder */
+    color: var(--text-primary);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    letter-spacing: -0.5px;
+}
+
+.summary-value .unit {
+    font-size: 0.75rem;
+    margin-top: 2px;
+    font-family: var(--font-family-body);
+    font-weight: 500;
+    color: var(--text-muted);
+    opacity: 0.7;
+    /* Lighter unit to emphasize number */
+}
+
+.chart-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chart-card {
+    padding: 16px;
+    margin-bottom: 0;
+}
+
+.chart-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.mock-chart {
+    height: 150px;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: 20px;
+    position: relative;
+}
+
+/* Mock Bar Chart */
+.bar-chart {
+    border-bottom: 1px solid #E8F2ED;
+}
+
+.bar {
+    width: 10%;
+    background-color: var(--accent-color);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    opacity: 0.8;
+    transition: height 0.5s ease-out;
+}
+
+.bar:hover {
+    opacity: 1;
+}
+
+.bar:nth-child(even) {
+    background-color: var(--good-color);
+}
+
+/* Mock Line Chart */
+.line-chart {
+    border-bottom: 1px solid #E8F2ED;
+}
+
+.line-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}

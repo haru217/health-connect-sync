@@ -27,7 +27,7 @@ class CatalogItem:
 CATALOG: dict[str, CatalogItem] = {
     "protein": CatalogItem(
         alias="protein",
-        label="ZAVAS MILK PROTEIN 脂肪0 キャラメル風味 200ml",
+        label="ザバス ミルクプロテイン 脂肪0 キャラメル風味 200ml",
         kcal=107.0,
         protein_g=20.0,
         fat_g=0.0,
@@ -36,7 +36,7 @@ CATALOG: dict[str, CatalogItem] = {
     ),
     "vitamin_d": CatalogItem(
         alias="vitamin_d",
-        label="Health Thru Nutrition Vitamin D3 2000IU softgel x1",
+        label="ビタミンD3 2000IU（ソフトジェル）",
         kcal=0.0,
         protein_g=0.0,
         fat_g=0.0,
@@ -46,7 +46,7 @@ CATALOG: dict[str, CatalogItem] = {
     ),
     "multivitamin": CatalogItem(
         alias="multivitamin",
-        label="Nature Made Super Multi Vitamin & Mineral x1",
+        label="スーパーマルチビタミン＆ミネラル",
         kcal=3.36,
         protein_g=0.1,
         fat_g=0.1,
@@ -76,7 +76,7 @@ CATALOG: dict[str, CatalogItem] = {
     ),
     "fish_oil": CatalogItem(
         alias="fish_oil",
-        label="Nature Made Super Fish Oil x1",
+        label="スーパーフィッシュオイル",
         kcal=8.34,
         protein_g=0.222,
         fat_g=0.791,
@@ -223,7 +223,7 @@ def get_day_events(local_date: str) -> list[dict[str, Any]]:
     with db() as conn:
         rows = conn.execute(
             """
-            SELECT consumed_at, alias, label, count, unit, kcal, protein_g, fat_g, carbs_g, micros_json, note
+            SELECT id, consumed_at, alias, label, count, unit, kcal, protein_g, fat_g, carbs_g, micros_json, note
             FROM nutrition_events
             WHERE local_date = ?
             ORDER BY consumed_at ASC
@@ -234,6 +234,10 @@ def get_day_events(local_date: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for r in rows:
         d = dict(r)
+        alias = d.get("alias")
+        # Normalize labels from old logs to current catalog labels.
+        if alias and alias in CATALOG:
+            d["label"] = CATALOG[alias].label
         mj = d.get("micros_json")
         if mj:
             try:
@@ -244,6 +248,19 @@ def get_day_events(local_date: str) -> list[dict[str, Any]]:
             d["micros"] = None
         out.append(d)
     return out
+
+
+def delete_event(event_id: int) -> bool:
+    with db() as conn:
+        conn.execute(
+            "DELETE FROM nutrition_nutrients WHERE event_id = ?",
+            (event_id,),
+        )
+        cur = conn.execute(
+            "DELETE FROM nutrition_events WHERE id = ?",
+            (event_id,),
+        )
+    return cur.rowcount > 0
 
 
 def get_day_totals(local_date: str) -> dict[str, Any]:

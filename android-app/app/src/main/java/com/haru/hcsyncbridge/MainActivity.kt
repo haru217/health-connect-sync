@@ -7,6 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.haru.hcsyncbridge.sync.SyncScheduler
 import com.haru.hcsyncbridge.ui.AppScreen
+import com.haru.hcsyncbridge.ui.nav.HealthAiApp
+import com.haru.hcsyncbridge.ui.theme.Background
+import com.haru.hcsyncbridge.ui.theme.HealthAiTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,9 +19,9 @@ class MainActivity : ComponentActivity() {
         SyncScheduler.scheduleDaily(this)
 
         setContent {
-            MaterialTheme {
-                Surface {
-                    AppScreen()
+            HealthAiTheme {
+                Surface(color = Background) {
+                    HealthAiApp()
                 }
             }
         }

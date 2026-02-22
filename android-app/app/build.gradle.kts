@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -56,4 +57,19 @@ dependencies {
 
     // Health Connect (adjust if needed)
     implementation("androidx.health.connect:connect-client:1.1.0-alpha01")
+
+    // Health AI Advisor UI Dependencies
+    // Charts
+    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-alpha.28")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.4")
+
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 }

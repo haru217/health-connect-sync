@@ -218,7 +218,426 @@ components:
           type: string
       required: [ok, ingested, duplicate, eventId]
 
+    Profile:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          nullable: true
+        height_cm:
+          type: number
+          nullable: true
+        birth_year:
+          type: integer
+          nullable: true
+        sex:
+          type: string
+          enum: [male, female, other]
+          nullable: true
+        goal_weight_kg:
+          type: number
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, updated_at]
+
+    ProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        height_cm:
+          type: number
+          minimum: 50
+          maximum: 250
+        birth_year:
+          type: integer
+          minimum: 1900
+          maximum: 2020
+        sex:
+          type: string
+          enum: [male, female, other]
+        goal_weight_kg:
+          type: number
+          minimum: 20
+          maximum: 300
+
+    PromptResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum: [daily, weekly, monthly]
+        prompt:
+          type: string
+      required: [type, prompt]
+
+    ReportSaveRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        report_date:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}$
+        report_type:
+          type: string
+          enum: [daily, weekly, monthly]
+        prompt_used:
+          type: string
+        content:
+          type: string
+      required: [report_date, report_type, prompt_used, content]
+
+    Report:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        report_date:
+          type: string
+        report_type:
+          type: string
+          enum: [daily, weekly, monthly]
+        prompt_used:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, report_date, report_type, prompt_used, content, created_at]
+
+    ReportListItem:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        report_date:
+          type: string
+        report_type:
+          type: string
+          enum: [daily, weekly, monthly]
+        created_at:
+          type: string
+          format: date-time
+        preview:
+          type: string
+      required: [id, report_date, report_type, created_at, preview]
+
+    ReportsListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportListItem'
+      required: [reports]
+
+    SupplementsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        supplements:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              alias:
+                type: string
+              label:
+                type: string
+              kcal:
+                type: number
+                nullable: true
+              protein_g:
+                type: number
+                nullable: true
+              fat_g:
+                type: number
+                nullable: true
+              carbs_g:
+                type: number
+                nullable: true
+            required: [alias, label]
+      required: [supplements]
+
+    NutrientTarget:
+      type: object
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        target:
+          type: number
+        actual:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [green, yellow, red]
+      required: [key, name, unit, target, status]
+
+    NutrientTargetsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutrientTarget'
+      required: [targets]
+
 paths:
+  /api/profile:
+    get:
+      summary: Get user profile (single row id=1)
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    maxProperties: 0
+                  - $ref: '#/components/schemas/Profile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Upsert user profile (partial update)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdateRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+
+  /api/supplements:
+    get:
+      summary: List supplement catalog
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplementsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/prompt:
+    get:
+      summary: Generate LLM prompt text from profile, HC summary, and nutrition logs
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: type
+          required: false
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: daily
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptResponse'
+        '400':
+          description: Invalid type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reports:
+    post:
+      summary: Save generated AI report
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportSaveRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+    get:
+      summary: List saved AI reports (preview only)
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: report_type
+          required: false
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportsListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reports/{report_id}:
+    get:
+      summary: Get one saved report by id
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: report_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete one saved report by id
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: report_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  ok:
+                    type: boolean
+                  deleted_id:
+                    type: integer
+                required: [ok, deleted_id]
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/nutrients/targets:
+    get:
+      summary: Calculate daily nutrient targets and compare with today's actuals
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NutrientTargetsResponse'
+        '400':
+          description: Profile missing or incomplete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/nutrition/day:
     get:
       summary: Get nutrition events for a local date
