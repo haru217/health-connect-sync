@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
@@ -23,7 +22,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.haru.hcsyncbridge.net.HttpSyncClient
@@ -45,18 +43,15 @@ fun SettingsScreen() {
     val settings = remember { SettingsStore(context) }
     val scope = rememberCoroutineScope()
 
-    val storedUrl by settings.serverBaseUrl.collectAsState(initial = null)
     val storedKey by settings.apiKey.collectAsState(initial = null)
     val lastSyncMs by settings.lastSyncEpochMs.collectAsState(initial = null)
     val lastError by settings.lastError.collectAsState(initial = null)
 
-    var urlInput by remember { mutableStateOf("") }
     var keyInput by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf("") }
 
-    // 初回: 保存済み値 or デフォルトを反映
-    LaunchedEffect(storedUrl, storedKey) {
-        if (urlInput.isBlank()) urlInput = storedUrl ?: DEFAULT_SERVER_URL
+    // URL は常に GCP 固定。API キーのみ保存済み値 or デフォルトを反映
+    LaunchedEffect(storedKey) {
         if (keyInput.isBlank()) keyInput = storedKey ?: DEFAULT_API_KEY
     }
 
@@ -73,16 +68,6 @@ fun SettingsScreen() {
         Text("サーバー接続", style = MaterialTheme.typography.titleMedium)
 
         OutlinedTextField(
-            value = urlInput,
-            onValueChange = { urlInput = it },
-            label = { Text("サーバー URL") },
-            placeholder = { Text(DEFAULT_SERVER_URL) },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            singleLine = true,
-        )
-
-        OutlinedTextField(
             value = keyInput,
             onValueChange = { keyInput = it },
             label = { Text("API キー") },
@@ -95,7 +80,7 @@ fun SettingsScreen() {
             Button(
                 onClick = {
                     scope.launch {
-                        settings.setServerBaseUrl(urlInput.ifBlank { DEFAULT_SERVER_URL })
+                        settings.setServerBaseUrl(DEFAULT_SERVER_URL)
                         settings.setApiKey(keyInput.ifBlank { DEFAULT_API_KEY })
                         statusMessage = "保存しました"
                     }
@@ -110,7 +95,7 @@ fun SettingsScreen() {
                         try {
                             val result = withContext(Dispatchers.IO) {
                                 HttpSyncClient().getStatus(
-                                    urlInput.ifBlank { DEFAULT_SERVER_URL },
+                                    DEFAULT_SERVER_URL,
                                     keyInput.ifBlank { DEFAULT_API_KEY }
                                 )
                             }
