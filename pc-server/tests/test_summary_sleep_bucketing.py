@@ -155,6 +155,23 @@ class SummarySleepBucketingTests(unittest.TestCase):
         self.assertIn("2026-02-23", by_day)
         self.assertAlmostEqual(by_day["2026-02-23"], 390.0)
 
+    def test_sleep_with_awake_only_stages_counts_as_zero_sleep(self) -> None:
+        self._insert_sleep(
+            start_time="2026-02-22T14:30:00+00:00",
+            end_time="2026-02-22T22:00:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T14:30:00+00:00", "endTime": "2026-02-22T18:00:00+00:00", "stage": 1},
+                    {"startTime": "2026-02-22T18:00:00+00:00", "endTime": "2026-02-22T22:00:00+00:00", "stage": 3},
+                ],
+            },
+        )
+
+        by_day = self._sleep_minutes_by_date()
+        self.assertIn("2026-02-23", by_day)
+        self.assertAlmostEqual(by_day["2026-02-23"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

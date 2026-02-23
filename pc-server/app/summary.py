@@ -34,12 +34,24 @@ BMR_FIXED_KCAL_PER_DAY = 1670.0
 # Sleep stage values coming from Health Connect payload.stages[].stage.
 # Exclude clearly non-sleep states and treat other stages as sleep.
 SLEEP_STAGE_AWAKE = 1
+SLEEP_STAGE_SLEEPING = 2
 SLEEP_STAGE_OUT_OF_BED = 3
+SLEEP_STAGE_LIGHT = 4
+SLEEP_STAGE_DEEP = 5
+SLEEP_STAGE_REM = 6
 SLEEP_STAGE_AWAKE_IN_BED = 7
+SLEEP_STAGE_UNKNOWN = 0
 NON_SLEEP_STAGE_VALUES = {
+    SLEEP_STAGE_UNKNOWN,
     SLEEP_STAGE_AWAKE,
     SLEEP_STAGE_OUT_OF_BED,
     SLEEP_STAGE_AWAKE_IN_BED,
+}
+SLEEP_STAGE_VALUES = {
+    SLEEP_STAGE_SLEEPING,
+    SLEEP_STAGE_LIGHT,
+    SLEEP_STAGE_DEEP,
+    SLEEP_STAGE_REM,
 }
 
 
@@ -165,6 +177,7 @@ def _sleep_intervals_from_payload(
         return [(start_dt, end_dt)]
 
     intervals: list[tuple[datetime, datetime]] = []
+    has_valid_stage_interval = False
     for stage in stages:
         if not isinstance(stage, dict):
             continue
@@ -172,12 +185,13 @@ def _sleep_intervals_from_payload(
         et = _parse_iso(stage.get("endTime"))
         if not st or not et or et <= st:
             continue
+        has_valid_stage_interval = True
         stage_value = _to_stage_int(stage.get("stage"))
-        if stage_value in NON_SLEEP_STAGE_VALUES:
+        if stage_value not in SLEEP_STAGE_VALUES:
             continue
         intervals.append((st, et))
 
-    if intervals:
+    if has_valid_stage_interval:
         return intervals
     return [(start_dt, end_dt)]
 
