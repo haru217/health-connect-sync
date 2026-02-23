@@ -24,7 +24,10 @@ interface SupplementView {
   alias: string
   name: string
   checked: boolean
-  eventId: number | null
+  count: number
+  eventIds: number[]
+  unitLabel: string
+  defaultCount: number
 }
 
 interface MealScreenData {
@@ -97,14 +100,34 @@ function parseOptionalNumber(input: string | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+function getSupplementUnitLabel(alias: string): string {
+  return alias === 'protein' ? '本' : '錠'
+}
+
+function getDefaultSupplementCount(alias: string): number {
+  return alias === 'protein' ? 1 : 2
+}
+
+function toRoundedPositiveCount(value: number | null | undefined, fallback: number): number {
+  if (value == null || !Number.isFinite(value) || value <= 0) {
+    return fallback
+  }
+  return Math.max(1, Math.round(value))
+}
+
 function toSupplementViews(supplements: SupplementItem[], day: NutritionDayResponse): SupplementView[] {
   return supplements.map((item) => {
-    const matched = day.events.find((event) => event.alias === item.alias)
+    const aliasEvents = day.events.filter((event) => event.alias === item.alias)
+    const defaultCount = getDefaultSupplementCount(item.alias)
+    const sumCount = aliasEvents.reduce((sum, event) => sum + (event.count ?? 0), 0)
     return {
       alias: item.alias,
       name: item.label,
-      checked: Boolean(matched),
-      eventId: matched?.id ?? null,
+      checked: aliasEvents.length > 0,
+      count: toRoundedPositiveCount(sumCount, defaultCount),
+      eventIds: aliasEvents.map((event) => event.id),
+      unitLabel: getSupplementUnitLabel(item.alias),
+      defaultCount,
     }
   })
 }
@@ -206,13 +229,30 @@ export default function MealScreen() {
     }
   }
 
-  const toggleSupplement = async (item: SupplementView) => {
+  const clearSupplementLogs = useCallback(async (item: SupplementView) => {
+    if (item.eventIds.length === 0) {
+      return
+    }
+    await Promise.all(item.eventIds.map((eventId) => deleteNutritionLog(eventId)))
+  }, [])
+
+  const saveSupplementCount = useCallback(
+    async (item: SupplementView, count: number) => {
+      const normalizedCount = toRoundedPositiveCount(count, item.defaultCount)
+      await clearSupplementLogs(item)
+      await logNutrition({ alias: item.alias, count: normalizedCount, local_date: date })
+    },
+    [clearSupplementLogs, date],
+  )
+
+  const setSupplementChecked = async (item: SupplementView, checked: boolean) => {
     setActionError(null)
     try {
-      if (item.checked && item.eventId != null) {
-        await deleteNutritionLog(item.eventId)
+      if (!checked) {
+        await clearSupplementLogs(item)
       } else {
-        await logNutrition({ alias: item.alias, count: 1, local_date: date })
+        const startCount = item.checked ? item.count : item.defaultCount
+        await saveSupplementCount(item, startCount)
       }
       await loadData()
     } catch (error) {
@@ -221,6 +261,20 @@ export default function MealScreen() {
     }
   }
 
+  const adjustSupplementCount = async (item: SupplementView, delta: number) => {
+    setActionError(null)
+    const nextCount = toRoundedPositiveCount(item.count + delta, item.defaultCount)
+    if (nextCount === item.count) {
+      return
+    }
+    try {
+      await saveSupplementCount(item, nextCount)
+      await loadData()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'サプリ更新エラー'
+      setActionError(message)
+    }
+  }
   const addMealFromPrompt = async () => {
     setActionError(null)
     const label = window.prompt('食品名を入力してください')
@@ -412,20 +466,40 @@ export default function MealScreen() {
                 supplements.map((item, idx) => (
                   <div
                     key={item.alias}
-                    className={`suppl-item card ripple stagger-${Math.min(idx + 1, 5)} ${item.checked ? 'checked' : ''}`}
-                    onClick={() => void toggleSupplement(item)}
+                    className={`suppl-item card stagger-${Math.min(idx + 1, 5)} ${item.checked ? 'checked' : ''}`}
                   >
-                    <div className="suppl-item-name">{item.name}</div>
-                    <div className="suppl-item-check">
+                    <div className="suppl-item-top">
+                      <div className="suppl-item-name">{item.name}</div>
                       {item.checked ? (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
+                        <button className="suppl-clear-btn ripple" onClick={() => void setSupplementChecked(item, false)}>
+                          解除
+                        </button>
                       ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                        </svg>
+                        <button className="suppl-check-btn ripple" onClick={() => void setSupplementChecked(item, true)}>
+                          チェック
+                        </button>
+                      )}
+                    </div>
+                    <div className="suppl-amount-row">
+                      {item.checked ? (
+                        <>
+                          <button
+                            className="suppl-amount-btn ripple"
+                            onClick={() => void adjustSupplementCount(item, -1)}
+                            disabled={item.count <= 1}
+                          >
+                            -
+                          </button>
+                          <span className="suppl-amount-value num">
+                            {item.count}
+                            <span className="unit"> {item.unitLabel}</span>
+                          </span>
+                          <button className="suppl-amount-btn ripple" onClick={() => void adjustSupplementCount(item, 1)}>
+                            +
+                          </button>
+                        </>
+                      ) : (
+                        <span className="suppl-default-hint">既定 {item.defaultCount}{item.unitLabel}</span>
                       )}
                     </div>
                   </div>
@@ -433,7 +507,6 @@ export default function MealScreen() {
               )}
             </div>
           )}
-
           {activeTab === 'nutrition' && (
             <div className="nutrition-list fade-in">
               {targets.length === 0 ? (

@@ -271,9 +271,8 @@
 /* Suppl Tab */
 .suppl-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
+    flex-direction: column;
+    gap: 10px;
     padding: 16px 20px;
     margin-bottom: 12px;
 }
@@ -284,12 +283,66 @@
     border-left: 4px solid var(--good-color);
 }
 
+.suppl-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
 .suppl-item-name {
     font-weight: 600;
 }
 
-.suppl-item-check {
-    font-size: 1.2rem;
+.suppl-check-btn,
+.suppl-clear-btn,
+.suppl-amount-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.suppl-check-btn {
+    color: #1e604a;
+    background: #ecfff6;
+}
+
+.suppl-clear-btn {
+    color: #7b5c2f;
+    background: #fff8ea;
+}
+
+.suppl-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.suppl-amount-value {
+    min-width: 72px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.suppl-amount-btn {
+    min-width: 36px;
+    padding: 6px 0;
+    color: var(--text-primary);
+    background: #f3f7f5;
+}
+
+.suppl-amount-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.suppl-default-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
 }
 
 /* Nutrition Tab */
