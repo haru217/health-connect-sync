@@ -146,6 +146,7 @@ export interface NutrientTargetItem {
   target: number
   actual: number | null
   status: 'green' | 'yellow' | 'red'
+  rule?: 'min' | 'max' | 'range'
 }
 
 export interface NutrientTargetsResponse {

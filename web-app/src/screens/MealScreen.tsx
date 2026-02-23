@@ -104,8 +104,8 @@ function getSupplementUnitLabel(alias: string): string {
   return alias === 'protein' ? '本' : '錠'
 }
 
-function getDefaultSupplementCount(alias: string): number {
-  return alias === 'protein' ? 1 : 2
+function getDefaultSupplementCount(_alias: string): number {
+  return 1
 }
 
 function toRoundedPositiveCount(value: number | null | undefined, fallback: number): number {
@@ -466,41 +466,45 @@ export default function MealScreen() {
                 supplements.map((item, idx) => (
                   <div
                     key={item.alias}
-                    className={`suppl-item card stagger-${Math.min(idx + 1, 5)} ${item.checked ? 'checked' : ''}`}
+                    className={`suppl-item stagger-${Math.min(idx + 1, 5)} ${item.checked ? 'checked' : ''} ripple`}
+                    onClick={() => void setSupplementChecked(item, !item.checked)}
                   >
-                    <div className="suppl-item-top">
+                    <div className="suppl-item-icon">
+                      <SupplementIcon alias={item.alias} />
+                    </div>
+
+                    <div className="suppl-item-content">
                       <div className="suppl-item-name">{item.name}</div>
                       {item.checked ? (
-                        <button className="suppl-clear-btn ripple" onClick={() => void setSupplementChecked(item, false)}>
-                          解除
-                        </button>
-                      ) : (
-                        <button className="suppl-check-btn ripple" onClick={() => void setSupplementChecked(item, true)}>
-                          チェック
-                        </button>
-                      )}
-                    </div>
-                    <div className="suppl-amount-row">
-                      {item.checked ? (
-                        <>
+                        <div className="stepper-container" onClick={(e) => e.stopPropagation()}>
                           <button
-                            className="suppl-amount-btn ripple"
+                            className="stepper-btn"
                             onClick={() => void adjustSupplementCount(item, -1)}
                             disabled={item.count <= 1}
                           >
-                            -
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14" /></svg>
                           </button>
-                          <span className="suppl-amount-value num">
-                            {item.count}
-                            <span className="unit"> {item.unitLabel}</span>
-                          </span>
-                          <button className="suppl-amount-btn ripple" onClick={() => void adjustSupplementCount(item, 1)}>
-                            +
+                          <div className="stepper-value">
+                            {item.count}<span className="unit">{item.unitLabel}</span>
+                          </div>
+                          <button
+                            className="stepper-btn"
+                            onClick={() => void adjustSupplementCount(item, 1)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                           </button>
-                        </>
+                        </div>
                       ) : (
-                        <span className="suppl-default-hint">既定 {item.defaultCount}{item.unitLabel}</span>
+                        <div className="suppl-default-hint">摂取目安: {item.defaultCount}{item.unitLabel}</div>
                       )}
+                    </div>
+
+                    <div className="suppl-item-action">
+                      <div className="custom-checkbox">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -532,18 +536,94 @@ export default function MealScreen() {
   )
 }
 
+function SupplementIcon({ alias }: { alias: string }) {
+  let content = null
+  switch (alias) {
+    case 'protein':
+      content = (
+        <>
+          <path d="M6 6h12l-1 14H7L6 6z" />
+          <path d="M8 2h8v4H8z" />
+          <path d="M10 10h4" />
+          <path d="M10 14h4" />
+        </>
+      )
+      break
+    case 'vitamin_d':
+      content = (
+        <>
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+        </>
+      )
+      break
+    case 'fish_oil':
+      content = (
+        <>
+          <path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z" />
+          <path d="M14 7a5 5 0 00-6 3" />
+        </>
+      )
+      break
+    case 'multivitamin':
+      content = (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v12M8 10l8 4M8 14l8-4" />
+        </>
+      )
+      break
+    default:
+      content = (
+        <>
+          <rect x="7" y="3" width="10" height="18" rx="5" />
+          <path d="M7 12h10" />
+        </>
+      )
+      break
+  }
+  return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {content}
+    </svg>
+  )
+}
+
 function NutritionBar({ item }: { item: NutrientTargetItem }) {
-  const percent =
-    item.actual == null || item.target <= 0 ? 0 : Math.min(100, Math.round((item.actual / item.target) * 100))
+  const actual = item.actual ?? 0
+  const ratio = item.target > 0 ? actual / item.target : 0
+  const percent = item.actual == null || item.target <= 0
+    ? 0
+    : Math.min(100, Math.round(ratio * 100))
+
+  // API の rule フィールドを使用。なければ range をデフォルトとする
+  const rule = item.rule ?? 'range'
+
+  let computedStatus = item.status
+
+  if (actual > 0 && item.target > 0) {
+    if (rule === 'min') {
+      // 多く摂るほど良い → 100%以上は緑、摂りすぎで赤にはならない
+      if (ratio >= 1.0) computedStatus = 'green'
+      else if (ratio >= 0.7) computedStatus = 'yellow'
+      else computedStatus = 'red'
+    } else if (rule === 'max') {
+      // 超えたら問題 → 100%以内は緑、超えたら赤
+      if (ratio <= 1.0) computedStatus = 'green'
+      else if (ratio <= 1.2) computedStatus = 'yellow'
+      else computedStatus = 'red'
+    } else {
+      // range → 80〜120%が緑
+      if (ratio >= 0.8 && ratio <= 1.2) computedStatus = 'green'
+      else if (ratio >= 0.6 && ratio <= 1.5) computedStatus = 'yellow'
+      else computedStatus = 'red'
+    }
+  }
 
   let colorVar = '--accent-color'
-  if (item.status === 'green') {
-    colorVar = '--good-color'
-  } else if (item.status === 'red') {
-    colorVar = '--danger-color'
-  } else if (item.status === 'yellow') {
-    colorVar = '--warning-color'
-  }
+  if (computedStatus === 'green') colorVar = '--good-color'
+  else if (computedStatus === 'red') colorVar = '--danger-color'
+  else if (computedStatus === 'yellow') colorVar = '--warning-color'
 
   return (
     <div className="nutrition-bar-container card">

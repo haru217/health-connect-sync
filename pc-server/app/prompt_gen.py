@@ -317,16 +317,34 @@ def calc_nutrient_targets(
         ).fetchall()
     actuals = {r["nutrient_key"]: float(r["total"]) for r in rows}
 
-    def status(actual: float | None, target: float) -> str:
+    def status(actual: float | None, target: float, rule: str = "range") -> str:
         if actual is None:
-            return "red"
+            return "red" if rule in ("min", "range") else "green"
+        
         ratio = actual / target if target > 0 else 0
-        if 0.80 <= ratio <= 1.20:
-            return "green"
-        elif 0.60 <= ratio <= 1.50:
-            return "yellow"
-        else:
-            return "red"
+        
+        if rule == "range":
+            if 0.80 <= ratio <= 1.20:
+                return "green"
+            elif 0.60 <= ratio <= 1.50:
+                return "yellow"
+            else:
+                return "red"
+        elif rule == "min":
+            if ratio >= 1.0:
+                return "green"
+            elif ratio >= 0.7:
+                return "yellow"
+            else:
+                return "red"
+        elif rule == "max":
+            if ratio <= 1.0:
+                return "green"
+            elif ratio <= 1.2:
+                return "yellow"
+            else:
+                return "red"
+        return "red"
 
     result = [
         {
@@ -335,7 +353,8 @@ def calc_nutrient_targets(
             "unit": "kcal",
             "target": round(target_kcal, 0),
             "actual": actuals.get("energy_kcal"),
-            "status": status(actuals.get("energy_kcal"), target_kcal),
+            "status": status(actuals.get("energy_kcal"), target_kcal, "range"),
+            "rule": "range",
         },
         {
             "key": "protein_g",
@@ -343,7 +362,8 @@ def calc_nutrient_targets(
             "unit": "g",
             "target": round(protein_target, 1),
             "actual": actuals.get("protein_g"),
-            "status": status(actuals.get("protein_g"), protein_target),
+            "status": status(actuals.get("protein_g"), protein_target, "min"),
+            "rule": "min",
         },
         {
             "key": "fat_g",
@@ -351,7 +371,8 @@ def calc_nutrient_targets(
             "unit": "g",
             "target": round(fat_target, 1),
             "actual": actuals.get("fat_g"),
-            "status": status(actuals.get("fat_g"), fat_target),
+            "status": status(actuals.get("fat_g"), fat_target, "max"),
+            "rule": "max",
         },
         {
             "key": "carbs_g",
@@ -359,7 +380,8 @@ def calc_nutrient_targets(
             "unit": "g",
             "target": round(carbs_target, 1),
             "actual": actuals.get("carbs_g"),
-            "status": status(actuals.get("carbs_g"), carbs_target),
+            "status": status(actuals.get("carbs_g"), carbs_target, "range"),
+            "rule": "range",
         },
     ]
 
@@ -370,8 +392,31 @@ def calc_nutrient_targets(
             "unit": unit,
             "target": target_val,
             "actual": actuals.get(key),
-            "status": status(actuals.get(key), target_val),
+            "status": status(actuals.get(key), target_val, "min"),
+            "rule": "min",
+        })
+
+    # 上限あり栄養素（摂りすぎると問題になるもの）
+    # actual が None の日（記録なし）はスキップして表示しない
+    max_rule_targets = {
+        "alcohol_g":       (20.0,   "g",  "アルコール"),
+        "saturated_fat_g": (16.0,   "g",  "飽和脂肪酸"),
+        "sodium_mg":       (2000.0, "mg", "ナトリウム"),
+        "trans_fat_g":     (2.0,    "g",  "トランス脂肪酸"),
+    }
+
+    for key, (target_val, unit, name) in max_rule_targets.items():
+        actual_val = actuals.get(key)
+        if actual_val is None:
+            continue  # 記録がない日はスキップ
+        result.append({
+            "key": key,
+            "name": name,
+            "unit": unit,
+            "target": target_val,
+            "actual": actual_val,
+            "status": status(actual_val, target_val, "max"),
+            "rule": "max",
         })
 
     return result
-
