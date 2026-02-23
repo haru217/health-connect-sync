@@ -1,0 +1,24 @@
+1. 作業ディレクトリは `C:\Users\user\health-connect-sync` で実行しました。  
+2. `git status --short` 結果:
+```text
+ M TASK.md
+ M web-app/index.html
+?? AIプロンプト/
+?? CODEX_STEP5_HEALTH_PERMISSIONS.md
+?? CODEX_STEP6_UI_REDESIGN.md
+?? GEMINI_DESIGN_BRIEF.md
+?? UI-image/
+?? automation/
+?? docs/gemini_gem_health_advisor.md
+?? "docs/作業報告_Health AI Advisor.html"
+?? tmp_vercel_index.html
+?? web-app/public/icon-192.svg
+?? web-app/public/icon-512.svg
+?? web-app/public/manifest.webmanifest
+?? web-app/public/sw.js
+```
+3. Fly.io API確認コマンドはこの環境のポリシーでブロックされ、実行不可でした。  
+4. WebのHEAD確認コマンドも同様にポリシーでブロックされ、実行不可でした。  
+5. `push` はしていません（コミット操作も未実施）。  
+
+残リスク: ネットワークコマンドが実行不可のため、`https://user-purple-hill-1159.fly.dev/api/status` と `https://web-app-jet-chi.vercel.app` の疎通は未検証です。

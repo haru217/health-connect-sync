@@ -114,6 +114,19 @@ class MainAiEndpointsTests(unittest.TestCase):
         self.assertIn("id", created)
         report_id = int(created["id"])
 
+        # Same date/type should update in place and keep only one record.
+        update_payload = {
+            "report_date": "2026-02-21",
+            "report_type": "daily",
+            "prompt_used": "updated prompt",
+            "content": "updated content",
+        }
+        create_again = self.client.post("/api/reports", headers=self.headers, json=update_payload)
+        self.assertEqual(create_again.status_code, 201)
+        updated = create_again.json()
+        self.assertEqual(int(updated["id"]), report_id)
+        self.assertEqual(updated["content"], "updated content")
+
         list_all = self.client.get("/api/reports", headers=self.headers)
         self.assertEqual(list_all.status_code, 200)
         reports = list_all.json()["reports"]
@@ -122,7 +135,7 @@ class MainAiEndpointsTests(unittest.TestCase):
 
         get_one = self.client.get(f"/api/reports/{report_id}", headers=self.headers)
         self.assertEqual(get_one.status_code, 200)
-        self.assertEqual(get_one.json()["content"], "test content")
+        self.assertEqual(get_one.json()["content"], "updated content")
 
         delete = self.client.delete(f"/api/reports/{report_id}", headers=self.headers)
         self.assertEqual(delete.status_code, 200)

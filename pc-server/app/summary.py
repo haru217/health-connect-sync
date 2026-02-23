@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from .db import db
+from .profile import get_profile
 
 LOCAL_TZ = datetime.now().astimezone().tzinfo
 
@@ -46,6 +47,76 @@ def _local_day(dt: datetime) -> str:
         return dt.astimezone(LOCAL_TZ).date().isoformat()
     except Exception:
         return dt.date().isoformat()
+
+
+def _parse_zone_offset_seconds(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        sec = int(round(float(value)))
+        if -18 * 3600 <= sec <= 18 * 3600:
+            return sec
+        return None
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        if s.upper() in ("Z", "UTC", "GMT"):
+            return 0
+        su = s.upper()
+        if su.startswith("UTC") or su.startswith("GMT"):
+            s = s[3:].strip()
+        if len(s) == 6 and (s[0] in "+-") and (s[3] == ":"):
+            hh = s[1:3]
+            mm = s[4:6]
+        elif len(s) == 5 and (s[0] in "+-"):
+            hh = s[1:3]
+            mm = s[3:5]
+        elif len(s) == 3 and (s[0] in "+-"):
+            hh = s[1:3]
+            mm = "00"
+        else:
+            return None
+        if not (hh.isdigit() and mm.isdigit()):
+            return None
+        hours = int(hh)
+        minutes = int(mm)
+        if hours > 18 or minutes > 59:
+            return None
+        sign = -1 if s[0] == "-" else 1
+        return sign * (hours * 3600 + minutes * 60)
+    if isinstance(value, dict):
+        for key in ("totalSeconds", "seconds"):
+            sec = _parse_zone_offset_seconds(value.get(key))
+            if sec is not None:
+                return sec
+        for key in ("id", "zoneOffset", "offset", "value"):
+            sec = _parse_zone_offset_seconds(value.get(key))
+            if sec is not None:
+                return sec
+    return None
+
+
+def _day_in_zone_offset(dt: datetime, offset_seconds: int) -> str:
+    try:
+        tz = timezone(timedelta(seconds=offset_seconds))
+        base = dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+        return base.astimezone(tz).date().isoformat()
+    except Exception:
+        return _local_day(dt)
+
+
+def _sleep_bucket_day(start_dt: datetime, end_dt: datetime, payload: dict[str, Any]) -> str:
+    # Sleep should appear on wake-up day. Prefer explicit sleep zone offsets when available.
+    end_offset = _parse_zone_offset_seconds(payload.get("endZoneOffset"))
+    if end_offset is not None:
+        return _day_in_zone_offset(end_dt, end_offset)
+    start_offset = _parse_zone_offset_seconds(payload.get("startZoneOffset"))
+    if start_offset is not None:
+        return _day_in_zone_offset(end_dt, start_offset)
+    return _local_day(end_dt)
 
 
 def _to_float(value: Any) -> float | None:
@@ -422,9 +493,9 @@ def build_summary() -> dict[str, Any]:
         intake_rows = conn.execute("SELECT day, intake_kcal FROM intake_calories_daily").fetchall()
         intake_kcal_manual_by_date = {r["day"]: float(r["intake_kcal"]) for r in intake_rows}
 
-        # Sleep minutes (dedupe overlaps by source/day; assign to start date)
+        # Sleep minutes (dedupe overlaps by source/day; assign to wake-up day)
         sleep_rows = conn.execute(
-            "SELECT start_time, end_time, source FROM health_records WHERE type='SleepSessionRecord'"
+            "SELECT start_time, end_time, source, payload_json FROM health_records WHERE type='SleepSessionRecord'"
         ).fetchall()
         sleep_intervals_by_day_source: dict[tuple[str, str], list[tuple[datetime, datetime]]] = (
             defaultdict(list)
@@ -436,7 +507,13 @@ def build_summary() -> dict[str, Any]:
                 continue
             if et <= st:
                 continue
-            day = _local_day(st)
+            try:
+                payload = json.loads(r["payload_json"]) if r["payload_json"] else {}
+            except Exception:
+                payload = {}
+            if not isinstance(payload, dict):
+                payload = {}
+            day = _sleep_bucket_day(st, et, payload)
             source = r["source"] or "unknown"
             sleep_intervals_by_day_source[(day, source)].append((st, et))
 
@@ -665,6 +742,11 @@ def build_summary() -> dict[str, Any]:
         height_m_latest = None
         if height_points:
             height_m_latest = sorted(height_points, key=lambda x: x[0])[-1][1]
+        # Fallback: use height_cm from user_profile if no HeightRecord in Health Connect
+        if height_m_latest is None:
+            profile = get_profile()
+            if profile and profile.get("height_cm"):
+                height_m_latest = profile["height_cm"] / 100.0
 
         # Exercise sessions (latest 30)
         exercise_rows = conn.execute(

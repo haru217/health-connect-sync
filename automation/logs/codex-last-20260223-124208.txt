@@ -1,0 +1,1 @@
+実行結果です（`C:\Users\user\health-connect-sync`）: `git status --short` は取得成功（変更あり: `M TASK.md`, `M web-app/index.html` ほか未追跡多数）、`curl` の Fly.io API確認と Webヘッダー確認はどちらもこの環境のポリシーで実行拒否（外部通信ブロック）され、到達性を判定できませんでした。`push` は一切していません。

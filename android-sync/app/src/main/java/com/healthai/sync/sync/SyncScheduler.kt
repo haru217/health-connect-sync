@@ -12,7 +12,7 @@ object SyncScheduler {
     private const val UNIQUE_WORK_NAME = "health_sync_daily"
 
     fun ensureScheduled(context: Context) {
-        val request = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.DAYS)
+        val request = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -22,7 +22,7 @@ object SyncScheduler {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             UNIQUE_WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
     }

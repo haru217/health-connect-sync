@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchPrompt, fetchReport, fetchReports, saveReport } from '../api/healthApi'
-import type { ReportDetailResponse, ReportType, RequestState } from '../api/types'
+import type { ReportDetailResponse, ReportListItem, ReportType, RequestState } from '../api/types'
 import './AiScreen.css'
 import advisorDoctor from '../assets/advisor_doctor.png'
 import advisorTrainer from '../assets/advisor_trainer.png'
@@ -14,6 +14,8 @@ interface AgentComments {
 
 interface AiViewData {
   latest: ReportDetailResponse | null
+  history: ReportListItem[]
+  selectedId: number | null
   comments: AgentComments
 }
 
@@ -43,6 +45,8 @@ export default function AiScreen() {
           status: 'success',
           data: {
             latest: null,
+            history: [],
+            selectedId: null,
             comments: { doctor: '', trainer: '', nutritionist: '' },
           },
         })
@@ -53,6 +57,8 @@ export default function AiScreen() {
         status: 'success',
         data: {
           latest,
+          history: list.reports,
+          selectedId: latest.id,
           comments: extractAgentComments(latest.content ?? ''),
         },
       })
@@ -87,6 +93,27 @@ export default function AiScreen() {
     }
   }
 
+  const handleSelectHistory = async (item: ReportListItem) => {
+    if (state.status !== 'success') {
+      return
+    }
+    try {
+      const detail = await fetchReport(item.id)
+      setState({
+        status: 'success',
+        data: {
+          ...state.data,
+          latest: detail,
+          selectedId: detail.id,
+          comments: extractAgentComments(detail.content ?? ''),
+        },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'レポート取得エラー'
+      setActionError(message)
+    }
+  }
+
   if (state.status === 'loading') {
     return (
       <div className="ai-container fade-in">
@@ -105,6 +132,8 @@ export default function AiScreen() {
 
   const latest = state.data.latest
   const comments = state.data.comments
+  const history = state.data.history
+  const selectedId = state.data.selectedId
 
   return (
     <>
@@ -178,6 +207,29 @@ export default function AiScreen() {
             </svg>
           </span> 新しいレポートを保存
         </button>
+
+        <div className="card stagger-5">
+          <h3 className="section-title">履歴</h3>
+          {history.length === 0 ? (
+            <p className="text-muted">履歴がありません。</p>
+          ) : (
+            <div className="report-history-list">
+              {history.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`report-history-item ${selectedId === item.id ? 'active' : ''}`}
+                  onClick={() => void handleSelectHistory(item)}
+                >
+                  <span className="history-meta">
+                    {item.report_date} / {item.report_type === 'daily' ? '日次' : item.report_type === 'weekly' ? '週次' : '月次'}
+                  </span>
+                  <span className="history-preview">{item.preview || '（プレビューなし）'}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="report-detail-section card stagger-5" style={{ marginTop: '24px' }}>
           <h3 className="section-title">詳細レポート</h3>

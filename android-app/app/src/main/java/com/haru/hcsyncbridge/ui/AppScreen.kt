@@ -74,7 +74,7 @@ fun AppScreen() {
         if (!baseUrl.isNullOrBlank() && !key.isNullOrBlank()) {
             val last = settings.lastSyncEpochMs.first()
             val now = System.currentTimeMillis()
-            val stale = last == null || (now - last) > TimeUnit.HOURS.toMillis(20)
+            val stale = last == null || (now - last) > TimeUnit.MINUTES.toMillis(90)
             if (stale) {
                 SyncNow.run(context)
             }

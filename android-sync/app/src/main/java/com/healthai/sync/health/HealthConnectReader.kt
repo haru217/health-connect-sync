@@ -120,6 +120,8 @@ class HealthConnectReader(context: Context) {
             payload = mapOf(
                 "title" to record.title,
                 "notes" to record.notes,
+                "startZoneOffset" to record.startZoneOffset?.toString(),
+                "endZoneOffset" to record.endZoneOffset?.toString(),
                 "stages" to stages,
             ),
         )

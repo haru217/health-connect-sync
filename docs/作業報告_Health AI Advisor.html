@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>作業報告書 — Health AI Advisor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4 portrait; margin: 15mm 18mm 16mm; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif; font-size: 12px; line-height: 1.65;
+      color: #111827; background: #fff; print-color-adjust: exact;
+      -webkit-print-color-adjust: exact; padding: 40px 56px;
+    }
+    .page { max-width: 780px; margin: 0 auto; }
+    .print-bar { text-align: right; margin-bottom: 18px; }
+    .print-btn {
+      background: #1e3a8a; color: #fff; border: none; padding: 7px 20px;
+      font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 600;
+      border-radius: 4px; cursor: pointer;
+    }
+    .print-btn:hover { background: #1e40af; }
+    @media print { .print-bar { display: none; } }
+    .cover { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid #1e3a8a; }
+    .cover-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #2563eb; margin-bottom: 5px; }
+    .cover h1 { font-size: 21px; font-weight: 700; color: #111827; line-height: 1.3; margin-bottom: 10px; }
+    .cover-meta { display: flex; gap: 28px; }
+    .cover-meta-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1px; }
+    .cover-meta-value { font-size: 13px; color: #111827; font-weight: 500; }
+    .stats-row { display: flex; margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; }
+    .stat { flex: 1; padding: 10px 14px; text-align: center; border-right: 1px solid #e0e0e0; background: #f7f7f7; }
+    .stat:last-child { border-right: none; }
+    .stat-val { font-size: 19px; font-weight: 700; color: #111827; line-height: 1.2; }
+    .stat-lbl { font-size: 10px; color: #6b7280; margin-top: 2px; }
+    .section { margin-bottom: 24px; }
+    .section:last-child { margin-bottom: 0; }
+    .sec-title { font-size: 13px; font-weight: 700; color: #111827; padding: 4px 0 4px 9px; border-left: 3px solid #2563eb; margin-bottom: 12px; }
+    .day-entry { margin-bottom: 16px; page-break-inside: avoid; }
+    .day-entry:last-child { margin-bottom: 0; }
+    .day-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #2563eb; }
+    .day-date { font-size: 15px; font-weight: 700; color: #111827; }
+    .day-effort { font-size: 13px; font-weight: 600; color: #2563eb; }
+    .day-summary { font-size: 11px; color: #6b7280; }
+    .work-items { display: flex; flex-direction: column; gap: 9px; }
+    .work-item-title { font-size: 12px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+    .work-item-time { font-size: 11px; color: #9ca3af; margin-left: 5px; font-weight: 400; }
+    .detail-block { background: #f5f5f5; border-left: 3px solid #bbb; padding: 7px 12px; }
+    .detail-block ul { list-style: none; padding: 0; }
+    .detail-block ul li { font-size: 11px; color: #111827; line-height: 1.65; padding-left: 1.1em; text-indent: -1.1em; margin-bottom: 3px; }
+    .detail-block ul li:last-child { margin-bottom: 0; }
+    .detail-block ul li::before { content: "• "; color: #888; }
+    .detail-block code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 10px; background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 2px; color: #111827; }
+    .tech-notes { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .tech-note { padding: 6px 10px; font-size: 11px; line-height: 1.6; border-left: 3px solid; }
+    .tech-note-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+    .tech-note p { color: #111827; }
+    .tech-note code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 10px; background: rgba(0,0,0,0.08); padding: 1px 3px; border-radius: 2px; }
+    .tech-note.issue   { background: #fafafa; border-color: #e53e3e; }
+    .tech-note.issue   .tech-note-lbl { color: #c53030; }
+    .tech-note.resolve { background: #fafafa; border-color: #38a169; }
+    .tech-note.resolve .tech-note-lbl { color: #276749; }
+    .tech-note.note    { background: #fafafa; border-color: #60a5fa; }
+    .tech-note.note    .tech-note-lbl { color: #2563eb; }
+    .del-table { width: 100%; border-collapse: collapse; }
+    .del-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; padding: 0 0 6px; border-bottom: 1px solid #374151; }
+    .del-table td { padding: 7px 0; border-bottom: 1px solid #e5e7eb; font-size: 11px; vertical-align: top; color: #111827; }
+    .del-table tr:last-child td { border-bottom: none; }
+    .del-table td:first-child { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; color: #111827; font-weight: 600; width: 220px; padding-right: 16px; }
+    .report-footer { margin-top: 20px; padding-top: 11px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .footer-total { font-size: 13px; font-weight: 700; color: #1e3a8a; }
+    .footer-total .val { font-size: 17px; margin: 0 2px; }
+    .footer-note { font-size: 10px; color: #9ca3af; margin-left: 8px; font-weight: 400; }
+    .footer-date { font-size: 11px; color: #9ca3af; }
+    @media (max-width: 600px) { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="print-bar">
+    <button class="print-btn" onclick="window.print()">PDF として印刷</button>
+  </div>
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-label">作業報告書</div>
+    <h1>Health AI Advisor</h1>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">依頼内容</div>
+        <div class="cover-meta-value">健康 AI アドバイザーアプリの設計・PM・クラウド化</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">期間</div>
+        <div class="cover-meta-value">2026/02/17 〜 現在</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">ステータス</div>
+        <div class="cover-meta-value">稼働中</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-val">1.4</div>
+      <div class="stat-lbl">累計工数 (day)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">3</div>
+      <div class="stat-lbl">稼働日数</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">9</div>
+      <div class="stat-lbl">成果物</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">3</div>
+      <div class="stat-lbl">解消した障害</div>
+    </div>
+  </div>
+
+  <!-- Work Log -->
+  <div class="section">
+    <div class="sec-title">作業ログ</div>
+
+  <!-- 2026/02/17 -->
+  <div class="day-entry">
+    <div class="day-header">
+      <div class="day-date">2026年2月17日（火）</div>
+      <div class="day-effort">0.2 day</div>
+      <div class="day-summary">プロジェクト初期セットアップ・Android ビルド基盤構築</div>
+    </div>
+    <div class="work-items">
+
+      <div class="work-item">
+        <div class="work-item-title">初期コミット・プロジェクト基盤構築 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>health-connect-sync リポジトリ初期コミット（FastAPI バックエンド・公開ダッシュボード・Android アプリ一式）</li>
+            <li>SQLite DB 基盤（<code>db.py</code>）・API キー認証（<code>security.py</code>）・ヘルスデータ集計（<code>summary.py</code>）を確立</li>
+            <li><code>/api/sync</code> エンドポイントで Health Connect データを受信する基本フローを実装</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Android ビルド基盤修正 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>Gradle Wrapper 追加（<code>gradlew</code> / <code>gradlew.bat</code> / <code>gradle-wrapper.jar</code> / <code>gradle-wrapper.properties</code>）</li>
+            <li>Health Connect 権限を AndroidManifest に追加・<code>&lt;queries&gt;</code> に <code>com.google.android.apps.healthdata</code> を追加</li>
+            <li>Android 14+ 向け <code>ViewPermissionUsageActivity</code>（activity-alias）を追加</li>
+            <li>Health Connect SDK を <code>1.2.0-alpha02</code> → <code>1.1.0-alpha01</code> に変更（AGP 8.6.1 / compileSdk 34 との互換性確保）</li>
+            <li>Java/Kotlin ターゲット不整合を解消（<code>compileOptions</code> を Java 17 に統一）</li>
+            <li><code>HttpSyncClient</code> に connect/read/write タイムアウトを追加（15/30/30秒）</li>
+            <li>ルート <code>.gitignore</code> 新規作成（<code>.env</code> / <code>*.db</code> / APK / build / node_modules を除外）</li>
+          </ul>
+          <div class="tech-notes">
+            <div class="tech-note issue">
+              <div class="tech-note-lbl">障害原因</div>
+              <p>Health Connect SDK バージョンと AGP のバージョン不整合、Java/Kotlin ターゲット不整合により <code>assembleDebug</code> が失敗</p>
+            </div>
+            <div class="tech-note resolve">
+              <div class="tech-note-lbl">対応結果</div>
+              <p>SDK ダウングレード・コンパイルターゲット統一により <code>assembleDebug</code> / <code>lintDebug</code> / <code>testDebugUnitTest</code> 全て成功。APK 生成を確認</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 2026/02/18 -->
+  <div class="day-entry">
+    <div class="day-header">
+      <div class="day-date">2026年2月18日（水）</div>
+      <div class="day-effort">0.2 day</div>
+      <div class="day-summary">栄養ログ機能・ダッシュボード強化・OpenClaw ingest 実装</div>
+    </div>
+    <div class="work-items">
+
+      <div class="work-item">
+        <div class="work-item-title">食事・サプリ手入力ログ機能実装 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>DB テーブル追加（<code>nutrition_events</code> / <code>nutrition_nutrients</code> / <code>nutrient_keys</code>）</li>
+            <li><code>POST /api/nutrition/log</code>・<code>GET /api/nutrition/day</code> エンドポイント実装</li>
+            <li>エイリアス設定追加（protein / vitamin_d / multivitamin / fish_oil の栄養素マスタ）</li>
+            <li>ラベルベースの食事ログに対してマイクロ栄養素を自動推定する <code>estimator.py</code> を実装</li>
+            <li>栄養素グラフ化のためのデュアルライト構成（<code>micros_json</code> + 正規化テーブル）を実装</li>
+            <li>Discord #体調管理 チャンネルへ昨日レポートを 12:00 JST に自動送信する cron を追加</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">ダッシュボード強化 <span class="work-item-time">〜 0.5h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>KPI カードを期間平均値（レンジ平均）で表示するよう変更</li>
+            <li>バイタル・健康インサイトの可視化を追加</li>
+            <li>睡眠セッション重複の dedup 処理を実装</li>
+            <li>ダッシュボードのラベルをカレンダー日付ベースに変更</li>
+            <li>栄養素タブ（ローカル / GitHub Pages 両対応）を追加</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">OpenClaw ingest エンドポイント実装 <span class="work-item-time">〜 0.5h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>冪等な ingest エンドポイント <code>POST /api/openclaw/ingest</code> を実装（<code>event_id</code> キー）</li>
+            <li>ingest 台帳テーブル <code>openclaw_ingest_events</code> を追加</li>
+            <li><code>openclaw_ingest.py</code> / <code>import_pending.py</code> / <code>watch-pending.ps1</code> を新規作成</li>
+            <li>API ドキュメント更新（<code>NUTRITION_API.md</code> / <code>openapi-local.yaml</code>）</li>
+            <li>テスト追加（<code>test_openclaw_ingest.py</code> / <code>test_pending_importer.py</code>）</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 2026/02/22 -->
+  <div class="day-entry">
+    <div class="day-header">
+      <div class="day-date">2026年2月22日（日）</div>
+      <div class="day-effort">1.0 day</div>
+      <div class="day-summary">アーキテクチャ刷新・PM ドキュメント整備・Codex/Vercel 対応</div>
+    </div>
+    <div class="work-items">
+
+      <div class="work-item">
+        <div class="work-item-title">アーキテクチャ決定・要件定義更新 <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>Cloudflare Tunnel（PC サーバー依存）→ Fly.io クラウド化への方針変更を確定</li>
+            <li>UI を <code>ui_template.html</code>（Vanilla HTML）→ <code>web-app/</code>（React/Vite）に変更決定</li>
+            <li>フロントエンドは Vercel、バックエンドは Fly.io の構成に確定</li>
+            <li><code>ARCHITECTURE.md</code> 新規作成（構成図・方針決定記録・環境変数一覧）</li>
+            <li><code>TASK.md</code> を全面更新（T01〜T22 の Fly.io タスクに置き換え、完了状態を反映）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Fly.io デプロイ用ファイル作成 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>pc-server/Dockerfile</code> 作成（Python 3.12-slim、永続ボリューム <code>/data</code>、ポート 8080）</li>
+            <li><code>pc-server/fly.toml</code> 作成（nrt リージョン、256MB VM、health_data ボリューム設定）</li>
+            <li><code>pc-server/.dockerignore</code> 作成</li>
+            <li><code>DISCOVERY_ENABLED=false</code> 設定によりクラウド環境での UDP 探索を無効化</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Codex 向け実装指示書作成 <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>CODEX_STEP1.md</code>：Fly.io デプロイ手順（ボリューム作成・シークレット設定・動作確認）</li>
+            <li><code>CODEX_STEP3_WEBAPP.md</code>：web-app/ API統合（CORS設定・API クライアント・全画面差し替え・Vercel CLI デプロイ）</li>
+            <li><code>CODEX_STEP4.md</code>：新 Android 同期アプリ（Health Connect 読み取り・WorkManager・設定画面）</li>
+            <li>Codex・Gemini 向けコピペ用プロンプトを会話内で提供</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">実装進捗確認・計画変更対応 <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>Codex 実装済みコード（ui_template.html・main.py・nutrition.py・android-sync/）の内容を確認</li>
+            <li>Fly.io デプロイ済み（<code>user-purple-hill-1159.fly.dev</code>）・API_KEY 設定済みを確認</li>
+            <li>web-app/ が全画面モックデータであることを確認、API 統合が未実装と特定</li>
+            <li>不要ファイルを <code>_archive/pre-react-ui/</code> に移動（CLOUDFLARE_TUNNEL.md・CODEX_STEP2.md・UI_REDESIGN_SPEC.md・UI_CHANGES.md）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">システム問題調査・解決 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>OpenJDK プロセスが2つ起動している原因を調査</li>
+            <li>Gradle デーモン（PID 35872・36552）が Android ビルド後に残留していることを特定</li>
+            <li>合計メモリ消費 約 1.25GB を確認、<code>./gradlew --stop</code> で解消する手順を提示</li>
+          </ul>
+          <div class="tech-notes">
+            <div class="tech-note issue">
+              <div class="tech-note-lbl">障害原因</div>
+              <p>Gradle デーモン（JRE 21 + OpenJDK 8）が Android ビルド後もバックグラウンドで生存し、合計 1.25GB を消費</p>
+            </div>
+            <div class="tech-note resolve">
+              <div class="tech-note-lbl">対応結果</div>
+              <p><code>./gradlew --stop</code> コマンドで全デーモンを停止する手順をユーザーに提示</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- /Work Log -->
+  </div>
+
+  <!-- Deliverables -->
+  <div class="section">
+    <div class="sec-title">成果物一覧</div>
+    <table class="del-table">
+      <thead>
+        <tr><th>ファイル</th><th>内容・役割</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>pc-server/Dockerfile</td><td>Fly.io デプロイ用コンテナ定義（Python 3.12-slim、永続ボリューム対応）</td></tr>
+        <tr><td>pc-server/fly.toml</td><td>Fly.io 設定（nrt リージョン・256MB VM・health_data ボリューム）</td></tr>
+        <tr><td>pc-server/.dockerignore</td><td>Docker ビルド除外ファイル</td></tr>
+        <tr><td>ARCHITECTURE.md</td><td>アーキテクチャ決定記録（構成図・方針選定理由・環境変数一覧）</td></tr>
+        <tr><td>TASK.md</td><td>タスクリスト全面更新（T01〜T22、Fly.io + React + Vercel 対応）</td></tr>
+        <tr><td>CODEX_STEP1.md</td><td>Fly.io デプロイ手順書（Codex 向け実装指示）</td></tr>
+        <tr><td>CODEX_STEP3_WEBAPP.md</td><td>web-app/ API統合 + Vercel デプロイ指示書（Codex 向け）</td></tr>
+        <tr><td>CODEX_STEP4.md</td><td>新 Android 同期アプリ実装指示書（Health Connect・WorkManager）</td></tr>
+        <tr><td>docs/作業報告_Health AI Advisor.html</td><td>本作業報告書（初版）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="report-footer">
+    <div class="footer-total">
+      累計工数　<span class="val">1.4</span> day
+    </div>
+    <div class="footer-date">報告日: 2026/02/22</div>
+  </div>
+
+</div>
+</body>
+</html>

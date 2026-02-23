@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from .db import db
 from .profile import get_profile
 from .nutrition import get_day_events, get_day_totals, CATALOG
+from .nutrient_keys import SEED_KEYS
 from .summary import build_summary
 
 
@@ -90,6 +91,77 @@ def _get_hc_snippet(summary: dict, days: int) -> str:
     return "\n".join(lines)
 
 
+def _guess_unit_from_key(key: str) -> str:
+    if key.endswith("_kcal"):
+        return "kcal"
+    if key.endswith("_mg"):
+        return "mg"
+    if key.endswith("_mcg"):
+        return "mcg"
+    if key.endswith("_g"):
+        return "g"
+    if key.endswith("_iu"):
+        return "IU"
+    return ""
+
+
+def _format_number(value: float) -> str:
+    abs_val = abs(value)
+    if abs_val >= 100:
+        text = f"{value:.1f}"
+    elif abs_val >= 10:
+        text = f"{value:.2f}"
+    else:
+        text = f"{value:.3f}"
+    return text.rstrip("0").rstrip(".")
+
+
+def _format_all_nutrients(totals: dict) -> str:
+    seed_meta = {nk.key: nk for nk in SEED_KEYS}
+    category_order = {"macros": 0, "minerals": 1, "vitamins": 2, "lipids": 3, "other": 4}
+    macro_keys = ("energy_kcal", "protein_g", "fat_g", "carbs_g")
+
+    values: dict[str, float] = {}
+    if totals.get("kcal") is not None:
+        values["energy_kcal"] = float(totals["kcal"])
+    if totals.get("protein_g") is not None:
+        values["protein_g"] = float(totals["protein_g"])
+    if totals.get("fat_g") is not None:
+        values["fat_g"] = float(totals["fat_g"])
+    if totals.get("carbs_g") is not None:
+        values["carbs_g"] = float(totals["carbs_g"])
+
+    micros = totals.get("micros")
+    if isinstance(micros, dict):
+        for k, v in micros.items():
+            if isinstance(v, (int, float)):
+                values[str(k)] = float(v)
+
+    if not values:
+        return "（記録なし）"
+
+    macro_present = [k for k in macro_keys if k in values]
+    other_keys = [k for k in values.keys() if k not in macro_keys]
+    other_keys.sort(
+        key=lambda key: (
+            category_order.get(seed_meta.get(key).category if seed_meta.get(key) else None, 99),
+            (seed_meta.get(key).display_name or key).lower() if seed_meta.get(key) else key.lower(),
+        )
+    )
+    ordered_keys = macro_present + other_keys
+
+    lines: list[str] = []
+    for key in ordered_keys:
+        meta = seed_meta.get(key)
+        display = meta.display_name if meta and meta.display_name else key
+        unit = meta.unit if meta and meta.unit else _guess_unit_from_key(key)
+        value_text = _format_number(values[key])
+        unit_suffix = unit if unit else ""
+        lines.append(f"- {display} ({key}): {value_text}{unit_suffix}")
+
+    return "\n".join(lines)
+
+
 def build_prompt(prompt_type: str) -> str:
     """
     prompt_type: "daily" | "weekly" | "monthly"
@@ -129,6 +201,7 @@ def build_prompt(prompt_type: str) -> str:
     food_events = get_day_events(target_date)
     food_text = _format_food_events(food_events)
     totals = get_day_totals(target_date)
+    all_nutrients_text = _format_all_nutrients(totals)
     suppl_text = _format_supplement_status(target_date)
 
     prompt = f"""# お願い
@@ -153,6 +226,9 @@ def build_prompt(prompt_type: str) -> str:
 - タンパク質: {totals.get('protein_g') or 'データなし'}g
 - 脂質: {totals.get('fat_g') or 'データなし'}g
 - 炭水化物: {totals.get('carbs_g') or 'データなし'}g
+
+### 全栄養素（記録値）
+{all_nutrients_text}
 
 ## サプリ（{target_date}）
 {suppl_text}

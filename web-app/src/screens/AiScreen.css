@@ -174,3 +174,45 @@
 .text-muted {
     color: var(--text-muted);
 }
+
+.report-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.report-history-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid #d8e7df;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 10px 12px;
+    color: var(--text-primary);
+}
+
+.report-history-item.active {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(136, 212, 180, 0.2);
+}
+
+.history-meta {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.history-preview {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
