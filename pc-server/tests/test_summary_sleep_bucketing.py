@@ -207,6 +207,44 @@ class SummarySleepBucketingTests(unittest.TestCase):
         self.assertIn("2026-02-23", by_day)
         self.assertAlmostEqual(by_day["2026-02-23"], 450.0)
 
+    def test_sleep_drops_stage2_when_detailed_stages_exist_in_other_records_same_day(self) -> None:
+        # Record A: broad sleeping stage for whole in-bed interval.
+        self._insert_sleep(
+            start_time="2026-02-22T14:30:00+00:00",
+            end_time="2026-02-22T22:00:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T14:30:00+00:00", "endTime": "2026-02-22T22:00:00+00:00", "stage": 2},
+                ],
+            },
+        )
+        # Record B/C: detailed stage split for same day+source.
+        self._insert_sleep(
+            start_time="2026-02-22T14:30:00+00:00",
+            end_time="2026-02-22T15:53:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T14:30:00+00:00", "endTime": "2026-02-22T15:53:00+00:00", "stage": 1},
+                ],
+            },
+        )
+        self._insert_sleep(
+            start_time="2026-02-22T15:53:00+00:00",
+            end_time="2026-02-22T22:00:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T15:53:00+00:00", "endTime": "2026-02-22T22:00:00+00:00", "stage": 4},
+                ],
+            },
+        )
+
+        by_day = self._sleep_minutes_by_date()
+        self.assertIn("2026-02-23", by_day)
+        self.assertAlmostEqual(by_day["2026-02-23"], 367.0)
+
 
 if __name__ == "__main__":
     unittest.main()

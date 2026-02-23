@@ -172,14 +172,14 @@ def _to_stage_int(value: Any) -> int | None:
 
 def _sleep_intervals_from_payload(
     start_dt: datetime, end_dt: datetime, payload: dict[str, Any]
-) -> list[tuple[datetime, datetime]]:
+) -> tuple[list[tuple[datetime, datetime]], bool]:
     """Extract sleep-only intervals from payload.stages.
 
     Falls back to whole-session interval when stage data is absent/invalid.
     """
     stages = payload.get("stages")
     if not isinstance(stages, list):
-        return [(start_dt, end_dt)]
+        return [(start_dt, end_dt)], False
 
     parsed_intervals: list[tuple[int, datetime, datetime]] = []
     has_valid_stage_interval = False
@@ -205,8 +205,26 @@ def _sleep_intervals_from_payload(
             else SLEEP_STAGE_VALUES
         )
         intervals = [(st, et) for stage, st, et in parsed_intervals if stage in allowed_stages]
-        return intervals
-    return [(start_dt, end_dt)]
+        return intervals, True
+    return [(start_dt, end_dt)], False
+
+
+def _detailed_sleep_intervals_from_payload(payload: dict[str, Any]) -> list[tuple[datetime, datetime]]:
+    stages = payload.get("stages")
+    if not isinstance(stages, list):
+        return []
+    out: list[tuple[datetime, datetime]] = []
+    for stage in stages:
+        if not isinstance(stage, dict):
+            continue
+        st = _parse_iso(stage.get("startTime"))
+        et = _parse_iso(stage.get("endTime"))
+        if not st or not et or et <= st:
+            continue
+        stage_value = _to_stage_int(stage.get("stage"))
+        if stage_value in DETAILED_SLEEP_STAGE_VALUES:
+            out.append((st, et))
+    return out
 
 
 def _to_float(value: Any) -> float | None:
@@ -590,6 +608,12 @@ def build_summary() -> dict[str, Any]:
         sleep_intervals_by_day_source: dict[tuple[str, str], list[tuple[datetime, datetime]]] = (
             defaultdict(list)
         )
+        sleep_fallback_intervals_by_day_source: dict[
+            tuple[str, str], list[tuple[datetime, datetime]]
+        ] = defaultdict(list)
+        detailed_sleep_intervals_by_day_source: dict[
+            tuple[str, str], list[tuple[datetime, datetime]]
+        ] = defaultdict(list)
         for r in sleep_rows:
             st = _parse_iso(r["start_time"])
             et = _parse_iso(r["end_time"])
@@ -605,12 +629,23 @@ def build_summary() -> dict[str, Any]:
                 payload = {}
             day = _sleep_bucket_day(st, et, payload)
             source = r["source"] or "unknown"
-            stage_intervals = _sleep_intervals_from_payload(st, et, payload)
+            stage_intervals, has_stage_data = _sleep_intervals_from_payload(st, et, payload)
             sleep_intervals_by_day_source[(day, source)].extend(stage_intervals)
+            if has_stage_data:
+                detailed_intervals = _detailed_sleep_intervals_from_payload(payload)
+                if detailed_intervals:
+                    detailed_sleep_intervals_by_day_source[(day, source)].extend(detailed_intervals)
+            else:
+                sleep_fallback_intervals_by_day_source[(day, source)].extend(stage_intervals)
 
         sleep_min_by_day_source: dict[tuple[str, str], float] = {}
         for key, intervals in sleep_intervals_by_day_source.items():
-            sleep_min_by_day_source[key] = _merged_interval_minutes(intervals)
+            detailed_intervals = detailed_sleep_intervals_by_day_source.get(key) or []
+            if detailed_intervals:
+                merged_target = detailed_intervals + (sleep_fallback_intervals_by_day_source.get(key) or [])
+            else:
+                merged_target = intervals
+            sleep_min_by_day_source[key] = _merged_interval_minutes(merged_target)
 
         sleep_min_by_date = _collapse_day_source_max(sleep_min_by_day_source)
         sleep_hour_by_date = {k: v / 60.0 for k, v in sleep_min_by_date.items()}
