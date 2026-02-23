@@ -474,7 +474,14 @@ export default function HealthScreen() {
               <p className="health-selected-value">線をタップして値を表示</p>
             )}
             <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={1}
+                initialDimension={{ width: 320, height: 240 }}
+                debounce={50}
+              >
                 <LineChart
                   data={compositionData}
                   onClick={(event) => {
@@ -635,7 +642,14 @@ export default function HealthScreen() {
               <p className="health-selected-value">線をタップして値を表示</p>
             )}
             <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={1}
+                initialDimension={{ width: 320, height: 240 }}
+                debounce={50}
+              >
                 <LineChart
                   data={bloodPressureData}
                   onClick={(event) => {
@@ -673,7 +687,14 @@ export default function HealthScreen() {
               <p className="health-selected-value">線をタップして値を表示</p>
             )}
             <div style={{ width: '100%', height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={1}
+                initialDimension={{ width: 320, height: 220 }}
+                debounce={50}
+              >
                 <LineChart
                   data={restingData}
                   onClick={(event) => {
@@ -732,7 +753,14 @@ export default function HealthScreen() {
               <p className="health-selected-value">棒をタップして値を表示</p>
             )}
             <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={1}
+                initialDimension={{ width: 320, height: 240 }}
+                debounce={50}
+              >
                 <BarChart data={sleepData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
@@ -774,3 +802,4 @@ export default function HealthScreen() {
     </div>
   )
 }
+
