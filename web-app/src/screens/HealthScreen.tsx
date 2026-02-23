@@ -19,6 +19,7 @@ import './HealthScreen.css'
 type HealthTab = 'composition' | 'circulation' | 'sleep'
 type CompositionRange = 14 | 30 | 90
 type CirculationRange = 14 | 30
+const FIXED_BMR_KCAL_PER_DAY = 1670
 
 interface HealthData {
   summary: SummaryResponse
@@ -128,16 +129,6 @@ function toSpo2Series(summary: SummaryResponse): Array<{ date: string; pct: numb
     return summary.oxygenSaturationByDate.map((item) => ({ date: item.date, pct: item.percentage }))
   }
   return summary.oxygenSaturationPctByDate.map((item) => ({ date: item.date, pct: item.pct }))
-}
-
-function toBmrSeries(summary: SummaryResponse): Array<{ date: string; kcalPerDay: number }> {
-  if (summary.bmrByDate && summary.bmrByDate.length > 0) {
-    return summary.bmrByDate
-  }
-  return summary.basalMetabolicRateKcalByDate.map((item) => ({
-    date: item.date,
-    kcalPerDay: item.kcalPerDay,
-  }))
 }
 
 function compositionPoints(summary: SummaryResponse, days: number): CompositionPoint[] {
@@ -251,31 +242,6 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
-function estimateBmrKcalPerDay(
-  profile: ProfileResponse,
-  weightKg: number | null,
-  heightM: number | null,
-): number | null {
-  const heightCm = profile.height_cm ?? (heightM != null ? heightM * 100 : null)
-  const birthYear = profile.birth_year ?? null
-  if (weightKg == null || heightCm == null || birthYear == null) {
-    return null
-  }
-  const age = new Date().getFullYear() - birthYear
-  if (!Number.isFinite(age) || age <= 0) {
-    return null
-  }
-
-  const base = 10 * weightKg + 6.25 * heightCm - 5 * age
-  if (profile.sex === 'male') {
-    return Math.round(base + 5)
-  }
-  if (profile.sex === 'female') {
-    return Math.round(base - 161)
-  }
-  return Math.round(base - 78)
-}
-
 function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
   if (value == null) {
     return { tone: 'warning', message: 'データ不足' }
@@ -348,7 +314,6 @@ export default function HealthScreen() {
   const bodyFatSeries = toBodyFatSeries(summary)
   const spo2Series = toSpo2Series(summary)
   const restingSeries = toRestingSeries(summary)
-  const bmrSeries = toBmrSeries(summary)
   const bloodSeries = summary.bloodPressureByDate ?? []
 
   const compositionData = compositionPoints(summary, compositionRange)
@@ -358,15 +323,13 @@ export default function HealthScreen() {
 
   const latestWeight = latestByDate(summary.weightByDate)?.kg ?? null
   const latestBodyFat = latestByDate(bodyFatSeries)?.pct ?? null
-  const latestBmr = latestByDate(bmrSeries)?.kcalPerDay ?? null
   const latestSpo2 = latestByDate(spo2Series)?.pct ?? null
   const latestResting = latestByDate(restingSeries)?.bpm ?? null
   const latestBlood = latestByDate(bloodSeries) ?? null
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
-  const estimatedBmr = estimateBmrKcalPerDay(profile, latestWeight, heightM)
-  const displayBmr = estimatedBmr ?? latestBmr
+  const displayBmr = FIXED_BMR_KCAL_PER_DAY
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
@@ -571,7 +534,7 @@ export default function HealthScreen() {
                 <strong>{formatNullable(displayBmr, 0)} kcal/日</strong>
               </div>
             </div>
-            <p className="health-note">体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '自動推定' : '連携値'}</p>
+            <p className="health-note">体脂肪判定: {bodyFatText} / BMR: 固定 1670 kcal/日</p>
           </section>
 
           <section className="card">
