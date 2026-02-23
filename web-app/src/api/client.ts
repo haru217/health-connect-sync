@@ -6,7 +6,27 @@ function sanitizeHeaderValue(value: string): string {
   return sanitizeConfigValue(value).replace(/[\r\n]/g, '')
 }
 
-const BASE_URL = sanitizeConfigValue(import.meta.env.VITE_API_URL ?? 'http://localhost:8765')
+const LEGACY_FLY_HOST = 'user-purple-hill-1159.fly.dev'
+const MIGRATED_API_BASE_URL = 'https://34.171.85.174.nip.io'
+
+function normalizeBaseUrl(value: string): string {
+  const raw = sanitizeConfigValue(value)
+  if (!raw) {
+    return 'http://localhost:8765'
+  }
+
+  try {
+    const parsed = new URL(raw)
+    if (parsed.host === LEGACY_FLY_HOST) {
+      return MIGRATED_API_BASE_URL
+    }
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return raw.replace(/\/$/, '')
+  }
+}
+
+const BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL ?? 'http://localhost:8765')
 const API_KEY = sanitizeHeaderValue(import.meta.env.VITE_API_KEY ?? '')
 
 type HeaderInitLike = HeadersInit | undefined
