@@ -27,5 +27,35 @@ Last updated: 2026-02-23
 - `vercel-react-best-practices` was installed globally via `npx skills add`.
 - To ensure full pickup, restart Codex before continuing work.
 
+---
+
+## 2026-02-23: インフラ移行・AI 自動化
+
+### Fly.io → Google Cloud 移行（完了）
+- GCP プロジェクト: `health-ai-ryosuzu`
+- VM: `health-ai-vm`（e2-micro / us-central1-a / 外部 IP: 34.123.119.197）
+- Docker Compose + Caddy（自動 HTTPS）で FastAPI 起動
+- nip.io ドメイン: `https://34.123.119.197.nip.io`
+- SQLite DB 移行完了（13,415件）
+- **注意**: 外部 IP が静的化されていない場合、VM 再起動で IP が変わる
+
+### API URL 変更（完了）
+- `web-app/.env.production.vercel`: `VITE_API_URL` → `https://34.123.119.197.nip.io`
+- `android-sync/.../AppConfig.kt`: `SERVER_BASE_URL` → `https://34.123.119.197.nip.io`
+- Vercel 再デプロイ完了: https://web-app-jet-chi.vercel.app
+- Android: GitHub Actions でビルド（`android-sync` push でトリガー）
+
+### NotebookLM + Codex 自動化（完了）
+- NotebookLM 3ノートブック登録（フィジカルトレーナー・管理栄養士・医師）
+- `~/.codex/config.toml` に `notebooklm-mcp` 追加
+- `sandbox_mode = "danger-full-access"` に変更（curl ブロック解消）
+- `automation/codex_task_prompt.txt` を daily/weekly/monthly 対応版に更新
+- 3ノートブックに同じフルデータを渡し、質問（役割）のみ変える設計
+
+### 残タスク
+- [ ] GCP 外部 IP を静的化（再起動で IP 変わると nip.io が壊れる）
+- [ ] Fly.io 削除（`flyctl apps destroy user-purple-hill-1159`）
+- [ ] Codex NotebookLM MCP 初回認証確認（次回 cron 実行時）
+
 ## Restart prompt (copy in new session)
-`C:\\Users\\user\\health-connect-sync\\AGENT_MEMORY.md` を読んで、睡眠時間ズレ修正の続きから実装して。
+`C:\\Users\\user\\health-connect-sync\\AGENT_MEMORY.md` を読んで、続きから実装して。
