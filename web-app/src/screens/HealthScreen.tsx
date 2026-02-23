@@ -242,6 +242,31 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
+function estimateLatestBmrFromCalories(summary: SummaryResponse): number | null {
+  const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate ?? []
+  const activeSeries = summary.activeCaloriesByDate ?? summary.activeCalByDate ?? []
+  if (totalSeries.length === 0 || activeSeries.length === 0) {
+    return null
+  }
+
+  const activeMap = new Map(activeSeries.map((item) => [item.date, item.kcal]))
+  const totalsDesc = [...totalSeries].sort((a, b) => b.date.localeCompare(a.date))
+  for (const item of totalsDesc) {
+    const active = activeMap.get(item.date)
+    if (active == null) {
+      continue
+    }
+    const bmr = item.kcal - active
+    if (!Number.isFinite(bmr)) {
+      continue
+    }
+    if (bmr >= 600 && bmr <= 4000) {
+      return bmr
+    }
+  }
+  return null
+}
+
 function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
   if (value == null) {
     return { tone: 'warning', message: 'データ不足' }
@@ -329,7 +354,8 @@ export default function HealthScreen() {
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
-  const displayBmr = FIXED_BMR_KCAL_PER_DAY
+  const estimatedBmr = estimateLatestBmrFromCalories(summary)
+  const displayBmr = estimatedBmr ?? FIXED_BMR_KCAL_PER_DAY
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
@@ -534,7 +560,9 @@ export default function HealthScreen() {
                 <strong>{formatNullable(displayBmr, 0)} kcal/日</strong>
               </div>
             </div>
-            <p className="health-note">体脂肪判定: {bodyFatText} / BMR: 固定 1670 kcal/日</p>
+            <p className="health-note">
+              体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '総消費-活動から推定' : '固定 1670 kcal/日'}
+            </p>
           </section>
 
           <section className="card">
