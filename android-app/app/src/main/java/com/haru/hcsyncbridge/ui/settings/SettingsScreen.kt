@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.os.BuildCompat
 import androidx.health.connect.client.PermissionController
 import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
@@ -40,6 +41,7 @@ import java.util.Locale
 private const val DEFAULT_SERVER_URL = "https://34.171.85.174.nip.io"
 private const val DEFAULT_API_KEY = "test12345"
 
+@OptIn(BuildCompat.PrereleaseSdkCheck::class)
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
