@@ -12,6 +12,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.health.connect.client.PermissionController
+import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
 import com.haru.hcsyncbridge.settings.SettingsStore
 import com.haru.hcsyncbridge.sync.SyncNow
@@ -42,6 +45,10 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val settings = remember { SettingsStore(context) }
     val scope = rememberCoroutineScope()
+
+    val requestPermissions = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { /* 結果は lastError で確認 */ }
 
     val storedKey by settings.apiKey.collectAsState(initial = null)
     val lastSyncMs by settings.lastSyncEpochMs.collectAsState(initial = null)
@@ -119,6 +126,15 @@ fun SettingsScreen() {
                     MaterialTheme.colorScheme.error
             )
         }
+
+        Divider()
+
+        Text("Health Connect 権限", style = MaterialTheme.typography.titleMedium)
+
+        Button(
+            onClick = { requestPermissions.launch(RecordTypeRegistry.readPermissions) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("権限を設定する") }
 
         Divider()
 
