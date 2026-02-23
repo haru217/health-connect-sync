@@ -1,0 +1,153 @@
+ヘルスデータ分析レポートを自動生成してください（非対話実行）。
+
+## 作業ディレクトリ
+C:\Users\user\health-connect-sync
+
+---
+
+## 実行方針（重要）
+- タイムゾーンは JST（Asia/Tokyo）を使う
+- 実行日（JST）を基準に、作成対象 period を決める
+- `report_type` は API仕様どおり `daily|weekly|monthly` のみ使う
+- 独自値（例: `daily_notebooklm`）は使わない
+
+### 作成対象ルール
+1. `daily`: 毎日作成する
+2. `weekly`: JSTで月曜日のみ作成する（対象は前週 月〜日）
+3. `monthly`: JSTで毎月1日のみ作成する（対象は前月）
+
+### report_date ルール
+1. `daily`: JSTの昨日（YYYY-MM-DD）
+2. `weekly`: 前週の日曜日（YYYY-MM-DD）
+3. `monthly`: 前月の末日（YYYY-MM-DD）
+
+---
+
+## Step 0: 今日の作成対象 period を決定
+
+JST現在時刻から `target_periods` を決める:
+- 常に `daily` を含める
+- JST曜日が月曜日なら `weekly` を追加
+- JST日付が1日なら `monthly` を追加
+
+この判定結果（実行/スキップ理由）を最後に必ず報告する。
+
+---
+
+## Step 1: ヘルスデータ取得（target_periodsのみ）
+
+各 period ごとに以下を実行し、JSONの `prompt` フィールドを保持する:
+
+- daily:
+  `curl.exe -s -H "X-Api-Key: test12345" "https://34.171.85.174.nip.io/api/prompt?type=daily"`
+- weekly:
+  `curl.exe -s -H "X-Api-Key: test12345" "https://34.171.85.174.nip.io/api/prompt?type=weekly"`
+- monthly:
+  `curl.exe -s -H "X-Api-Key: test12345" "https://34.171.85.174.nip.io/api/prompt?type=monthly"`
+
+共通ルール:
+- HTTPステータスが503の場合は15秒待って1回だけリトライする
+- リトライ後も失敗、または `prompt` が空の場合は **処理全体を中止** して報告する
+
+---
+
+## Step 2: NotebookLMへ質問（各period × 3専門家）
+
+notebooklm MCPの `ask_question` を使う。
+各 period について、Step1で取得したその period のヘルスデータを冒頭に貼り付けて3ノートブックへ質問する。
+まず `notebook_url` で実行し、失敗した場合は `list_notebooks` で対応ノートを特定して `notebook_id` で再試行する。
+
+### 2-1. フィジカルトレーナー
+- notebook_url: https://notebooklm.google.com/notebook/d4209bed-2b9f-47e5-84c4-71981e48a8b8
+- question:
+"""
+[Step1で取得した period のヘルスデータ]
+
+---
+上記データについて、フィジカルトレーナーとして回答してください:
+1. 活動量・カロリー収支・体重トレンドの評価
+2. 運動量は目標に対して十分か
+3. 今日取り組むべき運動・活動の具体的な提案
+"""
+
+### 2-2. 管理栄養士
+- notebook_url: https://notebooklm.google.com/notebook/0d4ebfba-36ba-4a11-8038-dc5cb3226377
+- question:
+"""
+[Step1で取得した period のヘルスデータ]
+
+---
+上記データについて、管理栄養士として回答してください:
+1. 食事・マクロ栄養素（PFCバランス）の評価
+2. 不足または過剰な栄養素の指摘（マイクロ栄養素・サプリ含む）
+3. 今日の食事で意識すべき改善点の具体的な提案
+"""
+
+### 2-3. 医師
+- notebook_url: https://notebooklm.google.com/notebook/95fa8312-b640-4b5b-a567-6ff52ec45f87
+- question:
+"""
+[Step1で取得した period のヘルスデータ]
+
+---
+上記データについて、医師として回答してください:
+1. バイタルサイン・睡眠・体重トレンド含む全体的な健康状態の評価
+2. 注意が必要な数値や傾向があれば具体的に指摘
+3. 生活習慣の改善提案（受診が必要な場合はその旨も伝える）
+"""
+
+失敗ルール:
+- NotebookLM回答が空、または取得失敗時はその専門家セクションを `（回答取得失敗）` として続行する
+
+---
+
+## Step 3: レポート保存（target_periodsのみ）
+
+各 period ごとに、以下Markdownを作成して保存する:
+
+```
+## フィジカルトレーナーより
+[2-1の回答]
+
+---
+## 管理栄養士より
+[2-2の回答]
+
+---
+## 医師より
+[2-3の回答]
+```
+
+保存API:
+`POST https://34.171.85.174.nip.io/api/reports`
+
+payload:
+- `report_date`: 上記 report_date ルールに従う
+- `report_type`: period（daily / weekly / monthly）
+- `prompt_used`: `notebooklm_${period}_v3`
+- `content`: 上記Markdown
+
+保存コマンド例:
+```
+curl.exe -s -X POST ^
+  -H "X-Api-Key: test12345" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"report_date\":\"YYYY-MM-DD\",\"report_type\":\"daily\",\"prompt_used\":\"notebooklm_daily_v3\",\"content\":\"[まとめた回答]\"}" ^
+  "https://34.171.85.174.nip.io/api/reports"
+```
+
+注記:
+- 同じ `report_date` + `report_type` は API側で最新1件に更新される前提
+
+---
+
+## 最終出力
+- 実行した period ごとに、保存結果の `id` / `report_type` / `report_date` を出力
+- スキップした period（weekly/monthly）はスキップ理由を出力
+- どれかが失敗した場合は、失敗した period と理由を明記
+
+---
+
+## 制約
+- ファイル編集・コミット・push は一切しない
+

@@ -29,7 +29,7 @@
 > **方針変更（2026-02）**: Cloudflare Tunnel（PCサーバー依存）→ **Fly.io クラウド化** に切り替え。
 > 詳細: `ARCHITECTURE.md` 参照。
 >
-> **現在の本番 URL**: `https://user-purple-hill-1159.fly.dev`
+> **現在の本番 URL**: `https://34.171.85.174.nip.io`
 > （将来的に `health-ai` 系の名前へ変更も可）
 
 ### Fly.io デプロイ（PC独立・クラウド化）
@@ -40,7 +40,7 @@
 | T02 | fly.toml 設定（ポート・ボリューム） | ✅ | 🔴 高 | `pc-server/fly.toml` |
 | T03 | Fly.io デプロイ & 動作確認 | ✅ | 🔴 高 | `/api/status` 200 確認済み |
 | T04 | API_KEY を Fly.io シークレットに移行 | ✅ | 🔴 高 | `test12345` で設定済み |
-| T05 | スマホからアクセス確認（固定URL） | 🔄 進行中 | 🔴 高 | URL: https://user-purple-hill-1159.fly.dev/ui?key=test12345 |
+| T05 | スマホからアクセス確認（固定URL） | ✅ | 🔴 高 | URL: https://34.171.85.174.nip.io/ui?key=test12345 |
 
 ### UI（web-app/ React アプリ → Vercel デプロイ）
 
@@ -74,9 +74,9 @@
 
 | # | タスク | 状態 | 優先度 | 備考 |
 |---|---|---|---|---|
-| T20 | Fly.io URL からスマホで全タブ動作確認 | 🔄 進行中 | 🔴 高 | T05 と並行で実施可 |
-| T21 | Health Connect データが Fly.io に届くことを確認 | 📋 未着手 | 🔴 高 | T19 完了・実施可能 |
-| T22 | ホーム画面追加（Add to Home Screen / PWA確認） | 🔄 進行中 | 🟢 低 | コード実装済み・未コミット |
+| T20 | Fly.io URL からスマホで全タブ動作確認 | ✅ | 🔴 高 | |
+| T21 | Health Connect データが Fly.io に届くことを確認 | ✅ | 🔴 高 | リアルデータ表示確認済み（2026-02-23） |
+| T22 | ホーム画面追加（Add to Home Screen / PWA確認） | ✅ | 🟢 低 | |
 
 ---
 
@@ -91,19 +91,18 @@
 ## 実装順序（現在地）
 
 ```
-T01✅→ T02✅→ T03✅→ T04✅→ T05🔄（スマホ最終確認）
+T01✅→ T02✅→ T03✅→ T04✅→ T05✅
 T06✅→ T07✅→ T08✅→ T09✅→ T10✅→ T11✅→ T12✅→ T13✅→ T14✅
 T15✅→ T16✅→ T17✅→ T18✅→ T19✅
-T20🔄（スマホ全タブ確認）→ T22
-T21⏸（T19 完了後）
+T20✅→ T21✅→ T22✅
 ```
 
 ---
 
 ## MVP 完成の定義
 
-1. ⬜ スマホブラウザから `https://user-purple-hill-1159.fly.dev` にアクセスできる（T05）
-2. ⬜ 体重・歩数・睡眠がリアルデータで表示される（T21）
+1. ✅ スマホブラウザから `https://34.171.85.174.nip.io` にアクセスできる（T05）
+2. ✅ 体重・歩数・睡眠がリアルデータで表示される（T21）
 3. ✅ 食事ログの追加・削除ができる（T12/T13 完了）
 4. ✅ AI レポートの保存・閲覧ができる（T09 完了）
 5. ✅ PC が起動していなくてもアクセスできる（T03 完了）
@@ -130,3 +129,4 @@ T21⏸（T19 完了後）
 - STEP7 PNG icon replacement has been cancelled by product decision.
 - Official direction: continue with SVG-based icons for navigation/UI.
 - Any remaining STEP7 references should be interpreted as "PNG plan retired".
+

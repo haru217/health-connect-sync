@@ -184,11 +184,31 @@ def init_db() -> None:
             );
             """
         )
+        # Keep one report per (date, type). Clean older duplicates before enforcing.
+        conn.execute(
+            """
+            DELETE FROM ai_reports
+            WHERE id NOT IN (
+              SELECT id
+              FROM (
+                SELECT id
+                FROM ai_reports r2
+                WHERE r2.report_date = ai_reports.report_date
+                  AND r2.report_type = ai_reports.report_type
+                ORDER BY r2.created_at DESC, r2.id DESC
+                LIMIT 1
+              )
+            );
+            """
+        )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_ai_reports_date ON ai_reports(report_date);"
         )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_ai_reports_type ON ai_reports(report_type);"
+        )
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_reports_date_type_unique ON ai_reports(report_date, report_type);"
         )
 
 def iso(dt: datetime | None) -> str | None:

@@ -33,15 +33,15 @@ Last updated: 2026-02-23
 
 ### Fly.io → Google Cloud 移行（完了）
 - GCP プロジェクト: `health-ai-ryosuzu`
-- VM: `health-ai-vm`（e2-micro / us-central1-a / 外部 IP: 34.123.119.197）
+- VM: `health-ai-vm`（e2-micro / us-central1-a / 外部 IP: 34.171.85.174）
 - Docker Compose + Caddy（自動 HTTPS）で FastAPI 起動
-- nip.io ドメイン: `https://34.123.119.197.nip.io`
+- nip.io ドメイン: `https://34.171.85.174.nip.io`
 - SQLite DB 移行完了（13,415件）
 - **注意**: 外部 IP が静的化されていない場合、VM 再起動で IP が変わる
 
 ### API URL 変更（完了）
-- `web-app/.env.production.vercel`: `VITE_API_URL` → `https://34.123.119.197.nip.io`
-- `android-sync/.../AppConfig.kt`: `SERVER_BASE_URL` → `https://34.123.119.197.nip.io`
+- `web-app/.env.production.vercel`: `VITE_API_URL` → `https://34.171.85.174.nip.io`
+- `android-sync/.../AppConfig.kt`: `SERVER_BASE_URL` → `https://34.171.85.174.nip.io`
 - Vercel 再デプロイ完了: https://web-app-jet-chi.vercel.app
 - Android: GitHub Actions でビルド（`android-sync` push でトリガー）
 
@@ -53,9 +53,13 @@ Last updated: 2026-02-23
 - 3ノートブックに同じフルデータを渡し、質問（役割）のみ変える設計
 
 ### 残タスク
-- [ ] GCP 外部 IP を静的化（再起動で IP 変わると nip.io が壊れる）
-- [ ] Fly.io 削除（`flyctl apps destroy user-purple-hill-1159`）
+- [x] GCP 外部 IP を静的化 → `34.171.85.174`（静的 IP: `health-ai-static-ip`）
+- [x] Fly.io 削除（`user-purple-hill-1159` を destroy 済み）
+- [x] Android AppConfig.kt 更新 → push → GitHub Actions でビルドトリガー済み
+- [x] Vercel 再デプロイ → https://web-app-jet-chi.vercel.app
 - [ ] Codex NotebookLM MCP 初回認証確認（次回 cron 実行時）
+- [ ] Android APK ダウンロード（GitHub Actions 完了後）→ `adb install -r app-debug.apk`
 
 ## Restart prompt (copy in new session)
 `C:\\Users\\user\\health-connect-sync\\AGENT_MEMORY.md` を読んで、続きから実装して。
+

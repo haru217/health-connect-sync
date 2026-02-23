@@ -1,0 +1,60 @@
+以下を1回だけ実行してください。ファイル編集・コミット・pushはしないでください。
+
+## 目的
+- 前日（JST）のヘルスデータで日次レポートを作成して保存する
+- 摂取データが不足している場合は、仮定として「吉野家の牛丼大盛りを3杯食べた」を明示して分析する
+
+## 作業ディレクトリ
+C:\Users\user\health-connect-sync
+
+## 手順
+1. JST基準で「昨日の日付（YYYY-MM-DD）」を決める
+2. 以下で日次プロンプトを取得する（503なら15秒待って1回だけ再試行）
+   - `curl.exe -s -H "X-Api-Key: test12345" "https://34.171.85.174.nip.io/api/prompt?type=daily"`
+3. 取得JSONの `prompt` を本文として使う
+4. 本文末尾に以下を必ず追記してからNotebookLMへ渡す
+
+"""
+【分析用の摂取データ補完（仮定）】
+- 昨日の食事は「吉野家の牛丼大盛り」を3杯食べたものとして評価してください。
+- 実測の摂取ログ不足を補うための仮定であり、レポート内で仮定であることを明記してください。
+"""
+
+5. notebooklm MCP の ask_question で以下3ノートへ質問する
+   - フィジカルトレーナー:
+     https://notebooklm.google.com/notebook/d4209bed-2b9f-47e5-84c4-71981e48a8b8
+   - 管理栄養士:
+     https://notebooklm.google.com/notebook/0d4ebfba-36ba-4a11-8038-dc5cb3226377
+   - 医師:
+     https://notebooklm.google.com/notebook/95fa8312-b640-4b5b-a567-6ff52ec45f87
+   - まず notebook_url で実行し、失敗時は list_notebooks で notebook_id を特定して再試行する
+   - 回答取得失敗時は `（回答取得失敗）` として続行
+
+6. 以下Markdown形式でまとめる
+
+```
+## フィジカルトレーナーより
+[回答]
+
+---
+## 管理栄養士より
+[回答]
+
+---
+## 医師より
+[回答]
+```
+
+7. 以下で保存する（report_typeはdaily固定）
+   - `POST https://34.171.85.174.nip.io/api/reports`
+   - payload:
+     - report_date: JSTの昨日
+     - report_type: daily
+     - prompt_used: notebooklm_daily_v3_assumed_yoshinoya_3
+     - content: まとめMarkdown
+
+8. 最後に以下だけ出力
+   - 保存結果の id
+   - report_date
+   - 3専門家それぞれの成功/失敗
+
