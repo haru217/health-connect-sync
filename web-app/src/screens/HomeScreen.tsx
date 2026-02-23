@@ -114,7 +114,7 @@ function toHomeMetrics(summary: SummaryResponse, selectedDate: string): HomeMetr
     summary.distanceByDate?.map((item) => ({ date: item.date, km: item.meters / 1000 })) ??
     summary.distanceKmByDate
   const activeSeries = summary.activeCalByDate ?? summary.activeCaloriesByDate
-  const totalSeries = summary.totalCalByDate ?? summary.totalCaloriesByDate
+  const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate
   const bodyFatSeries =
     summary.bodyFatByDate?.map((item) => ({ date: item.date, pct: item.percentage })) ??
     summary.bodyFatPctByDate

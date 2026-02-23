@@ -195,6 +195,18 @@
   color: var(--text-muted);
 }
 
+.exercise-container .recharts-wrapper,
+.exercise-container .recharts-surface {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.exercise-container .recharts-wrapper:focus,
+.exercise-container .recharts-surface:focus,
+.exercise-container .recharts-layer:focus,
+.exercise-container .recharts-rectangle:focus {
+  outline: none;
+}
+
 @media (max-width: 420px) {
   .exercise-summary-grid {
     grid-template-columns: 1fr;

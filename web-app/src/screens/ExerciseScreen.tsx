@@ -68,7 +68,7 @@ function buildPoints(summary: SummaryResponse, period: Extract<PeriodType, 'week
 
   const stepsMap = toMap(summary.stepsByDate, (item) => item.steps)
   const activeSeries = summary.activeCalByDate ?? summary.activeCaloriesByDate
-  const totalSeries = summary.totalCalByDate ?? summary.totalCaloriesByDate
+  const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate
   const intakeSeries = summary.intakeCaloriesByDate
   const distanceSeries =
     summary.distanceByDate?.map((item) => ({ date: item.date, km: item.meters / 1000 })) ??
@@ -218,7 +218,7 @@ export default function ExerciseScreen() {
 
   const summary = state.data
   const activitySeries = summary.activeCalByDate ?? summary.activeCaloriesByDate
-  const totalSeries = summary.totalCalByDate ?? summary.totalCaloriesByDate
+  const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate
   const distanceSeries =
     summary.distanceByDate?.map((item) => ({ date: item.date, km: item.meters / 1000 })) ??
     summary.distanceKmByDate
@@ -385,7 +385,7 @@ export default function ExerciseScreen() {
                     dataKey="steps"
                     radius={[6, 6, 0, 0]}
                     onClick={(_, index) => setActiveStepsIndex(index)}
-                    activeBar={{ fill: 'transparent', stroke: 'none' }}
+                    activeBar={false}
                   >
                     {rangePoints.map((_, index) => (
                       <Cell
@@ -476,7 +476,7 @@ export default function ExerciseScreen() {
                     dataKey="distanceKm"
                     radius={[6, 6, 0, 0]}
                     onClick={(_, index) => setActiveDistanceIndex(index)}
-                    activeBar={{ fill: 'transparent', stroke: 'none' }}
+                    activeBar={false}
                   >
                     {rangePoints.map((_, index) => (
                       <Cell

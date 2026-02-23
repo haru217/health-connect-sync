@@ -269,7 +269,7 @@ export default function MealScreen() {
 
   const { day, supplements, targets, summary } = state.data
   const hasMeals = Object.values(mealsByTiming).some((items) => items.length > 0)
-  const totalSeries = summary ? summary.totalCalByDate ?? summary.totalCaloriesByDate : []
+  const totalSeries = summary ? summary.totalCaloriesByDate ?? summary.totalCalByDate : []
   const consumedKcal = day.totals.kcal
   const burnedKcal = totalSeries.length > 0 ? findTodayOrLatest(totalSeries, (item) => item.kcal) : null
   const balanceKcal = consumedKcal != null && burnedKcal != null ? consumedKcal - burnedKcal : null
