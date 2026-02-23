@@ -224,7 +224,12 @@ class SyncWorker(
         }
 
         for (t in RecordTypeRegistry.recordTypes) {
-            val records = reader.readAllInRange(t, timeRange)
+            val records = try {
+                reader.readAllInRange(t, timeRange)
+            } catch (e: SecurityException) {
+                // 権限がないレコードタイプはスキップして続行
+                continue
+            }
             for (r in records) {
                 buffer.add(toEnvelope(deviceId, r))
                 if (buffer.size >= chunkSize) {
