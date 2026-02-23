@@ -120,6 +120,41 @@ class SummarySleepBucketingTests(unittest.TestCase):
         self.assertIn("2026-02-23", by_day)
         self.assertAlmostEqual(by_day["2026-02-23"], 450.0)
 
+    def test_sleep_uses_stage_based_minutes_excluding_awake(self) -> None:
+        self._insert_sleep(
+            start_time="2026-02-22T14:30:00+00:00",
+            end_time="2026-02-22T22:00:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T14:30:00+00:00", "endTime": "2026-02-22T15:53:00+00:00", "stage": 1},
+                    {"startTime": "2026-02-22T15:53:00+00:00", "endTime": "2026-02-22T22:00:00+00:00", "stage": 4},
+                ],
+            },
+        )
+
+        by_day = self._sleep_minutes_by_date()
+        self.assertIn("2026-02-23", by_day)
+        # 7h29m in-bed session minus 1h23m awake = 6h07m sleep.
+        self.assertAlmostEqual(by_day["2026-02-23"], 367.0)
+
+    def test_sleep_stage_values_accept_numeric_strings(self) -> None:
+        self._insert_sleep(
+            start_time="2026-02-22T14:30:00+00:00",
+            end_time="2026-02-22T22:00:00+00:00",
+            payload={
+                "endZoneOffset": "+09:00",
+                "stages": [
+                    {"startTime": "2026-02-22T14:30:00+00:00", "endTime": "2026-02-22T15:30:00+00:00", "stage": "1"},
+                    {"startTime": "2026-02-22T15:30:00+00:00", "endTime": "2026-02-22T22:00:00+00:00", "stage": "4"},
+                ],
+            },
+        )
+
+        by_day = self._sleep_minutes_by_date()
+        self.assertIn("2026-02-23", by_day)
+        self.assertAlmostEqual(by_day["2026-02-23"], 390.0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,6 +31,17 @@ BMR_PLAUSIBLE_MIN_KCAL_PER_DAY = 600.0
 BMR_PLAUSIBLE_MAX_KCAL_PER_DAY = 4000.0
 BMR_FIXED_KCAL_PER_DAY = 1670.0
 
+# Sleep stage values coming from Health Connect payload.stages[].stage.
+# Exclude clearly non-sleep states and treat other stages as sleep.
+SLEEP_STAGE_AWAKE = 1
+SLEEP_STAGE_OUT_OF_BED = 3
+SLEEP_STAGE_AWAKE_IN_BED = 7
+NON_SLEEP_STAGE_VALUES = {
+    SLEEP_STAGE_AWAKE,
+    SLEEP_STAGE_OUT_OF_BED,
+    SLEEP_STAGE_AWAKE_IN_BED,
+}
+
 
 def _parse_iso(s: str | None) -> datetime | None:
     if not s:
@@ -117,6 +128,58 @@ def _sleep_bucket_day(start_dt: datetime, end_dt: datetime, payload: dict[str, A
     if start_offset is not None:
         return _day_in_zone_offset(end_dt, start_offset)
     return _local_day(end_dt)
+
+
+def _to_stage_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if not value.is_integer():
+            return None
+        return int(value)
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        try:
+            f = float(s)
+            if not f.is_integer():
+                return None
+            return int(f)
+        except Exception:
+            return None
+    return None
+
+
+def _sleep_intervals_from_payload(
+    start_dt: datetime, end_dt: datetime, payload: dict[str, Any]
+) -> list[tuple[datetime, datetime]]:
+    """Extract sleep-only intervals from payload.stages.
+
+    Falls back to whole-session interval when stage data is absent/invalid.
+    """
+    stages = payload.get("stages")
+    if not isinstance(stages, list):
+        return [(start_dt, end_dt)]
+
+    intervals: list[tuple[datetime, datetime]] = []
+    for stage in stages:
+        if not isinstance(stage, dict):
+            continue
+        st = _parse_iso(stage.get("startTime"))
+        et = _parse_iso(stage.get("endTime"))
+        if not st or not et or et <= st:
+            continue
+        stage_value = _to_stage_int(stage.get("stage"))
+        if stage_value in NON_SLEEP_STAGE_VALUES:
+            continue
+        intervals.append((st, et))
+
+    if intervals:
+        return intervals
+    return [(start_dt, end_dt)]
 
 
 def _to_float(value: Any) -> float | None:
@@ -515,7 +578,8 @@ def build_summary() -> dict[str, Any]:
                 payload = {}
             day = _sleep_bucket_day(st, et, payload)
             source = r["source"] or "unknown"
-            sleep_intervals_by_day_source[(day, source)].append((st, et))
+            stage_intervals = _sleep_intervals_from_payload(st, et, payload)
+            sleep_intervals_by_day_source[(day, source)].extend(stage_intervals)
 
         sleep_min_by_day_source: dict[tuple[str, str], float] = {}
         for key, intervals in sleep_intervals_by_day_source.items():
