@@ -53,6 +53,11 @@ SLEEP_STAGE_VALUES = {
     SLEEP_STAGE_DEEP,
     SLEEP_STAGE_REM,
 }
+DETAILED_SLEEP_STAGE_VALUES = {
+    SLEEP_STAGE_LIGHT,
+    SLEEP_STAGE_DEEP,
+    SLEEP_STAGE_REM,
+}
 
 
 def _parse_iso(s: str | None) -> datetime | None:
@@ -176,7 +181,7 @@ def _sleep_intervals_from_payload(
     if not isinstance(stages, list):
         return [(start_dt, end_dt)]
 
-    intervals: list[tuple[datetime, datetime]] = []
+    parsed_intervals: list[tuple[int, datetime, datetime]] = []
     has_valid_stage_interval = False
     for stage in stages:
         if not isinstance(stage, dict):
@@ -189,9 +194,17 @@ def _sleep_intervals_from_payload(
         stage_value = _to_stage_int(stage.get("stage"))
         if stage_value not in SLEEP_STAGE_VALUES:
             continue
-        intervals.append((st, et))
+        parsed_intervals.append((stage_value, st, et))
 
     if has_valid_stage_interval:
+        # Some providers emit broad stage=2 intervals alongside detailed 4/5/6 segments.
+        # Prefer detailed stages when present so awake-in-bed time is not overcounted.
+        allowed_stages = (
+            DETAILED_SLEEP_STAGE_VALUES
+            if any(stage in DETAILED_SLEEP_STAGE_VALUES for stage, _, _ in parsed_intervals)
+            else SLEEP_STAGE_VALUES
+        )
+        intervals = [(st, et) for stage, st, et in parsed_intervals if stage in allowed_stages]
         return intervals
     return [(start_dt, end_dt)]
 
