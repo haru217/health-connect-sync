@@ -37,8 +37,6 @@ import com.haru.hcsyncbridge.sync.SyncNow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Duration
-import java.time.Instant
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -175,9 +173,30 @@ fun SettingsScreen() {
             Button(
                 onClick = {
                     scope.launch {
-                        val repairedMs = Instant.now().minus(Duration.ofMinutes(5)).toEpochMilli()
-                        settings.repairSyncCursor(repairedMs)
-                        statusMessage = "Sync cursor repaired"
+                        statusMessage = "Fetching server cursor..."
+                        try {
+                            val deviceId = settings.ensureDeviceId()
+                            val apiKey = keyInput.ifBlank { DEFAULT_API_KEY }
+                            val repairedMs = withContext(Dispatchers.IO) {
+                                HttpSyncClient().getSyncCursorEpochMs(
+                                    DEFAULT_SERVER_URL,
+                                    apiKey,
+                                    deviceId,
+                                )
+                            }
+                            if (repairedMs != null && repairedMs > 0L) {
+                                settings.setLastSync(repairedMs)
+                                val repairedAt = SimpleDateFormat(
+                                    "yyyy-MM-dd HH:mm",
+                                    Locale.getDefault(),
+                                ).format(Date(repairedMs))
+                                statusMessage = "Cursor repaired from server: $repairedAt"
+                            } else {
+                                statusMessage = "Server cursor not found (unchanged)"
+                            }
+                        } catch (e: Exception) {
+                            statusMessage = "Cursor repair failed: ${e.message}"
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f)

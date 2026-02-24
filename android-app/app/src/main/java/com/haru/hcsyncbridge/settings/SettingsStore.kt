@@ -96,13 +96,6 @@ class SettingsStore(private val context: Context) {
         }
     }
 
-    suspend fun repairSyncCursor(epochMs: Long = System.currentTimeMillis()) {
-        context.dataStore.edit {
-            it[SettingsKeys.LAST_SYNC_EPOCH_MS] = epochMs
-            it[SettingsKeys.LAST_ERROR] = "OK: sync cursor repaired"
-        }
-    }
-
     suspend fun setLastError(message: String) {
         context.dataStore.edit { it[SettingsKeys.LAST_ERROR] = message }
     }
