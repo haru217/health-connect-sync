@@ -675,16 +675,6 @@ function extractBloodPressure(payload: Record<string, unknown>): { systolic: num
 }
 
 async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void> {
-  const rows = await queryAll<HealthRecordRow>(
-    db,
-    `
-    SELECT
-      record_key, device_id, type, record_id, source, start_time, end_time, time,
-      last_modified_time, unit, payload_json, ingested_at
-    FROM health_records
-    `,
-  )
-
   const typeCounts = new Map<string, number>()
   const recordCountByDay = new Map<string, number>()
 
@@ -701,102 +691,142 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
   const spo2ByDay = new Map<string, { ts: number; value: number }>()
   const bmrByDay = new Map<string, { ts: number; value: number }>()
   const bloodPressureByDay = new Map<string, { ts: number; systolic: number; diastolic: number }>()
+  const batchSize = 400
+  let lastRecordKey: string | null = null
+  for (;;) {
+    const rows =
+      lastRecordKey == null
+        ? await queryAll<HealthRecordRow>(
+            db,
+            `
+            SELECT
+              record_key, device_id, type, record_id, source, start_time, end_time, time,
+              last_modified_time, unit, payload_json, ingested_at
+            FROM health_records
+            ORDER BY record_key ASC
+            LIMIT ?
+            `,
+            [batchSize],
+          )
+        : await queryAll<HealthRecordRow>(
+            db,
+            `
+            SELECT
+              record_key, device_id, type, record_id, source, start_time, end_time, time,
+              last_modified_time, unit, payload_json, ingested_at
+            FROM health_records
+            WHERE record_key > ?
+            ORDER BY record_key ASC
+            LIMIT ?
+            `,
+            [lastRecordKey, batchSize],
+          )
 
-  for (const row of rows) {
-    typeCounts.set(row.type, (typeCounts.get(row.type) ?? 0) + 1)
+    if (rows.length === 0) {
+      break
+    }
 
-    const payload = parseJsonObject(row.payload_json)
-    const source = row.source?.trim() || 'unknown'
-    const tsIso = row.time ?? row.end_time ?? row.start_time
-    const tsMs = parseIsoToMillis(tsIso) ?? Date.now()
-    const defaultDay = localDayFromIso(tsIso) ?? localDayFromIso(row.start_time) ?? localDayFromIso(row.end_time)
+    for (const row of rows) {
+      typeCounts.set(row.type, (typeCounts.get(row.type) ?? 0) + 1)
 
-    let recordDay = defaultDay
+      const payload = parseJsonObject(row.payload_json)
+      const source = row.source?.trim() || 'unknown'
+      const tsIso = row.time ?? row.end_time ?? row.start_time
+      const tsMs = parseIsoToMillis(tsIso) ?? Date.now()
+      const defaultDay = localDayFromIso(tsIso) ?? localDayFromIso(row.start_time) ?? localDayFromIso(row.end_time)
 
-    if (row.type === 'StepsRecord') {
-      const day = localDayFromIso(row.start_time) ?? defaultDay
-      const count = findNumber(payload, new Set(['count']))
-      if (day && count != null) {
-        addBySource(stepsByDaySource, day, source, count)
-      }
-      recordDay = day
-    } else if (row.type === 'DistanceRecord') {
-      const day = localDayFromIso(row.start_time) ?? defaultDay
-      const km = extractDistanceKm(payload)
-      if (day && km != null) {
-        addBySource(distanceByDaySource, day, source, km)
-      }
-      recordDay = day
-    } else if (row.type === 'ActiveCaloriesBurnedRecord') {
-      const day = localDayFromIso(row.start_time) ?? defaultDay
-      const kcal = extractEnergyKcal(payload)
-      if (day && kcal != null) {
-        addBySource(activeByDaySource, day, source, kcal)
-      }
-      recordDay = day
-    } else if (row.type === 'TotalCaloriesBurnedRecord') {
-      const day = localDayFromIso(row.start_time) ?? defaultDay
-      const kcal = extractEnergyKcal(payload)
-      if (day && kcal != null) {
-        addBySource(totalByDaySource, day, source, kcal)
-      }
-      recordDay = day
-    } else if (row.type === 'SleepSessionRecord') {
-      const day = sleepBucketDay(row.start_time, row.end_time, payload)
-      const minutes = extractSleepMinutes(row.start_time, row.end_time, payload)
-      if (day && minutes > 0) {
-        sleepMinutesByDay.set(day, (sleepMinutesByDay.get(day) ?? 0) + minutes)
-      }
-      recordDay = day
-    } else if (row.type === 'WeightRecord') {
-      const day = defaultDay
-      const kg = findNumber(payload, new Set(['inKilograms', 'kilograms', 'kg', 'weight']))
-      if (day && kg != null) {
-        setLatestValue(weightByDay, day, tsMs, kg)
-      }
-    } else if (row.type === 'BodyFatRecord') {
-      const day = defaultDay
-      const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
-      if (day && pct != null) {
-        setLatestValue(bodyFatByDay, day, tsMs, pct)
-      }
-    } else if (row.type === 'RestingHeartRateRecord') {
-      const day = defaultDay
-      const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
-      if (day && bpm != null) {
-        setLatestValue(restingByDay, day, tsMs, bpm)
-      }
-    } else if (row.type === 'HeartRateRecord') {
-      const day = defaultDay
-      const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
-      if (day && bpm != null) {
-        setLatestValue(heartByDay, day, tsMs, bpm)
-      }
-    } else if (row.type === 'OxygenSaturationRecord') {
-      const day = defaultDay
-      const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
-      if (day && pct != null) {
-        setLatestValue(spo2ByDay, day, tsMs, pct)
-      }
-    } else if (row.type === 'BasalMetabolicRateRecord') {
-      const day = defaultDay
-      const kcalPerDay = extractBmrKcal(payload)
-      if (day && kcalPerDay != null) {
-        setLatestValue(bmrByDay, day, tsMs, kcalPerDay)
-      }
-    } else if (row.type === 'BloodPressureRecord') {
-      const day = defaultDay
-      const bp = extractBloodPressure(payload)
-      if (day && bp != null) {
-        const current = bloodPressureByDay.get(day)
-        if (!current || tsMs >= current.ts) {
-          bloodPressureByDay.set(day, { ts: tsMs, systolic: bp.systolic, diastolic: bp.diastolic })
+      let recordDay = defaultDay
+
+      if (row.type === 'StepsRecord') {
+        const day = localDayFromIso(row.start_time) ?? defaultDay
+        const count = findNumber(payload, new Set(['count']))
+        if (day && count != null) {
+          addBySource(stepsByDaySource, day, source, count)
         }
+        recordDay = day
+      } else if (row.type === 'DistanceRecord') {
+        const day = localDayFromIso(row.start_time) ?? defaultDay
+        const km = extractDistanceKm(payload)
+        if (day && km != null) {
+          addBySource(distanceByDaySource, day, source, km)
+        }
+        recordDay = day
+      } else if (row.type === 'ActiveCaloriesBurnedRecord') {
+        const day = localDayFromIso(row.start_time) ?? defaultDay
+        const kcal = extractEnergyKcal(payload)
+        if (day && kcal != null) {
+          addBySource(activeByDaySource, day, source, kcal)
+        }
+        recordDay = day
+      } else if (row.type === 'TotalCaloriesBurnedRecord') {
+        const day = localDayFromIso(row.start_time) ?? defaultDay
+        const kcal = extractEnergyKcal(payload)
+        if (day && kcal != null) {
+          addBySource(totalByDaySource, day, source, kcal)
+        }
+        recordDay = day
+      } else if (row.type === 'SleepSessionRecord') {
+        const day = sleepBucketDay(row.start_time, row.end_time, payload)
+        const minutes = extractSleepMinutes(row.start_time, row.end_time, payload)
+        if (day && minutes > 0) {
+          sleepMinutesByDay.set(day, (sleepMinutesByDay.get(day) ?? 0) + minutes)
+        }
+        recordDay = day
+      } else if (row.type === 'WeightRecord') {
+        const day = defaultDay
+        const kg = findNumber(payload, new Set(['inKilograms', 'kilograms', 'kg', 'weight']))
+        if (day && kg != null) {
+          setLatestValue(weightByDay, day, tsMs, kg)
+        }
+      } else if (row.type === 'BodyFatRecord') {
+        const day = defaultDay
+        const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
+        if (day && pct != null) {
+          setLatestValue(bodyFatByDay, day, tsMs, pct)
+        }
+      } else if (row.type === 'RestingHeartRateRecord') {
+        const day = defaultDay
+        const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
+        if (day && bpm != null) {
+          setLatestValue(restingByDay, day, tsMs, bpm)
+        }
+      } else if (row.type === 'HeartRateRecord') {
+        const day = defaultDay
+        const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
+        if (day && bpm != null) {
+          setLatestValue(heartByDay, day, tsMs, bpm)
+        }
+      } else if (row.type === 'OxygenSaturationRecord') {
+        const day = defaultDay
+        const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
+        if (day && pct != null) {
+          setLatestValue(spo2ByDay, day, tsMs, pct)
+        }
+      } else if (row.type === 'BasalMetabolicRateRecord') {
+        const day = defaultDay
+        const kcalPerDay = extractBmrKcal(payload)
+        if (day && kcalPerDay != null) {
+          setLatestValue(bmrByDay, day, tsMs, kcalPerDay)
+        }
+      } else if (row.type === 'BloodPressureRecord') {
+        const day = defaultDay
+        const bp = extractBloodPressure(payload)
+        if (day && bp != null) {
+          const current = bloodPressureByDay.get(day)
+          if (!current || tsMs >= current.ts) {
+            bloodPressureByDay.set(day, { ts: tsMs, systolic: bp.systolic, diastolic: bp.diastolic })
+          }
+        }
+      }
+
+      if (recordDay) {
+        recordCountByDay.set(recordDay, (recordCountByDay.get(recordDay) ?? 0) + 1)
       }
     }
 
-    if (recordDay) {
-      recordCountByDay.set(recordDay, (recordCountByDay.get(recordDay) ?? 0) + 1)
+    lastRecordKey = rows[rows.length - 1]?.record_key ?? null
+    if (rows.length < batchSize || !lastRecordKey) {
+      break
     }
   }
 
