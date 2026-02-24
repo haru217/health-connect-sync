@@ -912,13 +912,13 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
   for (const [recordType, count] of typeCounts.entries()) {
     await execute(
       db,
-      'INSERT INTO record_type_counts(record_type, count) VALUES(?, ?)',
+      'INSERT OR REPLACE INTO record_type_counts(record_type, count) VALUES(?, ?)',
       [recordType, count],
     )
   }
   await execute(
     db,
-    'INSERT INTO record_type_counts(record_type, count) VALUES(?, ?)',
+    'INSERT OR REPLACE INTO record_type_counts(record_type, count) VALUES(?, ?)',
     [LAST_AGGREGATED_AT_MS_KEY, Date.now()],
   )
 
