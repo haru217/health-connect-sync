@@ -6,6 +6,11 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+val ciSha = System.getenv("GITHUB_SHA")?.take(7) ?: "local"
+val computedVersionCode = ciRunNumber ?: 1
+val computedVersionName = if (ciRunNumber != null) "0.1.$ciRunNumber-$ciSha" else "0.1-local"
+
 android {
     namespace = "com.haru.hcsyncbridge"
     compileSdk = 34
@@ -14,8 +19,8 @@ android {
         applicationId = "com.haru.hcsyncbridge"
         minSdk = 28
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = computedVersionCode
+        versionName = computedVersionName
     }
 
     buildFeatures {

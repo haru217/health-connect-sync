@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.os.BuildCompat
 import androidx.health.connect.client.PermissionController
+import com.haru.hcsyncbridge.BuildConfig
 import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
 import com.haru.hcsyncbridge.settings.DEFAULT_API_KEY
@@ -74,6 +75,10 @@ fun SettingsScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("設定", style = MaterialTheme.typography.titleLarge)
+
+        Text("Build: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         Divider()
 
@@ -176,7 +181,7 @@ fun SettingsScreen() {
                     }
                 },
                 modifier = Modifier.weight(1f)
-            ) { Text("Repair cursor") }
+            ) { Text("Cursor repair") }
         }
     }
 }
