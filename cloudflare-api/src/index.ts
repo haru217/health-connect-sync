@@ -578,19 +578,15 @@ async function sha256Hex(text: string): Promise<string> {
     .join('')
 }
 
-async function computeRecordKey(deviceId: string, record: SyncRecordInput): Promise<string> {
-  if (record.recordKey && typeof record.recordKey === 'string' && record.recordKey.trim()) {
-    return record.recordKey.trim()
-  }
-
+async function computeRecordKey(_deviceId: string, record: SyncRecordInput): Promise<string> {
   const source = (record.source ?? '').trim()
   if (record.recordId && record.recordId.trim()) {
-    const basis = `v1|${deviceId}|${record.type}|${record.recordId.trim()}|${source}`
-    return sha256Hex(basis)
+    // v2: do not include deviceId. Same Health Connect record should map to one row
+    // even when app reinstall changes local deviceId.
+    return `rid2|${record.type}|${source}|${record.recordId.trim()}`
   }
 
   const base = {
-    deviceId,
     type: record.type,
     source,
     startTime: record.startTime ?? null,
