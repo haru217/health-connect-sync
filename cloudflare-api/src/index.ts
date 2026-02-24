@@ -111,6 +111,8 @@ interface CatalogItem {
 
 const REPORT_TYPES: readonly ReportType[] = ['daily', 'weekly', 'monthly'] as const
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const RECORD_TYPE_META_PREFIX = '__meta__'
+const LAST_AGGREGATED_AT_MS_KEY = `${RECORD_TYPE_META_PREFIX}last_aggregated_at_ms`
 const CORS_HEADERS: Readonly<Record<string, string>> = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
@@ -244,6 +246,10 @@ function toIsoDate(date: Date): string {
 
 function nowIso(): string {
   return new Date().toISOString()
+}
+
+function isMetaRecordType(recordType: string): boolean {
+  return recordType.startsWith(RECORD_TYPE_META_PREFIX)
 }
 
 function parseMicros(raw: string | null): Record<string, number> {
@@ -847,6 +853,11 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
       [recordType, count],
     )
   }
+  await execute(
+    db,
+    'INSERT INTO record_type_counts(record_type, count) VALUES(?, ?)',
+    [LAST_AGGREGATED_AT_MS_KEY, Date.now()],
+  )
 
   const sortedDays = [...days].sort((a, b) => a.localeCompare(b))
   for (const day of sortedDays) {
@@ -888,6 +899,32 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
         recordCountByDay.get(day) ?? 0,
       ],
     )
+  }
+}
+
+async function ensureAggregatesUpToDate(db: D1Database): Promise<void> {
+  const latestIngestedRow = await queryFirst<{ latestMs: number | null }>(
+    db,
+    `
+    SELECT MAX(CAST(strftime('%s', ingested_at) AS INTEGER) * 1000) AS latestMs
+    FROM health_records
+    `,
+  )
+  const lastAggregatedRow = await queryFirst<{ lastMs: number | null }>(
+    db,
+    `
+    SELECT count AS lastMs
+    FROM record_type_counts
+    WHERE record_type = ?
+    LIMIT 1
+    `,
+    [LAST_AGGREGATED_AT_MS_KEY],
+  )
+
+  const latestIngestedAtMs = latestIngestedRow?.latestMs ?? 0
+  const lastAggregatedAtMs = lastAggregatedRow?.lastMs ?? 0
+  if (latestIngestedAtMs > lastAggregatedAtMs) {
+    await rebuildAggregatesFromHealthRecords(db)
   }
 }
 
@@ -937,7 +974,11 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     db,
     'SELECT record_type, count FROM record_type_counts ORDER BY record_type ASC',
   )
-  const byType = Object.fromEntries(typeRows.map((row) => [row.record_type, row.count])) as Record<string, number>
+  const byType = Object.fromEntries(
+    typeRows
+      .filter((row) => !isMetaRecordType(row.record_type))
+      .map((row) => [row.record_type, row.count]),
+  ) as Record<string, number>
 
   const healthRecordCountRow = await queryFirst<{ c: number }>(
     db,
@@ -1747,7 +1788,6 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     [upserted, skipped, payload.syncId],
   )
 
-  await rebuildAggregatesFromHealthRecords(env.DB)
   return jsonResponse({
     accepted: true,
     upsertedCount: upserted,
@@ -1847,7 +1887,7 @@ const worker: ExportedHandler<Env> = {
       if (pathname === '/api/status' && method === 'GET') {
         const row = await queryFirst<{ total: number }>(
           env.DB,
-          'SELECT COALESCE(SUM(record_count), 0) AS total FROM daily_metrics',
+          'SELECT COUNT(*) AS total FROM health_records',
         )
         return jsonResponse({
           ok: true,
@@ -1857,6 +1897,7 @@ const worker: ExportedHandler<Env> = {
       }
 
       if (pathname === '/api/summary' && method === 'GET') {
+        await ensureAggregatesUpToDate(env.DB)
         return jsonResponse(await buildSummary(env.DB))
       }
 
