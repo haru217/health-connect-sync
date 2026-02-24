@@ -103,13 +103,11 @@ class SyncWorker(
                 val end = minOf(now, cursor.plusSeconds(windowSeconds))
                 syncWindow(deviceId, baseUrl, apiKey, cursor, end)
                 lastSuccessfulEnd = end
+                // Persist progress per successful window so retries continue from next window.
+                settings.setLastSync(end.toEpochMilli())
 
                 cursor = end
                 windowsDone += 1
-            }
-
-            if (lastSuccessfulEnd != null) {
-                settings.setLastSync(lastSuccessfulEnd.toEpochMilli())
             }
 
             // If still behind, enqueue another catch-up run (best-effort)

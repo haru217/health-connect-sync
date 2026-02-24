@@ -19,7 +19,7 @@ import './HealthScreen.css'
 type HealthTab = 'composition' | 'circulation' | 'sleep'
 type CompositionRange = 14 | 30 | 90
 type CirculationRange = 14 | 30
-const FIXED_BMR_KCAL_PER_DAY = 1670
+const FIXED_BMR_KCAL_PER_DAY = 1680
 
 interface HealthData {
   summary: SummaryResponse
@@ -242,26 +242,6 @@ function weeklyChange(series: Array<{ date: string; value: number }>): number | 
   return ((last.value - first.value) / days) * 7
 }
 
-function estimateBmrFromProfile(profile: ProfileResponse, latestWeightKg: number | null): number | null {
-  const heightCm = profile.height_cm ?? null
-  const birthYear = profile.birth_year ?? null
-  const sex = profile.sex ?? null
-  if (latestWeightKg == null || latestWeightKg <= 0 || heightCm == null || heightCm <= 0 || birthYear == null) {
-    return null
-  }
-  const age = new Date().getUTCFullYear() - birthYear
-  if (!Number.isFinite(age) || age <= 0 || age > 120) {
-    return null
-  }
-  if (sex === 'female') {
-    return 447.593 + 9.247 * latestWeightKg + 3.098 * heightCm - 4.33 * age
-  }
-  if (sex === 'male') {
-    return 88.362 + 13.397 * latestWeightKg + 4.799 * heightCm - 5.677 * age
-  }
-  return null
-}
-
 function estimateLatestBmrFromCalories(summary: SummaryResponse): number | null {
   const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate ?? []
   const activeSeries = summary.activeCaloriesByDate ?? summary.activeCalByDate ?? []
@@ -377,9 +357,8 @@ export default function HealthScreen() {
   const goalWeight = profile.goal_weight_kg ?? null
   const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
   const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
-  const profileBmr = estimateBmrFromProfile(profile, latestWeight)
   const estimatedBmr = estimateLatestBmrFromCalories(summary)
-  const displayBmr = profileBmr ?? estimatedBmr ?? FIXED_BMR_KCAL_PER_DAY
+  const displayBmr = FIXED_BMR_KCAL_PER_DAY
   const remainingWeight =
     goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
   const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
@@ -592,7 +571,7 @@ export default function HealthScreen() {
               </div>
             </div>
             <p className="health-note">
-              体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '総消費-活動から推定' : '固定 1670 kcal/日'}
+              体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '総消費-活動から推定' : '固定 1680 kcal/日'}
             </p>
           </section>
 
