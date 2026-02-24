@@ -13,9 +13,9 @@ import java.util.concurrent.TimeUnit
 class SyncApiClient(
     private val baseUrl: String,
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build(),
 ) {
     private val mediaType = "application/json; charset=utf-8".toMediaType()

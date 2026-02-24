@@ -208,7 +208,7 @@ class SyncWorker(
     ) {
         val timeRange = TimeRangeFilter.between(start, end)
 
-        val chunkSize = 200
+        val chunkSize = 100
         val buffer = mutableListOf<RecordEnvelope>()
 
         suspend fun flush() {

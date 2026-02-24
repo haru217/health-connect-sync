@@ -109,7 +109,7 @@ class HealthSyncRunner(
             var skippedTotal = 0
             var sentChunks = 0
 
-            for (chunk in records.chunked(200)) {
+            for (chunk in records.chunked(100)) {
                 val response = postChunkWithRepair(
                     apiKey = apiKey,
                     deviceId = deviceId,

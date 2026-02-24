@@ -11,9 +11,9 @@ import java.util.concurrent.TimeUnit
 
 class HttpSyncClient(
     private val http: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build(),
     private val json: Json = Json {
         ignoreUnknownKeys = true
