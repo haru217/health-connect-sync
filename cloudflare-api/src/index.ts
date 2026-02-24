@@ -739,6 +739,7 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
   const bmrByDay = new Map<string, { ts: number; value: number }>()
   const bloodPressureByDay = new Map<string, { ts: number; systolic: number; diastolic: number }>()
   const batchSize = 400
+  const prunablePlaceholders = PRUNABLE_RECORD_TYPES.map(() => '?').join(', ')
   let lastRecordKey: string | null = null
   for (;;) {
     const rows =
@@ -750,11 +751,14 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
               record_key, device_id, type, record_id, source, start_time, end_time, time,
               last_modified_time, unit, payload_json, ingested_at
             FROM health_records
-            WHERE COALESCE(time, end_time, start_time) >= ?
+            WHERE (
+              type NOT IN (${prunablePlaceholders})
+              OR COALESCE(time, end_time, start_time) >= ?
+            )
             ORDER BY record_key ASC
             LIMIT ?
             `,
-            [mutableStartIso, batchSize],
+            [...PRUNABLE_RECORD_TYPES, mutableStartIso, batchSize],
           )
         : await queryAll<HealthRecordRow>(
             db,
@@ -763,12 +767,15 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
               record_key, device_id, type, record_id, source, start_time, end_time, time,
               last_modified_time, unit, payload_json, ingested_at
             FROM health_records
-            WHERE COALESCE(time, end_time, start_time) >= ?
-              AND record_key > ?
+            WHERE record_key > ?
+              AND (
+                type NOT IN (${prunablePlaceholders})
+                OR COALESCE(time, end_time, start_time) >= ?
+              )
             ORDER BY record_key ASC
             LIMIT ?
             `,
-            [mutableStartIso, lastRecordKey, batchSize],
+            [lastRecordKey, ...PRUNABLE_RECORD_TYPES, mutableStartIso, batchSize],
           )
 
     if (rows.length === 0) {
@@ -938,9 +945,6 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
 
   const sortedDays = [...days].sort((a, b) => a.localeCompare(b))
   for (const day of sortedDays) {
-    if (day < mutableStartDate) {
-      continue
-    }
     const active = activeByDay.get(day) ?? null
     const bmr = bmrByDay.get(day)?.value ?? null
     const rawTotal = totalByDay.get(day) ?? null
@@ -954,11 +958,30 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
     await execute(
       db,
       `
-      INSERT OR REPLACE INTO daily_metrics(
+      INSERT INTO daily_metrics(
         date, steps, distance_km, active_kcal, total_kcal, intake_kcal,
         sleep_hours, weight_kg, body_fat_pct, resting_bpm, heart_bpm, spo2_pct,
         blood_systolic, blood_diastolic, bmr_kcal, record_count
       ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(date) DO UPDATE SET
+        steps = COALESCE(excluded.steps, daily_metrics.steps),
+        distance_km = COALESCE(excluded.distance_km, daily_metrics.distance_km),
+        active_kcal = COALESCE(excluded.active_kcal, daily_metrics.active_kcal),
+        total_kcal = COALESCE(excluded.total_kcal, daily_metrics.total_kcal),
+        intake_kcal = COALESCE(excluded.intake_kcal, daily_metrics.intake_kcal),
+        sleep_hours = COALESCE(excluded.sleep_hours, daily_metrics.sleep_hours),
+        weight_kg = COALESCE(excluded.weight_kg, daily_metrics.weight_kg),
+        body_fat_pct = COALESCE(excluded.body_fat_pct, daily_metrics.body_fat_pct),
+        resting_bpm = COALESCE(excluded.resting_bpm, daily_metrics.resting_bpm),
+        heart_bpm = COALESCE(excluded.heart_bpm, daily_metrics.heart_bpm),
+        spo2_pct = COALESCE(excluded.spo2_pct, daily_metrics.spo2_pct),
+        blood_systolic = COALESCE(excluded.blood_systolic, daily_metrics.blood_systolic),
+        blood_diastolic = COALESCE(excluded.blood_diastolic, daily_metrics.blood_diastolic),
+        bmr_kcal = COALESCE(excluded.bmr_kcal, daily_metrics.bmr_kcal),
+        record_count = CASE
+          WHEN excluded.record_count > daily_metrics.record_count THEN excluded.record_count
+          ELSE daily_metrics.record_count
+        END
       `,
       [
         day,
