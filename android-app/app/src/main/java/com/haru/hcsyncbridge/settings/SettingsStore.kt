@@ -66,7 +66,9 @@ class SettingsStore(private val context: Context) {
     suspend fun ensureDefaults() {
         context.dataStore.edit { prefs ->
             val existingUrl = prefs[SettingsKeys.SERVER_BASE_URL]?.trim()?.trimEnd('/').orEmpty()
-            if (existingUrl.isBlank()) {
+            val needsUrlMigration = existingUrl.contains("34.171.85.174.nip.io", ignoreCase = true) ||
+                existingUrl.contains("user-purple-hill-1159.fly.dev", ignoreCase = true)
+            if (existingUrl.isBlank() || needsUrlMigration) {
                 prefs[SettingsKeys.SERVER_BASE_URL] = DEFAULT_SERVER_BASE_URL
             }
             val existingKey = prefs[SettingsKeys.API_KEY]?.trim().orEmpty()
