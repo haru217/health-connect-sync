@@ -10,6 +10,7 @@ import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
 import com.haru.hcsyncbridge.settings.SettingsStore
 import com.haru.hcsyncbridge.util.ReflectPayload
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -210,17 +211,16 @@ class SyncWorker(
         val chunkSize = 200
         val buffer = mutableListOf<RecordEnvelope>()
 
-        fun flush() {
+        suspend fun flush() {
             if (buffer.isEmpty()) return
-            val req = SyncRequest(
+            postChunkWithRepair(
                 deviceId = deviceId,
-                syncId = UUID.randomUUID().toString(),
-                syncedAt = toIso(Instant.now()),
-                rangeStart = start.toString(),
-                rangeEnd = end.toString(),
-                records = buffer.toList()
+                baseUrl = baseUrl,
+                apiKey = apiKey,
+                start = start,
+                end = end,
+                records = buffer.toList(),
             )
-            http.postSync(baseUrl, apiKey, req)
             buffer.clear()
         }
 
@@ -240,5 +240,87 @@ class SyncWorker(
         }
 
         flush()
+    }
+
+    private suspend fun postChunkWithRepair(
+        deviceId: String,
+        baseUrl: String,
+        apiKey: String,
+        start: Instant,
+        end: Instant,
+        records: List<RecordEnvelope>,
+        attempt: Int = 0,
+    ) {
+        if (records.isEmpty()) return
+        val req = SyncRequest(
+            deviceId = deviceId,
+            syncId = UUID.randomUUID().toString(),
+            syncedAt = toIso(Instant.now()),
+            rangeStart = start.toString(),
+            rangeEnd = end.toString(),
+            records = records
+        )
+        try {
+            http.postSync(baseUrl, apiKey, req)
+            return
+        } catch (e: Exception) {
+            if (!isRetryableSyncError(e)) {
+                throw e
+            }
+
+            if (records.size > 50) {
+                val mid = records.size / 2
+                postChunkWithRepair(
+                    deviceId = deviceId,
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                    start = start,
+                    end = end,
+                    records = records.subList(0, mid).toList(),
+                )
+                postChunkWithRepair(
+                    deviceId = deviceId,
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                    start = start,
+                    end = end,
+                    records = records.subList(mid, records.size).toList(),
+                )
+                return
+            }
+
+            if (attempt >= 2) {
+                throw RuntimeException(
+                    "SYNC_REPAIR_FAILED(size=${records.size}): ${e.message ?: e.javaClass.simpleName}",
+                    e,
+                )
+            }
+
+            val backoffMs = when (attempt) {
+                0 -> 1_000L
+                1 -> 2_500L
+                else -> 5_000L
+            }
+            delay(backoffMs)
+            postChunkWithRepair(
+                deviceId = deviceId,
+                baseUrl = baseUrl,
+                apiKey = apiKey,
+                start = start,
+                end = end,
+                records = records,
+                attempt = attempt + 1,
+            )
+        }
+    }
+
+    private fun isRetryableSyncError(error: Throwable): Boolean {
+        val msg = (error.message ?: "").lowercase()
+        return msg.startsWith("http_503") ||
+            msg.startsWith("http_429") ||
+            msg.contains("timeout") ||
+            msg.contains("temporarily unavailable") ||
+            msg.contains("connection reset") ||
+            msg.contains("broken pipe")
     }
 }

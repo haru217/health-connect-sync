@@ -25,6 +25,7 @@ import com.healthai.sync.data.SettingsStore
 import com.healthai.sync.health.HealthConnectReader
 import com.healthai.sync.net.SyncApiClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.Duration
@@ -71,7 +72,7 @@ class HealthSyncRunner(
         settings.ensureDefaults()
         val apiKey = settings.getApiKey()
         if (apiKey.isBlank()) {
-            val msg = "APIキーが未設定です"
+            val msg = "API key is not configured"
             settings.setLastResult(msg)
             return@withContext SyncOutcome.NonRetryableError(msg)
         }
@@ -79,8 +80,8 @@ class HealthSyncRunner(
         val sdkStatus = sdkStatus()
         if (sdkStatus != HealthConnectClient.SDK_AVAILABLE) {
             val msg = when (sdkStatus) {
-                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> "Health Connect の更新が必要です"
-                else -> "Health Connect が利用できません"
+                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> "Health Connect update required"
+                else -> "Health Connect is not available"
             }
             settings.setLastResult(msg)
             return@withContext SyncOutcome.NonRetryableError(msg)
@@ -88,7 +89,7 @@ class HealthSyncRunner(
 
         val granted = getGrantedPermissionsSafe()
         if (!granted.containsAll(requiredPermissions)) {
-            val msg = "Health Connect 権限が不足しています"
+            val msg = "Health Connect permissions are not fully granted"
             settings.setLastResult(msg)
             return@withContext SyncOutcome.NonRetryableError(msg)
         }
@@ -103,31 +104,125 @@ class HealthSyncRunner(
 
         try {
             val records = reader.readRecords(start, end)
-            val request = SyncRequestPayload(
-                deviceId = settings.ensureDeviceId(),
-                syncId = UUID.randomUUID().toString(),
-                syncedAt = end.toString(),
-                rangeStart = start.toString(),
-                rangeEnd = end.toString(),
-                records = records,
-            )
-            val response = client.postSync(apiKey, request)
-            val message = "同期成功: ${response.upsertedCount}件 (skipped ${response.skippedCount})"
+            val deviceId = settings.ensureDeviceId()
+            var upsertedTotal = 0
+            var skippedTotal = 0
+            var sentChunks = 0
+
+            for (chunk in records.chunked(200)) {
+                val response = postChunkWithRepair(
+                    apiKey = apiKey,
+                    deviceId = deviceId,
+                    start = start,
+                    end = end,
+                    records = chunk,
+                )
+                upsertedTotal += response.upsertedCount
+                skippedTotal += response.skippedCount
+                sentChunks += 1
+            }
+
+            val message = "Sync complete: ${upsertedTotal} upserted (skipped ${skippedTotal}, chunks ${sentChunks})"
             settings.saveSyncOutcome(end.toEpochMilli(), message)
             return@withContext SyncOutcome.Success(message)
         } catch (io: IOException) {
-            val msg = "通信エラー: ${io.message ?: io.javaClass.simpleName}"
+            val msg = "Network error: ${io.message ?: io.javaClass.simpleName}"
             settings.setLastResult(msg)
             return@withContext SyncOutcome.RetryableError(msg)
         } catch (e: Exception) {
             val msg = e.message ?: e.toString()
-            val retry = msg.contains("HTTP_5") || msg.contains("timeout", ignoreCase = true)
-            settings.setLastResult("同期失敗: $msg")
+            val retry = isRetryableSyncError(e)
+            settings.setLastResult("Sync failed: $msg")
             return@withContext if (retry) {
                 SyncOutcome.RetryableError(msg)
             } else {
                 SyncOutcome.NonRetryableError(msg)
             }
         }
+    }
+
+    private suspend fun postChunkWithRepair(
+        apiKey: String,
+        deviceId: String,
+        start: Instant,
+        end: Instant,
+        records: List<SyncRecordEnvelope>,
+        attempt: Int = 0,
+    ): SyncResponsePayload {
+        if (records.isEmpty()) {
+            return SyncResponsePayload(accepted = true, upsertedCount = 0, skippedCount = 0)
+        }
+
+        val request = SyncRequestPayload(
+            deviceId = deviceId,
+            syncId = UUID.randomUUID().toString(),
+            syncedAt = Instant.now().toString(),
+            rangeStart = start.toString(),
+            rangeEnd = end.toString(),
+            records = records,
+        )
+
+        try {
+            return client.postSync(apiKey, request)
+        } catch (e: Exception) {
+            if (!isRetryableSyncError(e)) {
+                throw e
+            }
+
+            if (records.size > 50) {
+                val mid = records.size / 2
+                val left = postChunkWithRepair(
+                    apiKey = apiKey,
+                    deviceId = deviceId,
+                    start = start,
+                    end = end,
+                    records = records.subList(0, mid).toList(),
+                )
+                val right = postChunkWithRepair(
+                    apiKey = apiKey,
+                    deviceId = deviceId,
+                    start = start,
+                    end = end,
+                    records = records.subList(mid, records.size).toList(),
+                )
+                return SyncResponsePayload(
+                    accepted = left.accepted && right.accepted,
+                    upsertedCount = left.upsertedCount + right.upsertedCount,
+                    skippedCount = left.skippedCount + right.skippedCount,
+                )
+            }
+
+            if (attempt >= 2) {
+                throw RuntimeException(
+                    "SYNC_REPAIR_FAILED(size=${records.size}): ${e.message ?: e.javaClass.simpleName}",
+                    e,
+                )
+            }
+
+            val backoffMs = when (attempt) {
+                0 -> 1_000L
+                1 -> 2_500L
+                else -> 5_000L
+            }
+            delay(backoffMs)
+            return postChunkWithRepair(
+                apiKey = apiKey,
+                deviceId = deviceId,
+                start = start,
+                end = end,
+                records = records,
+                attempt = attempt + 1,
+            )
+        }
+    }
+
+    private fun isRetryableSyncError(error: Throwable): Boolean {
+        val msg = (error.message ?: "").lowercase()
+        return msg.startsWith("http_503") ||
+            msg.startsWith("http_429") ||
+            msg.contains("timeout") ||
+            msg.contains("temporarily unavailable") ||
+            msg.contains("connection reset") ||
+            msg.contains("broken pipe")
     }
 }
