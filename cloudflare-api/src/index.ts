@@ -940,7 +940,7 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
     await execute(
       db,
       `
-      INSERT INTO daily_metrics(
+      INSERT OR REPLACE INTO daily_metrics(
         date, steps, distance_km, active_kcal, total_kcal, intake_kcal,
         sleep_hours, weight_kg, body_fat_pct, resting_bpm, heart_bpm, spo2_pct,
         blood_systolic, blood_diastolic, bmr_kcal, record_count
