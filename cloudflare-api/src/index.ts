@@ -112,6 +112,16 @@ interface CatalogItem {
 const REPORT_TYPES: readonly ReportType[] = ['daily', 'weekly', 'monthly'] as const
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const CURSOR_REPAIR_SAFETY_MS = 5 * 60 * 1000
+const MILLIS_PER_DAY = 24 * 60 * 60 * 1000
+const DETAILED_RETENTION_DAYS = 14
+const PRUNABLE_RECORD_TYPES = [
+  'StepsRecord',
+  'DistanceRecord',
+  'SpeedRecord',
+  'ActivityIntensityRecord',
+  'ActiveCaloriesBurnedRecord',
+  'TotalCaloriesBurnedRecord',
+] as const
 const RECORD_TYPE_META_PREFIX = '__meta__'
 const LAST_AGGREGATED_AT_MS_KEY = `${RECORD_TYPE_META_PREFIX}last_aggregated_at_ms`
 const CORS_HEADERS: Readonly<Record<string, string>> = {
@@ -677,7 +687,26 @@ function extractBloodPressure(payload: Record<string, unknown>): { systolic: num
   return { systolic, diastolic }
 }
 
+async function pruneDetailedHealthRecords(db: D1Database): Promise<void> {
+  if (PRUNABLE_RECORD_TYPES.length === 0) {
+    return
+  }
+  const cutoffIso = new Date(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY).toISOString()
+  const placeholders = PRUNABLE_RECORD_TYPES.map(() => '?').join(', ')
+  await execute(
+    db,
+    `
+    DELETE FROM health_records
+    WHERE type IN (${placeholders})
+      AND COALESCE(time, end_time, start_time) < ?
+    `,
+    [...PRUNABLE_RECORD_TYPES, cutoffIso],
+  )
+}
+
 async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void> {
+  await pruneDetailedHealthRecords(db)
+
   const typeCounts = new Map<string, number>()
   const recordCountByDay = new Map<string, number>()
 
@@ -876,7 +905,8 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
     recordCountByDay,
   ].forEach((map) => collectMapKeys(map))
 
-  await execute(db, 'DELETE FROM daily_metrics')
+  const mutableStartDate = isoDateFromMillis(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY)
+  await execute(db, 'DELETE FROM daily_metrics WHERE date >= ?', [mutableStartDate])
   await execute(db, 'DELETE FROM record_type_counts')
 
   for (const [recordType, count] of typeCounts.entries()) {
@@ -894,6 +924,9 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
 
   const sortedDays = [...days].sort((a, b) => a.localeCompare(b))
   for (const day of sortedDays) {
+    if (day < mutableStartDate) {
+      continue
+    }
     const active = activeByDay.get(day) ?? null
     const bmr = bmrByDay.get(day)?.value ?? null
     const rawTotal = totalByDay.get(day) ?? null
