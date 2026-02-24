@@ -361,18 +361,13 @@ function findNumber(value: unknown, keyCandidates: Set<string>, depth = 0): numb
   if (depth > 7 || value == null) {
     return null
   }
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null
-  }
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
   if (Array.isArray(value)) {
     for (const item of value) {
-      const hit = findNumber(item, keyCandidates, depth + 1)
-      if (hit != null) {
-        return hit
+      if (item && (typeof item === 'object' || Array.isArray(item))) {
+        const hit = findNumber(item, keyCandidates, depth + 1)
+        if (hit != null) {
+          return hit
+        }
       }
     }
     return null
@@ -388,9 +383,11 @@ function findNumber(value: unknown, keyCandidates: Set<string>, depth = 0): numb
       }
     }
     for (const nested of Object.values(obj)) {
-      const hit = findNumber(nested, keyCandidates, depth + 1)
-      if (hit != null) {
-        return hit
+      if (nested && (typeof nested === 'object' || Array.isArray(nested))) {
+        const hit = findNumber(nested, keyCandidates, depth + 1)
+        if (hit != null) {
+          return hit
+        }
       }
     }
   }
