@@ -3,6 +3,8 @@ DELETE FROM ai_reports;
 DELETE FROM daily_metrics;
 DELETE FROM user_profile;
 DELETE FROM record_type_counts;
+DELETE FROM sync_runs;
+DELETE FROM health_records;
 
 INSERT INTO user_profile(id, name, height_cm, birth_year, sex, goal_weight_kg, updated_at)
 VALUES (1, 'user', 172, 1988, 'male', 72, CURRENT_TIMESTAMP);

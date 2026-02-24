@@ -6,6 +6,7 @@ This Worker provides the API used by `web-app` and stores data in Cloudflare D1.
 
 - `GET /healthz`
 - `GET /api/summary`
+- `POST /api/sync`
 - `GET /api/nutrition/day?date=YYYY-MM-DD`
 - `POST /api/nutrition/log`
 - `DELETE /api/nutrition/log/:id`
@@ -65,3 +66,11 @@ npm run deploy
 curl -X POST "https://<worker>.workers.dev/api/dev/seed-mock" \
   -H "X-Api-Key: test12345"
 ```
+
+## Android manual sync
+
+- Keep periodic sync OFF.
+- Set Android sync URL to:
+  - `https://health-connect-sync-api.kokomaru3-healthsync.workers.dev`
+- Keep API key:
+  - `test12345`

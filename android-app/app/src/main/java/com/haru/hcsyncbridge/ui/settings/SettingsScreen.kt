@@ -38,7 +38,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val DEFAULT_SERVER_URL = "https://34.171.85.174.nip.io"
+private const val DEFAULT_SERVER_URL = "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev"
 private const val DEFAULT_API_KEY = "test12345"
 
 @OptIn(BuildCompat.PrereleaseSdkCheck::class)

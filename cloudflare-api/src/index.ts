@@ -61,6 +61,43 @@ interface ReportRow {
   created_at: string
 }
 
+interface HealthRecordRow {
+  record_key: string
+  device_id: string
+  type: string
+  record_id: string | null
+  source: string | null
+  start_time: string | null
+  end_time: string | null
+  time: string | null
+  last_modified_time: string | null
+  unit: string | null
+  payload_json: string
+  ingested_at: string
+}
+
+interface SyncRecordInput {
+  type: string
+  recordId?: string
+  recordKey?: string
+  source?: string
+  startTime?: string
+  endTime?: string
+  time?: string
+  lastModifiedTime?: string
+  unit?: string
+  payload?: unknown
+}
+
+interface SyncRequestInput {
+  deviceId: string
+  syncId: string
+  syncedAt: string
+  rangeStart: string
+  rangeEnd: string
+  records: SyncRecordInput[]
+}
+
 interface CatalogItem {
   alias: string
   label: string
@@ -246,6 +283,614 @@ async function execute(db: D1Database, sql: string, binds: unknown[] = []): Prom
   await db.prepare(sql).bind(...binds).run()
 }
 
+function parseJsonObject(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>
+    }
+  } catch {
+    // no-op
+  }
+  return {}
+}
+
+function parseIsoDatePart(value: string | null | undefined): string | null {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  const matched = value.match(/^(\d{4}-\d{2}-\d{2})T/)
+  if (!matched) {
+    return null
+  }
+  return matched[1] ?? null
+}
+
+function parseIsoToMillis(value: string | null | undefined): number | null {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  const ms = Date.parse(value)
+  if (Number.isNaN(ms)) {
+    return null
+  }
+  return ms
+}
+
+function parseIsoToDate(value: string | null | undefined): Date | null {
+  const ms = parseIsoToMillis(value)
+  if (ms == null) {
+    return null
+  }
+  return new Date(ms)
+}
+
+function isoDateFromMillis(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10)
+}
+
+function localDayFromIso(value: string | null | undefined): string | null {
+  const day = parseIsoDatePart(value)
+  if (day) {
+    return day
+  }
+  const ms = parseIsoToMillis(value)
+  if (ms == null) {
+    return null
+  }
+  return isoDateFromMillis(ms)
+}
+
+function findNumber(value: unknown, keyCandidates: Set<string>, depth = 0): number | null {
+  if (depth > 7 || value == null) {
+    return null
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const hit = findNumber(item, keyCandidates, depth + 1)
+      if (hit != null) {
+        return hit
+      }
+    }
+    return null
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    for (const [key, nested] of Object.entries(obj)) {
+      if (keyCandidates.has(key)) {
+        const direct = toNumberOrNull(nested)
+        if (direct != null) {
+          return direct
+        }
+      }
+    }
+    for (const nested of Object.values(obj)) {
+      const hit = findNumber(nested, keyCandidates, depth + 1)
+      if (hit != null) {
+        return hit
+      }
+    }
+  }
+  return null
+}
+
+function toPercent(value: number | null): number | null {
+  if (value == null) {
+    return null
+  }
+  if (value >= 0 && value <= 1.2) {
+    return value * 100
+  }
+  return value
+}
+
+function parseZoneOffsetSeconds(value: unknown): number | null {
+  if (value == null) {
+    return null
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const sec = Math.round(value)
+    if (sec >= -18 * 3600 && sec <= 18 * 3600) {
+      return sec
+    }
+    return null
+  }
+  if (typeof value === 'string') {
+    const s = value.trim().toUpperCase()
+    if (!s) {
+      return null
+    }
+    if (s === 'Z' || s === 'UTC' || s === 'GMT') {
+      return 0
+    }
+    const raw = s.startsWith('UTC') || s.startsWith('GMT') ? s.slice(3).trim() : s
+    const match = raw.match(/^([+-])(\d{2})(?::?(\d{2}))?$/)
+    if (!match) {
+      return null
+    }
+    const sign = match[1] === '-' ? -1 : 1
+    const hours = Number.parseInt(match[2] ?? '0', 10)
+    const mins = Number.parseInt(match[3] ?? '0', 10)
+    if (hours > 18 || mins > 59) {
+      return null
+    }
+    return sign * (hours * 3600 + mins * 60)
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>
+    const candidateKeys = ['totalSeconds', 'seconds', 'id', 'zoneOffset', 'offset', 'value']
+    for (const key of candidateKeys) {
+      const sec = parseZoneOffsetSeconds(obj[key])
+      if (sec != null) {
+        return sec
+      }
+    }
+  }
+  return null
+}
+
+function dayInOffset(isoValue: string | null | undefined, offsetSeconds: number): string | null {
+  const ms = parseIsoToMillis(isoValue)
+  if (ms == null) {
+    return null
+  }
+  return isoDateFromMillis(ms + offsetSeconds * 1000)
+}
+
+function sleepBucketDay(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): string | null {
+  const endOffset = parseZoneOffsetSeconds(payload.endZoneOffset)
+  if (endOffset != null) {
+    return dayInOffset(endIso, endOffset)
+  }
+  const startOffset = parseZoneOffsetSeconds(payload.startZoneOffset)
+  if (startOffset != null) {
+    return dayInOffset(endIso, startOffset)
+  }
+  return localDayFromIso(endIso) ?? localDayFromIso(startIso)
+}
+
+function toStageInt(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.round(value)
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value)
+    if (Number.isFinite(parsed)) {
+      return Math.round(parsed)
+    }
+  }
+  return null
+}
+
+function mergedIntervalMinutes(intervals: Array<[number, number]>): number {
+  if (intervals.length === 0) {
+    return 0
+  }
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0])
+  let [curStart, curEnd] = sorted[0] ?? [0, 0]
+  let totalMs = 0
+  for (const [start, end] of sorted.slice(1)) {
+    if (start <= curEnd) {
+      if (end > curEnd) {
+        curEnd = end
+      }
+      continue
+    }
+    totalMs += Math.max(0, curEnd - curStart)
+    curStart = start
+    curEnd = end
+  }
+  totalMs += Math.max(0, curEnd - curStart)
+  return totalMs / 60000
+}
+
+function extractSleepMinutes(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): number {
+  const startMs = parseIsoToMillis(startIso)
+  const endMs = parseIsoToMillis(endIso)
+  if (startMs == null || endMs == null || endMs <= startMs) {
+    return 0
+  }
+
+  const stageValueSet = new Set<number>([2, 4, 5, 6])
+  const detailedSet = new Set<number>([4, 5, 6])
+  const stagesRaw = payload.stages
+  if (!Array.isArray(stagesRaw)) {
+    return (endMs - startMs) / 60000
+  }
+
+  const parsed: Array<{ stage: number; start: number; end: number }> = []
+  let hasValidIntervals = false
+  for (const stage of stagesRaw) {
+    if (!stage || typeof stage !== 'object' || Array.isArray(stage)) {
+      continue
+    }
+    const obj = stage as Record<string, unknown>
+    const st = parseIsoToMillis(typeof obj.startTime === 'string' ? obj.startTime : null)
+    const et = parseIsoToMillis(typeof obj.endTime === 'string' ? obj.endTime : null)
+    if (st == null || et == null || et <= st) {
+      continue
+    }
+    hasValidIntervals = true
+    const stageInt = toStageInt(obj.stage)
+    if (stageInt == null || !stageValueSet.has(stageInt)) {
+      continue
+    }
+    parsed.push({ stage: stageInt, start: st, end: et })
+  }
+
+  if (!hasValidIntervals) {
+    return (endMs - startMs) / 60000
+  }
+
+  const hasDetailed = parsed.some((item) => detailedSet.has(item.stage))
+  const effective = parsed
+    .filter((item) => (hasDetailed ? detailedSet.has(item.stage) : stageValueSet.has(item.stage)))
+    .map((item) => [item.start, item.end] as [number, number])
+  if (effective.length === 0) {
+    return 0
+  }
+  return mergedIntervalMinutes(effective)
+}
+
+function stableStringify(value: unknown): string {
+  if (value == null || typeof value !== 'object') {
+    return JSON.stringify(value)
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`
+  }
+  const obj = value as Record<string, unknown>
+  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b))
+  const body = keys
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`)
+    .join(',')
+  return `{${body}}`
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const encoded = new TextEncoder().encode(text)
+  const digest = await crypto.subtle.digest('SHA-256', encoded)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function computeRecordKey(deviceId: string, record: SyncRecordInput): Promise<string> {
+  if (record.recordKey && typeof record.recordKey === 'string' && record.recordKey.trim()) {
+    return record.recordKey.trim()
+  }
+
+  const source = (record.source ?? '').trim()
+  if (record.recordId && record.recordId.trim()) {
+    const basis = `v1|${deviceId}|${record.type}|${record.recordId.trim()}|${source}`
+    return sha256Hex(basis)
+  }
+
+  const base = {
+    deviceId,
+    type: record.type,
+    source,
+    startTime: record.startTime ?? null,
+    endTime: record.endTime ?? null,
+    time: record.time ?? null,
+    payload: record.payload ?? {},
+  }
+  return sha256Hex(stableStringify(base))
+}
+
+function addBySource(map: Map<string, number>, day: string, source: string, value: number): void {
+  const key = `${day}\t${source}`
+  map.set(key, (map.get(key) ?? 0) + value)
+}
+
+function collapseDaySourceMax(map: Map<string, number>): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const [key, value] of map.entries()) {
+    const split = key.indexOf('\t')
+    const day = split >= 0 ? key.slice(0, split) : key
+    const current = out.get(day)
+    if (current == null || value > current) {
+      out.set(day, value)
+    }
+  }
+  return out
+}
+
+function setLatestValue(
+  map: Map<string, { ts: number; value: number }>,
+  day: string,
+  timestampMs: number,
+  value: number,
+): void {
+  const current = map.get(day)
+  if (!current || timestampMs >= current.ts) {
+    map.set(day, { ts: timestampMs, value })
+  }
+}
+
+function extractDistanceKm(payload: Record<string, unknown>): number | null {
+  const km = findNumber(payload, new Set(['inKilometers', 'kilometers']))
+  if (km != null) {
+    return km
+  }
+  const meters = findNumber(payload, new Set(['distance', 'inMeters', 'meters']))
+  if (meters != null) {
+    return meters / 1000
+  }
+  const miles = findNumber(payload, new Set(['inMiles', 'miles']))
+  if (miles != null) {
+    return miles * 1.609344
+  }
+  return null
+}
+
+function extractEnergyKcal(payload: Record<string, unknown>): number | null {
+  return findNumber(payload, new Set(['inKilocalories', 'kilocalories', 'kcal', 'energy']))
+}
+
+function extractBmrKcal(payload: Record<string, unknown>): number | null {
+  const kcal = findNumber(payload, new Set(['kilocaloriesPerDay', 'inKilocaloriesPerDay']))
+  if (kcal != null) {
+    return kcal
+  }
+  const watts = findNumber(payload, new Set(['watts', 'inWatts']))
+  if (watts != null) {
+    return (watts * 86400) / 4184
+  }
+  return null
+}
+
+function extractBloodPressure(payload: Record<string, unknown>): { systolic: number; diastolic: number } | null {
+  const sysContainer =
+    payload.systolic && typeof payload.systolic === 'object' && !Array.isArray(payload.systolic)
+      ? (payload.systolic as Record<string, unknown>)
+      : payload
+  const diaContainer =
+    payload.diastolic && typeof payload.diastolic === 'object' && !Array.isArray(payload.diastolic)
+      ? (payload.diastolic as Record<string, unknown>)
+      : payload
+  const systolic =
+    findNumber(sysContainer, new Set(['inMillimetersOfMercury', 'millimetersOfMercury', 'mmHg', 'value'])) ??
+    findNumber(payload, new Set(['systolic']))
+  const diastolic =
+    findNumber(diaContainer, new Set(['inMillimetersOfMercury', 'millimetersOfMercury', 'mmHg', 'value'])) ??
+    findNumber(payload, new Set(['diastolic']))
+  if (systolic == null || diastolic == null) {
+    return null
+  }
+  return { systolic, diastolic }
+}
+
+async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void> {
+  const rows = await queryAll<HealthRecordRow>(
+    db,
+    `
+    SELECT
+      record_key, device_id, type, record_id, source, start_time, end_time, time,
+      last_modified_time, unit, payload_json, ingested_at
+    FROM health_records
+    `,
+  )
+
+  const typeCounts = new Map<string, number>()
+  const recordCountByDay = new Map<string, number>()
+
+  const stepsByDaySource = new Map<string, number>()
+  const distanceByDaySource = new Map<string, number>()
+  const activeByDaySource = new Map<string, number>()
+  const totalByDaySource = new Map<string, number>()
+  const sleepMinutesByDay = new Map<string, number>()
+
+  const weightByDay = new Map<string, { ts: number; value: number }>()
+  const bodyFatByDay = new Map<string, { ts: number; value: number }>()
+  const restingByDay = new Map<string, { ts: number; value: number }>()
+  const heartByDay = new Map<string, { ts: number; value: number }>()
+  const spo2ByDay = new Map<string, { ts: number; value: number }>()
+  const bmrByDay = new Map<string, { ts: number; value: number }>()
+  const bloodPressureByDay = new Map<string, { ts: number; systolic: number; diastolic: number }>()
+
+  for (const row of rows) {
+    typeCounts.set(row.type, (typeCounts.get(row.type) ?? 0) + 1)
+
+    const payload = parseJsonObject(row.payload_json)
+    const source = row.source?.trim() || 'unknown'
+    const tsIso = row.time ?? row.end_time ?? row.start_time
+    const tsMs = parseIsoToMillis(tsIso) ?? Date.now()
+    const defaultDay = localDayFromIso(tsIso) ?? localDayFromIso(row.start_time) ?? localDayFromIso(row.end_time)
+
+    let recordDay = defaultDay
+
+    if (row.type === 'StepsRecord') {
+      const day = localDayFromIso(row.start_time) ?? defaultDay
+      const count = findNumber(payload, new Set(['count']))
+      if (day && count != null) {
+        addBySource(stepsByDaySource, day, source, count)
+      }
+      recordDay = day
+    } else if (row.type === 'DistanceRecord') {
+      const day = localDayFromIso(row.start_time) ?? defaultDay
+      const km = extractDistanceKm(payload)
+      if (day && km != null) {
+        addBySource(distanceByDaySource, day, source, km)
+      }
+      recordDay = day
+    } else if (row.type === 'ActiveCaloriesBurnedRecord') {
+      const day = localDayFromIso(row.start_time) ?? defaultDay
+      const kcal = extractEnergyKcal(payload)
+      if (day && kcal != null) {
+        addBySource(activeByDaySource, day, source, kcal)
+      }
+      recordDay = day
+    } else if (row.type === 'TotalCaloriesBurnedRecord') {
+      const day = localDayFromIso(row.start_time) ?? defaultDay
+      const kcal = extractEnergyKcal(payload)
+      if (day && kcal != null) {
+        addBySource(totalByDaySource, day, source, kcal)
+      }
+      recordDay = day
+    } else if (row.type === 'SleepSessionRecord') {
+      const day = sleepBucketDay(row.start_time, row.end_time, payload)
+      const minutes = extractSleepMinutes(row.start_time, row.end_time, payload)
+      if (day && minutes > 0) {
+        sleepMinutesByDay.set(day, (sleepMinutesByDay.get(day) ?? 0) + minutes)
+      }
+      recordDay = day
+    } else if (row.type === 'WeightRecord') {
+      const day = defaultDay
+      const kg = findNumber(payload, new Set(['inKilograms', 'kilograms', 'kg', 'weight']))
+      if (day && kg != null) {
+        setLatestValue(weightByDay, day, tsMs, kg)
+      }
+    } else if (row.type === 'BodyFatRecord') {
+      const day = defaultDay
+      const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
+      if (day && pct != null) {
+        setLatestValue(bodyFatByDay, day, tsMs, pct)
+      }
+    } else if (row.type === 'RestingHeartRateRecord') {
+      const day = defaultDay
+      const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
+      if (day && bpm != null) {
+        setLatestValue(restingByDay, day, tsMs, bpm)
+      }
+    } else if (row.type === 'HeartRateRecord') {
+      const day = defaultDay
+      const bpm = findNumber(payload, new Set(['beatsPerMinute', 'bpm', 'heartRate', 'value']))
+      if (day && bpm != null) {
+        setLatestValue(heartByDay, day, tsMs, bpm)
+      }
+    } else if (row.type === 'OxygenSaturationRecord') {
+      const day = defaultDay
+      const pct = toPercent(findNumber(payload, new Set(['value', 'percentage', 'percent'])))
+      if (day && pct != null) {
+        setLatestValue(spo2ByDay, day, tsMs, pct)
+      }
+    } else if (row.type === 'BasalMetabolicRateRecord') {
+      const day = defaultDay
+      const kcalPerDay = extractBmrKcal(payload)
+      if (day && kcalPerDay != null) {
+        setLatestValue(bmrByDay, day, tsMs, kcalPerDay)
+      }
+    } else if (row.type === 'BloodPressureRecord') {
+      const day = defaultDay
+      const bp = extractBloodPressure(payload)
+      if (day && bp != null) {
+        const current = bloodPressureByDay.get(day)
+        if (!current || tsMs >= current.ts) {
+          bloodPressureByDay.set(day, { ts: tsMs, systolic: bp.systolic, diastolic: bp.diastolic })
+        }
+      }
+    }
+
+    if (recordDay) {
+      recordCountByDay.set(recordDay, (recordCountByDay.get(recordDay) ?? 0) + 1)
+    }
+  }
+
+  const intakeRows = await queryAll<{ day: string; intake_kcal: number | null }>(
+    db,
+    `
+    SELECT local_date AS day, SUM(COALESCE(kcal, 0) * COALESCE(count, 1)) AS intake_kcal
+    FROM nutrition_events
+    GROUP BY local_date
+    `,
+  )
+  const intakeByDay = new Map<string, number>()
+  for (const row of intakeRows) {
+    if (row.day && row.intake_kcal != null) {
+      intakeByDay.set(row.day, row.intake_kcal)
+    }
+  }
+
+  const stepsByDay = collapseDaySourceMax(stepsByDaySource)
+  const distanceByDay = collapseDaySourceMax(distanceByDaySource)
+  const activeByDay = collapseDaySourceMax(activeByDaySource)
+  const totalByDay = collapseDaySourceMax(totalByDaySource)
+
+  const days = new Set<string>()
+  const collectMapKeys = (map: Map<string, unknown>): void => {
+    for (const key of map.keys()) {
+      days.add(key)
+    }
+  }
+  ;[
+    stepsByDay,
+    distanceByDay,
+    activeByDay,
+    totalByDay,
+    sleepMinutesByDay,
+    weightByDay,
+    bodyFatByDay,
+    restingByDay,
+    heartByDay,
+    spo2ByDay,
+    bmrByDay,
+    bloodPressureByDay,
+    intakeByDay,
+    recordCountByDay,
+  ].forEach((map) => collectMapKeys(map))
+
+  await execute(db, 'DELETE FROM daily_metrics')
+  await execute(db, 'DELETE FROM record_type_counts')
+
+  for (const [recordType, count] of typeCounts.entries()) {
+    await execute(
+      db,
+      'INSERT INTO record_type_counts(record_type, count) VALUES(?, ?)',
+      [recordType, count],
+    )
+  }
+
+  const sortedDays = [...days].sort((a, b) => a.localeCompare(b))
+  for (const day of sortedDays) {
+    const active = activeByDay.get(day) ?? null
+    const bmr = bmrByDay.get(day)?.value ?? null
+    const rawTotal = totalByDay.get(day) ?? null
+    let total = rawTotal
+    if (active != null && bmr != null) {
+      const floor = active + bmr
+      total = total == null ? floor : Math.max(total, floor)
+    }
+    const sleepMinutes = sleepMinutesByDay.get(day) ?? null
+    const bp = bloodPressureByDay.get(day) ?? null
+    await execute(
+      db,
+      `
+      INSERT INTO daily_metrics(
+        date, steps, distance_km, active_kcal, total_kcal, intake_kcal,
+        sleep_hours, weight_kg, body_fat_pct, resting_bpm, heart_bpm, spo2_pct,
+        blood_systolic, blood_diastolic, bmr_kcal, record_count
+      ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        day,
+        stepsByDay.get(day) ?? null,
+        distanceByDay.get(day) ?? null,
+        active,
+        total,
+        intakeByDay.get(day) ?? null,
+        sleepMinutes == null ? null : sleepMinutes / 60,
+        weightByDay.get(day)?.value ?? null,
+        bodyFatByDay.get(day)?.value ?? null,
+        restingByDay.get(day)?.value ?? null,
+        heartByDay.get(day)?.value ?? null,
+        spo2ByDay.get(day)?.value ?? null,
+        bp?.systolic ?? null,
+        bp?.diastolic ?? null,
+        bmr,
+        recordCountByDay.get(day) ?? 0,
+      ],
+    )
+  }
+}
+
 function makeDietSummary(weightSeries: Array<{ date: string; kg: number }>): Record<string, unknown> | null {
   if (weightSeries.length < 8) {
     return null
@@ -294,7 +939,13 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
   )
   const byType = Object.fromEntries(typeRows.map((row) => [row.record_type, row.count])) as Record<string, number>
 
-  const totalRecords = rows.reduce((sum, row) => sum + (row.record_count ?? 0), 0)
+  const healthRecordCountRow = await queryFirst<{ c: number }>(
+    db,
+    'SELECT COUNT(*) AS c FROM health_records',
+  )
+  const totalRecords =
+    healthRecordCountRow?.c ??
+    rows.reduce((sum, row) => sum + (row.record_count ?? 0), 0)
   if (Object.keys(byType).length === 0 && totalRecords > 0) {
     byType.DailyMetricRecord = totalRecords
   }
@@ -817,6 +1468,8 @@ function makePrompt(type: ReportType): string {
 }
 
 async function seedMockData(db: D1Database): Promise<Record<string, unknown>> {
+  await execute(db, 'DELETE FROM sync_runs')
+  await execute(db, 'DELETE FROM health_records')
   await execute(db, 'DELETE FROM nutrition_events')
   await execute(db, 'DELETE FROM ai_reports')
   await execute(db, 'DELETE FROM daily_metrics')
@@ -971,6 +1624,137 @@ async function seedMockData(db: D1Database): Promise<Record<string, unknown>> {
   }
 }
 
+function parseSyncRequestPayload(payload: Record<string, unknown>): SyncRequestInput {
+  const deviceId = typeof payload.deviceId === 'string' ? payload.deviceId.trim() : ''
+  const syncId = typeof payload.syncId === 'string' ? payload.syncId.trim() : ''
+  const syncedAt = typeof payload.syncedAt === 'string' ? payload.syncedAt.trim() : ''
+  const rangeStart = typeof payload.rangeStart === 'string' ? payload.rangeStart.trim() : ''
+  const rangeEnd = typeof payload.rangeEnd === 'string' ? payload.rangeEnd.trim() : ''
+  const rawRecords = payload.records
+
+  if (!deviceId || !syncId || !syncedAt || !rangeStart || !rangeEnd) {
+    throw new Error('deviceId, syncId, syncedAt, rangeStart, rangeEnd are required')
+  }
+  if (!Array.isArray(rawRecords)) {
+    throw new Error('records must be an array')
+  }
+
+  const records: SyncRecordInput[] = rawRecords.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error('record must be an object')
+    }
+    const row = item as Record<string, unknown>
+    const type = typeof row.type === 'string' ? row.type.trim() : ''
+    if (!type) {
+      throw new Error('record.type is required')
+    }
+    return {
+      type,
+      recordId: typeof row.recordId === 'string' ? row.recordId : undefined,
+      recordKey: typeof row.recordKey === 'string' ? row.recordKey : undefined,
+      source: typeof row.source === 'string' ? row.source : undefined,
+      startTime: typeof row.startTime === 'string' ? row.startTime : undefined,
+      endTime: typeof row.endTime === 'string' ? row.endTime : undefined,
+      time: typeof row.time === 'string' ? row.time : undefined,
+      lastModifiedTime: typeof row.lastModifiedTime === 'string' ? row.lastModifiedTime : undefined,
+      unit: typeof row.unit === 'string' ? row.unit : undefined,
+      payload: row.payload ?? {},
+    }
+  })
+
+  return {
+    deviceId,
+    syncId,
+    syncedAt,
+    rangeStart,
+    rangeEnd,
+    records,
+  }
+}
+
+async function handleSync(request: Request, env: Env): Promise<Response> {
+  const payload = parseSyncRequestPayload(await readJsonBody(request))
+  let upserted = 0
+  let skipped = 0
+
+  await execute(
+    env.DB,
+    `
+    INSERT OR IGNORE INTO sync_runs(
+      sync_id, device_id, synced_at, range_start, range_end, received_at, record_count
+    ) VALUES(?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      payload.syncId,
+      payload.deviceId,
+      payload.syncedAt,
+      payload.rangeStart,
+      payload.rangeEnd,
+      nowIso(),
+      payload.records.length,
+    ],
+  )
+
+  for (const record of payload.records) {
+    try {
+      const recordKey = await computeRecordKey(payload.deviceId, record)
+      const source = record.source?.trim() || null
+      const payloadJson = stableStringify(record.payload ?? {})
+      await execute(
+        env.DB,
+        `
+        INSERT INTO health_records(
+          record_key, device_id, type, record_id, source, start_time, end_time, time,
+          last_modified_time, unit, payload_json, ingested_at
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(record_key) DO UPDATE SET
+          device_id = excluded.device_id,
+          type = excluded.type,
+          record_id = excluded.record_id,
+          source = excluded.source,
+          start_time = excluded.start_time,
+          end_time = excluded.end_time,
+          time = excluded.time,
+          last_modified_time = excluded.last_modified_time,
+          unit = excluded.unit,
+          payload_json = excluded.payload_json,
+          ingested_at = excluded.ingested_at
+        `,
+        [
+          recordKey,
+          payload.deviceId,
+          record.type,
+          record.recordId ?? null,
+          source,
+          record.startTime ?? null,
+          record.endTime ?? null,
+          record.time ?? null,
+          record.lastModifiedTime ?? null,
+          record.unit ?? null,
+          payloadJson,
+          nowIso(),
+        ],
+      )
+      upserted += 1
+    } catch {
+      skipped += 1
+    }
+  }
+
+  await execute(
+    env.DB,
+    'UPDATE sync_runs SET upserted_count = ?, skipped_count = ? WHERE sync_id = ?',
+    [upserted, skipped, payload.syncId],
+  )
+
+  await rebuildAggregatesFromHealthRecords(env.DB)
+  return jsonResponse({
+    accepted: true,
+    upsertedCount: upserted,
+    skippedCount: skipped,
+  })
+}
+
 async function handleNutritionLog(request: Request, env: Env): Promise<Response> {
   const payload = await readJsonBody(request)
   const rawItems = Array.isArray(payload.items) ? payload.items : [payload]
@@ -1076,6 +1860,10 @@ const worker: ExportedHandler<Env> = {
         return jsonResponse(await buildSummary(env.DB))
       }
 
+      if (pathname === '/api/sync' && method === 'POST') {
+        return handleSync(request, env)
+      }
+
       if (pathname === '/api/supplements' && method === 'GET') {
         return jsonResponse({
           supplements: Object.values(SUPPLEMENT_CATALOG).map((item) => ({
@@ -1098,7 +1886,9 @@ const worker: ExportedHandler<Env> = {
       }
 
       if (pathname === '/api/nutrition/log' && method === 'POST') {
-        return handleNutritionLog(request, env)
+        const response = await handleNutritionLog(request, env)
+        await rebuildAggregatesFromHealthRecords(env.DB)
+        return response
       }
 
       if (pathname.startsWith('/api/nutrition/log/') && method === 'DELETE') {
@@ -1111,6 +1901,7 @@ const worker: ExportedHandler<Env> = {
         if ((result.meta.changes ?? 0) === 0) {
           return jsonResponse({ detail: 'Event not found' }, 404)
         }
+        await rebuildAggregatesFromHealthRecords(env.DB)
         return jsonResponse({ ok: true, deleted_id: id })
       }
 
