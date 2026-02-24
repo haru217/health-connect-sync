@@ -26,4 +26,8 @@ object SyncScheduler {
             request,
         )
     }
+
+    fun cancelScheduled(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
+    }
 }

@@ -33,9 +33,10 @@ class SyncWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val baseUrl = settings.serverBaseUrl.first()?.trim()
-            val apiKey = settings.apiKey.first()
-            if (baseUrl.isNullOrBlank() || apiKey.isNullOrBlank()) {
+            settings.ensureDefaults()
+            val baseUrl = settings.serverBaseUrl.first().trim()
+            val apiKey = settings.apiKey.first().trim()
+            if (baseUrl.isBlank() || apiKey.isBlank()) {
                 settings.setLastError("CONFIG_MISSING: serverBaseUrl or apiKey")
                 return@withContext Result.retry()
             }

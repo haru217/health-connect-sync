@@ -12,6 +12,8 @@ import java.util.UUID
 
 private val Context.dataStore by preferencesDataStore(name = "health_sync_settings")
 
+const val DEFAULT_API_KEY: String = "test12345"
+
 private object Keys {
     val API_KEY = stringPreferencesKey("api_key")
     val DEVICE_ID = stringPreferencesKey("device_id")
@@ -20,7 +22,12 @@ private object Keys {
 }
 
 class SettingsStore(private val context: Context) {
-    val apiKey: Flow<String> = context.dataStore.data.map { it[Keys.API_KEY].orEmpty() }
+    val apiKey: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.API_KEY]
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_API_KEY
+    }
     val lastSyncEpochMs: Flow<Long?> = context.dataStore.data.map { it[Keys.LAST_SYNC_EPOCH_MS] }
     val lastResult: Flow<String> = context.dataStore.data.map { it[Keys.LAST_RESULT].orEmpty() }
 
@@ -30,7 +37,16 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setApiKey(key: String) {
         context.dataStore.edit { prefs ->
-            prefs[Keys.API_KEY] = key.trim()
+            prefs[Keys.API_KEY] = key.trim().ifBlank { DEFAULT_API_KEY }
+        }
+    }
+
+    suspend fun ensureDefaults() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.API_KEY]?.trim().orEmpty()
+            if (current.isBlank()) {
+                prefs[Keys.API_KEY] = DEFAULT_API_KEY
+            }
         }
     }
 

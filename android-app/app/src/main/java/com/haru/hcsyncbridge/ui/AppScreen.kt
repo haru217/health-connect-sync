@@ -31,6 +31,8 @@ import com.haru.hcsyncbridge.hc.HealthConnectStatus
 import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
 import com.haru.hcsyncbridge.net.ServerDiscovery
+import com.haru.hcsyncbridge.settings.DEFAULT_API_KEY
+import com.haru.hcsyncbridge.settings.DEFAULT_SERVER_BASE_URL
 import com.haru.hcsyncbridge.settings.SettingsStore
 import com.haru.hcsyncbridge.sync.SyncNow
 import kotlinx.coroutines.flow.first
@@ -45,8 +47,8 @@ fun AppScreen() {
     val context = LocalContext.current
     val settings = remember { SettingsStore(context) }
 
-    val serverBaseUrl by settings.serverBaseUrl.collectAsState(initial = null)
-    val apiKey by settings.apiKey.collectAsState(initial = null)
+    val serverBaseUrl by settings.serverBaseUrl.collectAsState(initial = DEFAULT_SERVER_BASE_URL)
+    val apiKey by settings.apiKey.collectAsState(initial = DEFAULT_API_KEY)
     val lastError by settings.lastError.collectAsState(initial = null)
     val lastSync by settings.lastSyncEpochMs.collectAsState(initial = null)
 
@@ -55,8 +57,8 @@ fun AppScreen() {
     var serverStatus by remember { mutableStateOf<String?>(null) }
     var discovered by remember { mutableStateOf<List<ServerDiscovery.DiscoveryInfo>>(emptyList()) }
 
-    var serverUrlInput by remember { mutableStateOf(serverBaseUrl ?: "") }
-    var apiKeyInput by remember { mutableStateOf(apiKey ?: "") }
+    var serverUrlInput by remember { mutableStateOf(serverBaseUrl) }
+    var apiKeyInput by remember { mutableStateOf(apiKey) }
 
     val scope = rememberCoroutineScope()
 
@@ -69,9 +71,10 @@ fun AppScreen() {
     LaunchedEffect(Unit) {
         // Best-effort: when app is opened, trigger a sync if we haven't synced recently.
         // Only do this when settings are present.
+        settings.ensureDefaults()
         val baseUrl = settings.serverBaseUrl.first()
         val key = settings.apiKey.first()
-        if (!baseUrl.isNullOrBlank() && !key.isNullOrBlank()) {
+        if (baseUrl.isNotBlank() && key.isNotBlank()) {
             val last = settings.lastSyncEpochMs.first()
             val now = System.currentTimeMillis()
             val stale = last == null || (now - last) > TimeUnit.MINUTES.toMillis(90)

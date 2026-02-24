@@ -29,6 +29,8 @@ import androidx.core.os.BuildCompat
 import androidx.health.connect.client.PermissionController
 import com.haru.hcsyncbridge.hc.RecordTypeRegistry
 import com.haru.hcsyncbridge.net.HttpSyncClient
+import com.haru.hcsyncbridge.settings.DEFAULT_API_KEY
+import com.haru.hcsyncbridge.settings.DEFAULT_SERVER_BASE_URL
 import com.haru.hcsyncbridge.settings.SettingsStore
 import com.haru.hcsyncbridge.sync.SyncNow
 import kotlinx.coroutines.Dispatchers
@@ -38,8 +40,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val DEFAULT_SERVER_URL = "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev"
-private const val DEFAULT_API_KEY = "test12345"
+private const val DEFAULT_SERVER_URL = DEFAULT_SERVER_BASE_URL
 
 @OptIn(BuildCompat.PrereleaseSdkCheck::class)
 @Composable

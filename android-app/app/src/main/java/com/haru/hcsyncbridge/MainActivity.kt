@@ -15,8 +15,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Schedule periodic sync (best-effort, hourly)
-        SyncScheduler.scheduleDaily(this)
+        // Auto periodic sync is disabled. Keep manual sync only.
+        SyncScheduler.cancelDaily(this)
 
         setContent {
             HealthAiTheme {

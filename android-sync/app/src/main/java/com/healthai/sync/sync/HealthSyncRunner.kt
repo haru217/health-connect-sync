@@ -68,6 +68,7 @@ class HealthSyncRunner(
     }
 
     suspend fun syncNow(): SyncOutcome = withContext(Dispatchers.IO) {
+        settings.ensureDefaults()
         val apiKey = settings.getApiKey()
         if (apiKey.isBlank()) {
             val msg = "APIキーが未設定です"

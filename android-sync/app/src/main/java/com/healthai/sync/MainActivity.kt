@@ -45,7 +45,8 @@ import java.time.format.DateTimeFormatter
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        SyncScheduler.ensureScheduled(applicationContext)
+        // Auto periodic sync is disabled. Keep manual sync only.
+        SyncScheduler.cancelScheduled(applicationContext)
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
