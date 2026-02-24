@@ -111,6 +111,7 @@ interface CatalogItem {
 
 const REPORT_TYPES: readonly ReportType[] = ['daily', 'weekly', 'monthly'] as const
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const CURSOR_REPAIR_SAFETY_MS = 5 * 60 * 1000
 const RECORD_TYPE_META_PREFIX = '__meta__'
 const LAST_AGGREGATED_AT_MS_KEY = `${RECORD_TYPE_META_PREFIX}last_aggregated_at_ms`
 const CORS_HEADERS: Readonly<Record<string, string>> = {
@@ -246,6 +247,15 @@ function toIsoDate(date: Date): string {
 
 function nowIso(): string {
   return new Date().toISOString()
+}
+
+function clampCursorMillisForRepair(ms: number): number {
+  const maxMs = Date.now() - CURSOR_REPAIR_SAFETY_MS
+  return ms > maxMs ? maxMs : ms
+}
+
+function isSmokeDeviceId(deviceId: string): boolean {
+  return deviceId.toLowerCase().includes('smoke')
 }
 
 function isMetaRecordType(recordType: string): boolean {
@@ -1540,6 +1550,7 @@ function makePrompt(type: ReportType): string {
 
 async function seedMockData(db: D1Database): Promise<Record<string, unknown>> {
   await execute(db, 'DELETE FROM sync_runs')
+  await execute(db, 'DELETE FROM sync_cursor_state')
   await execute(db, 'DELETE FROM health_records')
   await execute(db, 'DELETE FROM nutrition_events')
   await execute(db, 'DELETE FROM ai_reports')
@@ -1818,6 +1829,30 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     [upserted, skipped, payload.syncId],
   )
 
+  const rangeEndMs = parseIsoToMillis(payload.rangeEnd)
+  if (rangeEndMs != null && !isSmokeDeviceId(payload.deviceId)) {
+    const cursorRow = await queryFirst<{ last_range_end: string | null }>(
+      env.DB,
+      'SELECT last_range_end FROM sync_cursor_state WHERE id = 1',
+    )
+    const currentMs = parseIsoToMillis(cursorRow?.last_range_end ?? null) ?? 0
+    if (rangeEndMs >= currentMs) {
+      await execute(
+        env.DB,
+        `
+        INSERT INTO sync_cursor_state(id, last_range_end, updated_at, last_sync_id, last_device_id)
+        VALUES(1, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          last_range_end = excluded.last_range_end,
+          updated_at = excluded.updated_at,
+          last_sync_id = excluded.last_sync_id,
+          last_device_id = excluded.last_device_id
+        `,
+        [payload.rangeEnd, nowIso(), payload.syncId, payload.deviceId],
+      )
+    }
+  }
+
   return jsonResponse({
     accepted: true,
     upsertedCount: upserted,
@@ -1832,37 +1867,67 @@ async function handleSyncCursor(url: URL, env: Env): Promise<Response> {
     return jsonResponse({ detail: 'deviceId query is required' }, 400)
   }
 
-  const byDevice = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
+  const state = await queryFirst<{
+    last_range_end: string | null
+    updated_at: string | null
+    last_sync_id: string | null
+    last_device_id: string | null
+  }>(
+    env.DB,
+    `
+    SELECT last_range_end, updated_at, last_sync_id, last_device_id
+    FROM sync_cursor_state
+    WHERE id = 1
+    `,
+  )
+
+  const fallbackByDevice = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
     env.DB,
     `
     SELECT range_end, synced_at, received_at
     FROM sync_runs
-    WHERE device_id = ?
+    WHERE device_id = ? AND lower(device_id) NOT LIKE '%smoke%'
     ORDER BY range_end DESC, received_at DESC
     LIMIT 1
     `,
     [deviceId],
   )
 
-  const globalLatest =
-    byDevice ??
-    (await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
-      env.DB,
-      `
-      SELECT range_end, synced_at, received_at
-      FROM sync_runs
-      ORDER BY range_end DESC, received_at DESC
-      LIMIT 1
-      `,
-    ))
+  const fallbackGlobal = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
+    env.DB,
+    `
+    SELECT range_end, synced_at, received_at
+    FROM sync_runs
+    WHERE lower(device_id) NOT LIKE '%smoke%'
+    ORDER BY range_end DESC, received_at DESC
+    LIMIT 1
+    `,
+  )
+
+  const rawRangeEnd = state?.last_range_end ?? fallbackByDevice?.range_end ?? fallbackGlobal?.range_end ?? null
+  const parsedMs = parseIsoToMillis(rawRangeEnd)
+  const clampedMs = parsedMs == null ? null : clampCursorMillisForRepair(parsedMs)
+  const rangeEnd = clampedMs == null ? null : new Date(clampedMs).toISOString()
+  const wasClamped = parsedMs != null && clampedMs != null && clampedMs !== parsedMs
+  const source = state?.last_range_end
+    ? 'cursor_state'
+    : fallbackByDevice?.range_end
+      ? 'sync_runs_device'
+      : fallbackGlobal?.range_end
+        ? 'sync_runs_global'
+        : 'none'
 
   return jsonResponse({
     deviceId,
-    source: byDevice ? 'device' : 'global',
-    found: !!globalLatest?.range_end,
-    rangeEnd: globalLatest?.range_end ?? null,
-    syncedAt: globalLatest?.synced_at ?? null,
-    receivedAt: globalLatest?.received_at ?? null,
+    source,
+    found: !!rangeEnd,
+    rangeEnd,
+    rawRangeEnd,
+    wasClamped,
+    syncedAt: fallbackByDevice?.synced_at ?? fallbackGlobal?.synced_at ?? null,
+    receivedAt: fallbackByDevice?.received_at ?? fallbackGlobal?.received_at ?? null,
+    updatedAt: state?.updated_at ?? null,
+    lastDeviceId: state?.last_device_id ?? null,
   })
 }
 
