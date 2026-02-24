@@ -1802,7 +1802,7 @@ async function handleSyncCursor(url: URL, env: Env): Promise<Response> {
     return jsonResponse({ detail: 'deviceId query is required' }, 400)
   }
 
-  const row = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
+  const byDevice = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
     env.DB,
     `
     SELECT range_end, synced_at, received_at
@@ -1814,12 +1814,25 @@ async function handleSyncCursor(url: URL, env: Env): Promise<Response> {
     [deviceId],
   )
 
+  const globalLatest =
+    byDevice ??
+    (await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
+      env.DB,
+      `
+      SELECT range_end, synced_at, received_at
+      FROM sync_runs
+      ORDER BY range_end DESC, received_at DESC
+      LIMIT 1
+      `,
+    ))
+
   return jsonResponse({
     deviceId,
-    found: !!row?.range_end,
-    rangeEnd: row?.range_end ?? null,
-    syncedAt: row?.synced_at ?? null,
-    receivedAt: row?.received_at ?? null,
+    source: byDevice ? 'device' : 'global',
+    found: !!globalLatest?.range_end,
+    rangeEnd: globalLatest?.range_end ?? null,
+    syncedAt: globalLatest?.synced_at ?? null,
+    receivedAt: globalLatest?.received_at ?? null,
   })
 }
 
