@@ -3,10 +3,15 @@ package com.haru.hcsyncbridge.net
 import com.haru.hcsyncbridge.sync.SyncRequest
 import com.haru.hcsyncbridge.sync.SyncResponse
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URLEncoder
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class HttpSyncClient(
@@ -52,6 +57,25 @@ class HttpSyncClient(
                 throw RuntimeException("HTTP_${resp.code}: $body")
             }
             return body
+        }
+    }
+
+    fun getSyncCursorEpochMs(serverBaseUrl: String, apiKey: String, deviceId: String): Long? {
+        val encodedDeviceId = URLEncoder.encode(deviceId, Charsets.UTF_8.name())
+        val request = Request.Builder()
+            .url(serverBaseUrl.trimEnd('/') + "/api/sync/cursor?deviceId=$encodedDeviceId")
+            .header("X-Api-Key", apiKey)
+            .get()
+            .build()
+
+        http.newCall(request).execute().use { resp ->
+            val body = resp.body?.string() ?: ""
+            if (!resp.isSuccessful) {
+                throw RuntimeException("HTTP_${resp.code}: $body")
+            }
+            val root = json.parseToJsonElement(body).jsonObject
+            val rangeEnd = root["rangeEnd"]?.jsonPrimitive?.contentOrNull ?: return null
+            return runCatching { Instant.parse(rangeEnd).toEpochMilli() }.getOrNull()
         }
     }
 }

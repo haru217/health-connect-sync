@@ -1,6 +1,7 @@
 package com.haru.hcsyncbridge.settings
 
 import android.content.Context
+import android.provider.Settings
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -45,12 +46,22 @@ class SettingsStore(private val context: Context) {
         var id: String? = null
         context.dataStore.edit { prefs ->
             id = prefs[SettingsKeys.DEVICE_ID]
-            if (id == null) {
-                id = "dev_${UUID.randomUUID()}"
+            if (id.isNullOrBlank()) {
+                id = deriveStableDeviceId()
                 prefs[SettingsKeys.DEVICE_ID] = id!!
             }
         }
         return id!!
+    }
+
+    private fun deriveStableDeviceId(): String {
+        val androidId = runCatching {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        }.getOrNull()?.trim()?.lowercase()
+        if (!androidId.isNullOrBlank()) {
+            return "dev_$androidId"
+        }
+        return "dev_${UUID.randomUUID()}"
     }
 
     suspend fun setServerBaseUrl(url: String) {
@@ -82,6 +93,13 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit {
             it[SettingsKeys.LAST_SYNC_EPOCH_MS] = epochMs
             it.remove(SettingsKeys.LAST_ERROR)
+        }
+    }
+
+    suspend fun repairSyncCursor(epochMs: Long = System.currentTimeMillis()) {
+        context.dataStore.edit {
+            it[SettingsKeys.LAST_SYNC_EPOCH_MS] = epochMs
+            it[SettingsKeys.LAST_ERROR] = "OK: sync cursor repaired"
         }
     }
 

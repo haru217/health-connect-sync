@@ -64,22 +64,34 @@ class SyncWorker(
 
             val deviceId = settings.ensureDeviceId()
             val now = Instant.now()
-            val lastMs = settings.lastSyncEpochMs.first()
+            val localLastMs = settings.lastSyncEpochMs.first()
 
             // Catch-up sync:
-            // - initial lookback: 90 days
+            // - initial lookback: 30 days
             // - per run: process at most 3 daily windows to avoid huge reads/requests
-            val lookbackSeconds = 90L * 24 * 3600
+            val lookbackSeconds = 30L * 24 * 3600
             val overlapSeconds = 5L * 60L // 5 minutes overlap to avoid boundary misses
-            var cursor = if (lastMs != null && lastMs > 0) {
-                Instant.ofEpochMilli(lastMs).minusSeconds(overlapSeconds)
+            val serverLastMs = if (localLastMs == null || localLastMs <= 0L) {
+                runCatching { http.getSyncCursorEpochMs(baseUrl, apiKey, deviceId) }.getOrNull()
+            } else {
+                null
+            }
+            val effectiveLastMs = localLastMs ?: serverLastMs
+            if (localLastMs == null && serverLastMs != null && serverLastMs > 0L) {
+                settings.setLastSync(serverLastMs)
+            }
+
+            var cursor = if (effectiveLastMs != null && effectiveLastMs > 0L) {
+                Instant.ofEpochMilli(effectiveLastMs).minusSeconds(overlapSeconds)
             } else {
                 now.minusSeconds(lookbackSeconds)
             }
 
             // Guard: don't go too far back
-            val minCursor = now.minusSeconds(lookbackSeconds)
-            if (cursor.isBefore(minCursor)) cursor = minCursor
+            if (effectiveLastMs == null || effectiveLastMs <= 0L) {
+                val minCursor = now.minusSeconds(lookbackSeconds)
+                if (cursor.isBefore(minCursor)) cursor = minCursor
+            }
 
             val windowSeconds = 24L * 3600
             val maxWindowsPerRun = 3
@@ -268,7 +280,7 @@ class SyncWorker(
                 throw e
             }
 
-            if (records.size > 50) {
+            if (records.size > 1) {
                 val mid = records.size / 2
                 postChunkWithRepair(
                     deviceId = deviceId,
@@ -289,7 +301,7 @@ class SyncWorker(
                 return
             }
 
-            if (attempt >= 2) {
+            if (attempt >= 4) {
                 throw RuntimeException(
                     "SYNC_REPAIR_FAILED(size=${records.size}): ${e.message ?: e.javaClass.simpleName}",
                     e,
@@ -299,7 +311,9 @@ class SyncWorker(
             val backoffMs = when (attempt) {
                 0 -> 1_000L
                 1 -> 2_500L
-                else -> 5_000L
+                2 -> 5_000L
+                3 -> 8_000L
+                else -> 12_000L
             }
             delay(backoffMs)
             postChunkWithRepair(
@@ -316,10 +330,13 @@ class SyncWorker(
 
     private fun isRetryableSyncError(error: Throwable): Boolean {
         val msg = (error.message ?: "").lowercase()
-        return msg.startsWith("http_503") ||
-            msg.startsWith("http_429") ||
+        return msg.contains("http_503") ||
+            msg.contains("http_429") ||
+            msg.contains("1102") ||
             msg.contains("timeout") ||
+            msg.contains("service unavailable") ||
             msg.contains("temporarily unavailable") ||
+            msg.contains("cloudflare") ||
             msg.contains("connection reset") ||
             msg.contains("broken pipe")
     }

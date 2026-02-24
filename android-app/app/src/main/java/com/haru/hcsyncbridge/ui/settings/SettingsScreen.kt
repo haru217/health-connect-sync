@@ -36,6 +36,8 @@ import com.haru.hcsyncbridge.sync.SyncNow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Duration
+import java.time.Instant
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -159,9 +161,22 @@ fun SettingsScreen() {
             )
         }
 
-        Button(
-            onClick = { SyncNow.run(context) },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("今すぐ同期") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { SyncNow.run(context) },
+                modifier = Modifier.weight(1f)
+            ) { Text("今すぐ同期") }
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        val repairedMs = Instant.now().minus(Duration.ofMinutes(5)).toEpochMilli()
+                        settings.repairSyncCursor(repairedMs)
+                        statusMessage = "Sync cursor repaired"
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) { Text("Repair cursor") }
+        }
     }
 }

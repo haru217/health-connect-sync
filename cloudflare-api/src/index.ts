@@ -1795,6 +1795,34 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   })
 }
 
+async function handleSyncCursor(url: URL, env: Env): Promise<Response> {
+  const rawDeviceId = url.searchParams.get('deviceId') ?? ''
+  const deviceId = rawDeviceId.trim()
+  if (!deviceId) {
+    return jsonResponse({ detail: 'deviceId query is required' }, 400)
+  }
+
+  const row = await queryFirst<{ range_end: string | null; synced_at: string | null; received_at: string | null }>(
+    env.DB,
+    `
+    SELECT range_end, synced_at, received_at
+    FROM sync_runs
+    WHERE device_id = ?
+    ORDER BY range_end DESC, received_at DESC
+    LIMIT 1
+    `,
+    [deviceId],
+  )
+
+  return jsonResponse({
+    deviceId,
+    found: !!row?.range_end,
+    rangeEnd: row?.range_end ?? null,
+    syncedAt: row?.synced_at ?? null,
+    receivedAt: row?.received_at ?? null,
+  })
+}
+
 async function handleNutritionLog(request: Request, env: Env): Promise<Response> {
   const payload = await readJsonBody(request)
   const rawItems = Array.isArray(payload.items) ? payload.items : [payload]
@@ -1899,6 +1927,10 @@ const worker: ExportedHandler<Env> = {
       if (pathname === '/api/summary' && method === 'GET') {
         await ensureAggregatesUpToDate(env.DB)
         return jsonResponse(await buildSummary(env.DB))
+      }
+
+      if (pathname === '/api/sync/cursor' && method === 'GET') {
+        return handleSyncCursor(url, env)
       }
 
       if (pathname === '/api/sync' && method === 'POST') {
