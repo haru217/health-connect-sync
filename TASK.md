@@ -1,5 +1,8 @@
 # Health AI Advisor — タスクリスト
 
+> [!IMPORTANT]
+> 2026-02-23時点で Fly.io は本プロジェクトの現行運用では使用していません（本文中の Fly.io 記載は過去の実装ログ・移行履歴・アーカイブ情報です）。
+
 ## ステータス凡例
 - 📋 未着手
 - 🔄 進行中
@@ -37,7 +40,7 @@
 | # | タスク | 状態 | 優先度 | 備考 |
 |---|---|---|---|---|
 | T01 | Dockerfile 作成（pc-server コンテナ化） | ✅ | 🔴 高 | `pc-server/Dockerfile` |
-| T02 | fly.toml 設定（ポート・ボリューム） | ✅ | 🔴 高 | `pc-server/fly.toml` |
+| T02 | fly.toml 設定（ポート・ボリューム） | ✅ | 🔴 高 | `_archive/fly-io/pc-server/fly.toml` |
 | T03 | Fly.io デプロイ & 動作確認 | ✅ | 🔴 高 | `/api/status` 200 確認済み |
 | T04 | API_KEY を Fly.io シークレットに移行 | ✅ | 🔴 高 | `test12345` で設定済み |
 | T05 | スマホからアクセス確認（固定URL） | ✅ | 🔴 高 | URL: https://34.171.85.174.nip.io/ui?key=test12345 |
@@ -114,7 +117,7 @@ T20✅→ T21✅→ T22✅
 | ドキュメント | 内容 |
 |---|---|
 | `ARCHITECTURE.md` | アーキテクチャ決定記録・環境変数一覧 |
-| `CODEX_STEP1.md` | Fly.io デプロイ手順（完了済み・参照用） |
+| `_archive/fly-io/CODEX_STEP1.md` | Fly.io デプロイ手順（完了済み・参照用） |
 | `CODEX_STEP3_WEBAPP.md` | web-app/ API統合 + Vercel デプロイ指示書（完了済み） |
 | `CODEX_STEP4.md` | 新 Android 同期アプリ 指示書 |
 | `IMPLEMENT.md` | Phase 1 バックエンド実装指示書 |
@@ -129,4 +132,3 @@ T20✅→ T21✅→ T22✅
 - STEP7 PNG icon replacement has been cancelled by product decision.
 - Official direction: continue with SVG-based icons for navigation/UI.
 - Any remaining STEP7 references should be interpreted as "PNG plan retired".
-

@@ -271,78 +271,149 @@
 /* Suppl Tab */
 .suppl-item {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px 20px;
-    margin-bottom: 12px;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border-radius: 20px;
+    background: var(--surface-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: pointer;
+    border: 1px solid transparent;
 }
 
 .suppl-item.checked {
-    background-color: rgba(165, 214, 167, 0.15);
-    /* light green tint */
-    border-left: 4px solid var(--good-color);
+    background: linear-gradient(145deg, #ffffff, #f2fcf7);
+    border: 1px solid rgba(136, 212, 180, 0.3);
+    box-shadow: 0 6px 16px rgba(136, 212, 180, 0.15);
 }
 
-.suppl-item-top {
+.suppl-item-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: #f4f5f7;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    color: #8c9ba5;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.suppl-item.checked .suppl-item-icon {
+    background: var(--accent-color);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(108, 194, 153, 0.3);
+}
+
+.suppl-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .suppl-item-name {
-    font-weight: 600;
-}
-
-.suppl-check-btn,
-.suppl-clear-btn,
-.suppl-amount-btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 7px 12px;
-    font-size: 0.82rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    cursor: pointer;
+    color: var(--text-primary);
+    line-height: 1.2;
 }
 
-.suppl-check-btn {
-    color: #1e604a;
-    background: #ecfff6;
-}
-
-.suppl-clear-btn {
-    color: #7b5c2f;
-    background: #fff8ea;
-}
-
-.suppl-amount-row {
+/* Stepper */
+.stepper-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 999px;
+    padding: 4px;
+    width: max-content;
+    margin-top: 4px;
 }
 
-.suppl-amount-value {
-    min-width: 72px;
-    text-align: center;
-    font-size: 1rem;
-    font-weight: 700;
-}
-
-.suppl-amount-btn {
-    min-width: 36px;
-    padding: 6px 0;
+.stepper-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
     color: var(--text-primary);
-    background: #f3f7f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
-.suppl-amount-btn:disabled {
-    opacity: 0.45;
-    cursor: default;
+.stepper-btn:hover:not(:disabled) {
+    background: #f0f0f0;
+    transform: scale(1.05);
+}
+
+.stepper-btn:disabled {
+    opacity: 0.4;
+    box-shadow: none;
+}
+
+.stepper-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.stepper-value {
+    min-width: 44px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--accent-color);
+    font-family: var(--font-family-num);
+}
+
+.stepper-value .unit {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 2px;
+    color: var(--text-muted);
 }
 
 .suppl-default-hint {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     color: var(--text-muted);
+}
+
+/* Custom Checkbox */
+.custom-checkbox {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #dde3e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.suppl-item.checked .custom-checkbox {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.custom-checkbox svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0;
+    transition: opacity 0.2s ease 0.1s;
+}
+
+.suppl-item.checked .custom-checkbox svg {
+    opacity: 1;
 }
 
 /* Nutrition Tab */

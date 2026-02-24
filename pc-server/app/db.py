@@ -211,6 +211,17 @@ def init_db() -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_reports_date_type_unique ON ai_reports(report_date, report_type);"
         )
 
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS summary_cache (
+                cache_key TEXT PRIMARY KEY,
+                data      TEXT NOT NULL,
+                cached_at TEXT NOT NULL
+            )
+            """
+        )
+
+
 def iso(dt: datetime | None) -> str | None:
     if dt is None:
         return None

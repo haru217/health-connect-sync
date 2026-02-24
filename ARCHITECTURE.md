@@ -1,5 +1,8 @@
 # Health AI Advisor — アーキテクチャ決定記録
 
+> [!IMPORTANT]
+> 2026-02-23時点で Fly.io は本プロジェクトの現行運用では使用していません（本文中の Fly.io 記載は過去の実装ログ・移行履歴・アーカイブ情報です）。
+
 最終更新: 2026-02
 
 ---
@@ -50,7 +53,7 @@
 | 設定ファイル | 場所 | 内容 |
 |---|---|---|
 | `Dockerfile` | `pc-server/` | コンテナ定義 |
-| `fly.toml` | `pc-server/` | Fly.io 設定（リージョン・ボリューム・ポート） |
+| `fly.toml` | `_archive/fly-io/pc-server/` | Fly.io 設定（リージョン・ボリューム・ポート） |
 | `.dockerignore` | `pc-server/` | ビルド除外ファイル |
 
 ### 環境変数

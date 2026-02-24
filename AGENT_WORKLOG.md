@@ -24,6 +24,14 @@
 
 ## ログ
 
+### 2026-02-24
+- 担当: Codex
+- 要約: Cloudflare API の再集計ロジックを修正し、低頻度データ（睡眠・血圧など）が日次集計から欠落しないよう対応。push・本番デプロイ・反映確認まで実施。
+- 変更ファイル: `cloudflare-api/src/index.ts`, `AGENT_WORKLOG.md`
+- 関連コミット: `af37e78`
+- デプロイ: Cloudflare Workers 本番反映済み（Version ID: `17ec4c2a-e228-4821-bdc5-da1e39405b53`）
+- メモ: 反映確認で `sleepHoursByDate=11`, `bloodPressureByDate=6` を確認。再集計トリガー用の一時栄養ログは削除済み。
+
 ### 2026-02-23
 - 担当: Codex
 - 要約: ユーザー指示で1回実行（前日データ + 吉野家牛丼大盛り3杯仮定）の途中で中止。次セッションで同条件を再実行する。

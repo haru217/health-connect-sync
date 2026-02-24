@@ -102,22 +102,24 @@
     </div>
   </div>
 
+  <div style="margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; font-size: 11px; border-radius: 4px;">2026-02-24時点で Fly.io は本プロジェクトの現行運用では使用していません。本文中の Fly.io 記載は過去の実装ログ・移行履歴・アーカイブ情報です。</div>
+
   <!-- Stats -->
   <div class="stats-row">
     <div class="stat">
-      <div class="stat-val">1.4</div>
+      <div class="stat-val">3.4</div>
       <div class="stat-lbl">累計工数 (day)</div>
     </div>
     <div class="stat">
-      <div class="stat-val">3</div>
+      <div class="stat-val">5</div>
       <div class="stat-lbl">稼働日数</div>
     </div>
     <div class="stat">
-      <div class="stat-val">9</div>
+      <div class="stat-val">18</div>
       <div class="stat-lbl">成果物</div>
     </div>
     <div class="stat">
-      <div class="stat-val">3</div>
+      <div class="stat-val">9</div>
       <div class="stat-lbl">解消した障害</div>
     </div>
   </div>
@@ -253,7 +255,7 @@
         <div class="detail-block">
           <ul>
             <li><code>pc-server/Dockerfile</code> 作成（Python 3.12-slim、永続ボリューム <code>/data</code>、ポート 8080）</li>
-            <li><code>pc-server/fly.toml</code> 作成（nrt リージョン、256MB VM、health_data ボリューム設定）</li>
+            <li><code>_archive/fly-io/pc-server/fly.toml</code> 作成（nrt リージョン、256MB VM、health_data ボリューム設定）</li>
             <li><code>pc-server/.dockerignore</code> 作成</li>
             <li><code>DISCOVERY_ENABLED=false</code> 設定によりクラウド環境での UDP 探索を無効化</li>
           </ul>
@@ -264,7 +266,7 @@
         <div class="work-item-title">Codex 向け実装指示書作成 <span class="work-item-time">〜 2h</span></div>
         <div class="detail-block">
           <ul>
-            <li><code>CODEX_STEP1.md</code>：Fly.io デプロイ手順（ボリューム作成・シークレット設定・動作確認）</li>
+            <li><code>_archive/fly-io/CODEX_STEP1.md</code>：Fly.io デプロイ手順（ボリューム作成・シークレット設定・動作確認）</li>
             <li><code>CODEX_STEP3_WEBAPP.md</code>：web-app/ API統合（CORS設定・API クライアント・全画面差し替え・Vercel CLI デプロイ）</li>
             <li><code>CODEX_STEP4.md</code>：新 Android 同期アプリ（Health Connect 読み取り・WorkManager・設定画面）</li>
             <li>Codex・Gemini 向けコピペ用プロンプトを会話内で提供</li>
@@ -308,6 +310,159 @@
     </div>
   </div>
 
+
+  <!-- 2026/02/23 -->
+  <div class="day-entry">
+    <div class="day-header">
+      <div class="day-date">2026年2月23日（月）</div>
+      <div class="day-effort">1.0 day</div>
+      <div class="day-summary">Fly.io → GCP 移行・Android 自動同期修正・Codex 自動化整備</div>
+    </div>
+    <div class="work-items">
+
+      <div class="work-item">
+        <div class="work-item-title">Fly.io → Google Cloud Platform 移行 <span class="work-item-time">〜 3h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>gcloud CLI でプロジェクト <code>health-ai-ryosuzu</code>・VM <code>health-ai-vm</code>（e2-micro / us-central1-a）を作成</li>
+            <li>Docker 29.2.1 インストール・Docker Compose + Caddy（自動 HTTPS）で FastAPI 起動</li>
+            <li>Fly.io から SQLite DB（13,415件）を移行し疎通確認（<code>totalRecords: 22,158</code> まで増加）</li>
+            <li>静的 IP <code>34.171.85.174</code> を作成・VM にアタッチ（nip.io ドメイン: <code>34.171.85.174.nip.io</code>）</li>
+            <li>Fly.io アプリ（<code>user-purple-hill-1159</code>）を削除（課金停止）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">API URL 全体更新・Vercel 再デプロイ <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>web-app/.env.production.vercel</code> の <code>VITE_API_URL</code> を GCP URL に変更・Vercel 本番デプロイ</li>
+            <li><code>android-sync/AppConfig.kt</code> の <code>SERVER_BASE_URL</code> を GCP URL に変更・push</li>
+            <li>VM 上 <code>Caddyfile</code> を新 IP に更新・Caddy 再起動・Let's Encrypt 証明書取得確認</li>
+            <li><code>AGENT_MEMORY.md</code> に本日作業内容を追記</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Codex 自動化・タスクスケジューラ整備 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>codex_task_prompt.txt</code> の API URL を GCP URL に更新</li>
+            <li>タスクスケジューラ <code>HealthConnectSync-Codex</code> に <code>WakeToRun: true</code> を設定（スリープ中でも実行）</li>
+            <li>Codex 設定 <code>~/.codex/config.toml</code> の GitHub MCP を npx ベースに変更・<code>GITHUB_TOKEN</code> の余分文字列を除去</li>
+            <li>Codex <code>login</code> 手順を実施（セッション期限切れ対応）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Android アプリ自動同期修正（複数バグ対応） <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>SettingsScreen.kt</code> を実装（API キー入力・保存・接続テスト・今すぐ同期・Health Connect 権限ボタン）</li>
+            <li>サーバー URL を GCP 固定値にハードコード（ユーザー入力不要）</li>
+            <li><code>gradle.properties</code> から Windows 固有 <code>org.gradle.java.home</code> を削除（CI ビルド失敗対応）</li>
+            <li><code>@OptIn(BuildCompat.PrereleaseSdkCheck::class)</code> アノテーション追加（コンパイルエラー対応）</li>
+            <li><code>SyncWorker</code> で <code>SecurityException</code> 発生時に該当レコードタイプをスキップして同期続行</li>
+            <li><code>.github/workflows/android-app-build.yml</code> 新規作成（android-app の CI ビルド対応）</li>
+          </ul>
+          <div class="tech-notes">
+            <div class="tech-note issue">
+              <div class="tech-note-lbl">障害原因</div>
+              <p>SettingsScreen が未実装（プレースホルダーのみ）のため serverBaseUrl が未設定となり、WorkManager の1時間自動同期が <code>CONFIG_MISSING</code> エラーで全失敗していた</p>
+            </div>
+            <div class="tech-note resolve">
+              <div class="tech-note-lbl">対応結果</div>
+              <p>SettingsScreen 実装により設定が保存可能になり、自動同期が正常動作。SecurityException スキップ処理により一部権限欠如でも他データは同期継続</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 2026/02/24 -->
+  <div class="day-entry">
+    <div class="day-header">
+      <div class="day-date">2026年2月24日（火）</div>
+      <div class="day-effort">1.0 day</div>
+      <div class="day-summary">Cloudflare 移管完了・Android 同期修復・D1 集計不整合修正・本番安定化</div>
+    </div>
+    <div class="work-items">
+
+      <div class="work-item">
+        <div class="work-item-title">サーバー移管の実運用反映（Cloudflare + Vercel） <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>Cloudflare Workers + D1 を主系統として運用固定し、Android の既定サーバー URL を Cloudflare 側へ統一</li>
+            <li>Vercel 側 UI と API 接続先の整合を再確認し、本番環境での表示導線を維持</li>
+            <li>Fly.io 依存フローを運用経路から外し、移行後構成で継続稼働できる状態に整理</li>
+          </ul>
+          <div class="tech-notes">
+            <div class="tech-note issue">
+              <div class="tech-note-lbl">障害原因</div>
+              <p>移行直後に接続先が混在し、同期先・表示先・設定値の基準が端末ビルド間でズレる状態が発生</p>
+            </div>
+            <div class="tech-note resolve">
+              <div class="tech-note-lbl">対応結果</div>
+              <p>Cloudflare を単一運用先として固定し、同一経路で同期と表示が完結する構成へ整理</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">Android 同期の不安定要因修正・APK 再ビルド反復 <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>503/1102 対策として同期チャンク分割・タイムアウト調整・リトライ導線を段階的に調整</li>
+            <li>Settings 画面にビルドバージョン表示とカーソル修復ラベルを追加し、端末側で新旧 APK の判別性を確保</li>
+            <li><code>BuildConfig</code> 未生成エラーを解消して CI ビルドを復旧し、修正版 APK を継続提供</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">カーソル修復ロジックの再設計（再インストール・未来時刻対策） <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>「現在時刻へ飛ぶ」挙動を廃止し、サーバー側の同期終端を基準とした修復へ変更</li>
+            <li>未来時刻に飛ぶケースを防ぐため <code>now-5分</code> の安全丸めを導入</li>
+            <li>端末再インストール時でも重複送信を抑えられるよう、デバイス依存を弱めたキー戦略へ調整</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">D1 集計処理の不整合・高負荷対策 <span class="work-item-time">〜 2h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li><code>record_type_counts</code> と <code>daily_metrics</code> 書き込みを冪等化し、再実行時の破損を防止</li>
+            <li>高頻度データを14日保持で圧縮しつつ、睡眠・血圧・体重など低頻度データは全期間集計対象に保持</li>
+            <li>メモリ制約対策として keyset scan を採用し、<code>memory limit</code> 系エラーが出にくい集計フローへ変更</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="work-item">
+        <div class="work-item-title">GitHub 反映・本番検証・運用記録更新 <span class="work-item-time">〜 1h</span></div>
+        <div class="detail-block">
+          <ul>
+            <li>関連修正を複数コミットで <code>main</code> へ反映し、最終修正は <code>af37e78</code> を push</li>
+            <li><code>npm run deploy</code> で Worker を本番反映（Version ID: <code>17ec4c2a-e228-4821-bdc5-da1e39405b53</code>）</li>
+            <li><code>/api/summary</code> を実測確認し、睡眠・血圧系列の復元を確認（<code>sleepHoursByDate=11</code>、<code>bloodPressureByDate=6</code>）</li>
+            <li>再集計トリガー用に追加した一時栄養ログを削除し、データをクリーンな状態に復元</li>
+            <li><code>AGENT_WORKLOG.md</code> に当日作業内容（コミット・デプロイ・確認結果）を反映</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- /Work Log -->
   </div>
 
@@ -320,14 +475,23 @@
       </thead>
       <tbody>
         <tr><td>pc-server/Dockerfile</td><td>Fly.io デプロイ用コンテナ定義（Python 3.12-slim、永続ボリューム対応）</td></tr>
-        <tr><td>pc-server/fly.toml</td><td>Fly.io 設定（nrt リージョン・256MB VM・health_data ボリューム）</td></tr>
+        <tr><td>_archive/fly-io/pc-server/fly.toml</td><td>Fly.io 設定（nrt リージョン・256MB VM・health_data ボリューム）</td></tr>
         <tr><td>pc-server/.dockerignore</td><td>Docker ビルド除外ファイル</td></tr>
         <tr><td>ARCHITECTURE.md</td><td>アーキテクチャ決定記録（構成図・方針選定理由・環境変数一覧）</td></tr>
         <tr><td>TASK.md</td><td>タスクリスト全面更新（T01〜T22、Fly.io + React + Vercel 対応）</td></tr>
-        <tr><td>CODEX_STEP1.md</td><td>Fly.io デプロイ手順書（Codex 向け実装指示）</td></tr>
+        <tr><td>_archive/fly-io/CODEX_STEP1.md</td><td>Fly.io デプロイ手順書（Codex 向け実装指示）</td></tr>
         <tr><td>CODEX_STEP3_WEBAPP.md</td><td>web-app/ API統合 + Vercel デプロイ指示書（Codex 向け）</td></tr>
         <tr><td>CODEX_STEP4.md</td><td>新 Android 同期アプリ実装指示書（Health Connect・WorkManager）</td></tr>
         <tr><td>docs/作業報告_Health AI Advisor.html</td><td>本作業報告書（初版）</td></tr>
+        <tr><td>android-app/.../SettingsScreen.kt</td><td>設定画面実装（API キー・接続テスト・Health Connect 権限・同期ボタン）</td></tr>
+        <tr><td>.github/workflows/android-app-build.yml</td><td>android-app 用 GitHub Actions CI ビルドワークフロー</td></tr>
+        <tr><td>automation/task_waketorun.xml</td><td>タスクスケジューラ設定（スリープ解除・バッテリー制限なし）</td></tr>
+        <tr><td>/opt/health-ai/（GCP VM）</td><td>Docker Compose + Caddy 構成（FastAPI・自動 HTTPS・静的 IP）</td></tr>
+        <tr><td>cloudflare-api/src/index.ts</td><td>Cloudflare D1 再集計ロジック修正（低頻度データ欠落防止・安全なUPSERT）</td></tr>
+        <tr><td>AGENT_WORKLOG.md</td><td>当日実装ログ管理（コミット・デプロイ・検証結果を記録）</td></tr>
+        <tr><td>android-app/.../sync/SyncWorker.kt</td><td>同期カーソル進行保存・再試行時の再送抑止・安定同期化</td></tr>
+        <tr><td>android-app/.../settings/SettingsScreen.kt</td><td>ビルドバージョン表示・カーソル修復導線明確化・運用確認性向上</td></tr>
+        <tr><td>android-app/app/build.gradle.kts</td><td>BuildConfig 生成有効化（CI コンパイルエラー解消）</td></tr>
       </tbody>
     </table>
   </div>
@@ -335,9 +499,9 @@
   <!-- Footer -->
   <div class="report-footer">
     <div class="footer-total">
-      累計工数　<span class="val">1.4</span> day
+      累計工数　<span class="val">3.4</span> day
     </div>
-    <div class="footer-date">報告日: 2026/02/22</div>
+    <div class="footer-date">報告日: 2026/02/24</div>
   </div>
 
 </div>

@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+$utf8Bootstrap = Join-Path $PSScriptRoot "enable_utf8_env.ps1"
+if (Test-Path -LiteralPath $utf8Bootstrap) {
+  . $utf8Bootstrap
+}
+
 if (-not (Test-Path -LiteralPath $ProjectRoot)) {
   throw "Project root not found: $ProjectRoot"
 }

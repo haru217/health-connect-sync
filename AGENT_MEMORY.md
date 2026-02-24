@@ -1,6 +1,13 @@
 # AGENT MEMORY
 
-Last updated: 2026-02-23
+> [!IMPORTANT]
+> **2026-02-24 時点のインフラ状況**
+> - Fly.io: 廃止済み（`user-purple-hill-1159` 削除完了）
+> - GCP VM: 廃止済み（Cloudflare 系サーバーに移管済み）
+> - 旧 URL `https://34.171.85.174.nip.io` は無効
+> - 新サーバー URL は設定画面・各 AppConfig で確認すること
+
+Last updated: 2026-02-24
 
 ## Current focus
 - Sleep day-bucketing fix has been implemented and validated by tests.
@@ -29,21 +36,9 @@ Last updated: 2026-02-23
 
 ---
 
-## 2026-02-23: インフラ移行・AI 自動化
+## ~~2026-02-23: Fly.io → GCP 移行~~（アーカイブ）
 
-### Fly.io → Google Cloud 移行（完了）
-- GCP プロジェクト: `health-ai-ryosuzu`
-- VM: `health-ai-vm`（e2-micro / us-central1-a / 外部 IP: 34.171.85.174）
-- Docker Compose + Caddy（自動 HTTPS）で FastAPI 起動
-- nip.io ドメイン: `https://34.171.85.174.nip.io`
-- SQLite DB 移行完了（13,415件）
-- **注意**: 外部 IP が静的化されていない場合、VM 再起動で IP が変わる
-
-### API URL 変更（完了）
-- `web-app/.env.production.vercel`: `VITE_API_URL` → `https://34.171.85.174.nip.io`
-- `android-sync/.../AppConfig.kt`: `SERVER_BASE_URL` → `https://34.171.85.174.nip.io`
-- Vercel 再デプロイ完了: https://web-app-jet-chi.vercel.app
-- Android: GitHub Actions でビルド（`android-sync` push でトリガー）
+> この移行はさらに Cloudflare 系サーバーへ移管済み。詳細は `_archive/old-infra-docs/` 参照。
 
 ### NotebookLM + Codex 自動化（完了）
 - NotebookLM 3ノートブック登録（フィジカルトレーナー・管理栄養士・医師）
@@ -53,12 +48,50 @@ Last updated: 2026-02-23
 - 3ノートブックに同じフルデータを渡し、質問（役割）のみ変える設計
 
 ### 残タスク
-- [x] GCP 外部 IP を静的化 → `34.171.85.174`（静的 IP: `health-ai-static-ip`）
-- [x] Fly.io 削除（`user-purple-hill-1159` を destroy 済み）
 - [x] Android AppConfig.kt 更新 → push → GitHub Actions でビルドトリガー済み
 - [x] Vercel 再デプロイ → https://web-app-jet-chi.vercel.app
+- [ ] **新サーバー URL を AppConfig.kt / SettingsScreen.kt に反映**（Cloudflare 移管後）
 - [ ] Codex NotebookLM MCP 初回認証確認（次回 cron 実行時）
 - [ ] Android APK ダウンロード（GitHub Actions 完了後）→ `adb install -r app-debug.apk`
+
+---
+
+## Codex 自動タスク（毎日 09:00 cron）
+
+タスクプロンプト: `automation/codex_task_prompt.txt`
+実行スクリプト: `automation/run_codex_task.ps1`（stdin パイプ方式）
+タスクスケジューラ: `HealthConnectSync-Codex`（WakeToRun: true）
+
+### Codex が毎日やること
+1. GCP サーバー（`https://34.171.85.174.nip.io`）に接続してヘルスサマリー取得
+2. NotebookLM MCP 経由で3ノートブックに質問（フィジカルトレーナー・管理栄養士・医師）
+3. アドバイスを Discord #体調管理 に自動送信（Discord Webhook）
+4. 進捗を GitHub にコミット・push（GitHub MCP）
+
+### Codex の次回タスク（未完了）
+- [ ] NotebookLM MCP の初回 Playwright 認証フロー確認（ブラウザが起動するか要確認）
+- [ ] Discord Webhook URL が `.env` に設定されているか確認・送信テスト
+- [ ] 週次レポート（月曜）・月次レポート（1日）の動作確認
+
+---
+
+## 他エージェント・自動化タスク
+
+### GitHub Actions（CI/CD）
+- `android-app-build.yml`: android-app/ push → Debug APK ビルド（main/master ブランチ）
+- `android-sync-build.yml`: android-sync/ push → Debug APK ビルド
+- 成果物: GitHub Actions Artifacts からダウンロード可能
+
+### android-app（Health Connect 同期）
+- WorkManager で 1 時間ごとに自動同期（`SyncWorker`）
+- サーバー URL: `https://34.171.85.174.nip.io`（固定値、SettingsScreen で API キーのみ設定）
+- API キー: `test12345`（初期デフォルト値）
+- SecurityException 発生時は該当レコードタイプをスキップして続行
+
+### GCP VM 運用
+- `gcloud compute instances start/stop health-ai-vm --zone us-central1-a`
+- Docker Compose 起動: `docker compose up -d`（`/opt/health-ai/docker-compose.yml`）
+- ログ確認: `docker compose logs -f app`
 
 ## Restart prompt (copy in new session)
 `C:\\Users\\user\\health-connect-sync\\AGENT_MEMORY.md` を読んで、続きから実装して。

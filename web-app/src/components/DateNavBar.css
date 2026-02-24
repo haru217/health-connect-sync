@@ -1,0 +1,39 @@
+.date-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--surface, #1e2028);
+  border-bottom: 1px solid var(--border, #2a2d3a);
+}
+
+.date-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #e8eaf0);
+  min-width: 160px;
+  text-align: center;
+}
+
+.date-nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary, #e8eaf0);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.date-nav-btn:hover:not(.disabled) {
+  background: var(--surface-hover, #2a2d3a);
+}
+
+.date-nav-btn.disabled,
+.date-nav-btn:disabled {
+  color: var(--text-muted, #4a5068);
+  cursor: not-allowed;
+}

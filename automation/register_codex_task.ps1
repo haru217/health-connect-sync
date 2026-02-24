@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$utf8Bootstrap = Join-Path $PSScriptRoot "enable_utf8_env.ps1"
+if (Test-Path -LiteralPath $utf8Bootstrap) {
+  . $utf8Bootstrap
+}
+
 $runner = Join-Path $PSScriptRoot "run_codex_task.ps1"
 if (-not (Test-Path -LiteralPath $runner)) {
   throw "Runner script not found: $runner"

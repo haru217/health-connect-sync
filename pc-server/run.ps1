@@ -10,6 +10,12 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "== Health Connect Sync Bridge (PC local server) ==" -ForegroundColor Cyan
 
+# Align shell and Python subprocesses to UTF-8 to avoid mojibake.
+$utf8Bootstrap = Join-Path (Split-Path -Parent $PSScriptRoot) "automation\enable_utf8_env.ps1"
+if (Test-Path -LiteralPath $utf8Bootstrap) {
+  . $utf8Bootstrap
+}
+
 # Show IP candidates (best-effort)
 try {
   .\show-ip.ps1

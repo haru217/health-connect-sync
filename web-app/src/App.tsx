@@ -4,9 +4,10 @@ import HomeScreen from './screens/HomeScreen'
 import MealScreen from './screens/MealScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 import HealthScreen from './screens/HealthScreen'
-import AiScreen from './screens/AiScreen'
+import MyScreen from './screens/MyScreen'
+import { DateProvider } from './context/DateContext'
 
-type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'ai'
+type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my'
 type InstallChoice = 'accepted' | 'dismissed'
 
 type BeforeInstallPromptEvent = Event & {
@@ -69,14 +70,15 @@ function App() {
         return <ExerciseScreen />
       case 'health':
         return <HealthScreen />
-      case 'ai':
-        return <AiScreen />
+      case 'my':
+        return <MyScreen />
       default:
         return <HomeScreen />
     }
   }
 
   return (
+    <DateProvider>
     <div className="app-container">
       {canShowInstallCta ? (
         <InstallBanner
@@ -117,7 +119,7 @@ function App() {
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           }
-          label="健康"
+          label="からだ"
           isActive={currentScreen === 'health'}
           onClick={() => setCurrentScreen('health')}
         />
@@ -157,15 +159,17 @@ function App() {
         <NavItem
           icon={
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
             </svg>
           }
-          label="AIカルテ"
-          isActive={currentScreen === 'ai'}
-          onClick={() => setCurrentScreen('ai')}
+          label="マイ"
+          isActive={currentScreen === 'my'}
+          onClick={() => setCurrentScreen('my')}
         />
       </nav>
     </div>
+    </DateProvider>
   )
 }
 

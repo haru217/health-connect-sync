@@ -12,7 +12,8 @@ C:\Users\user\health-connect-sync
 2. 以下で日次プロンプトを取得する（503なら15秒待って1回だけ再試行）
    - `curl.exe -s -H "X-Api-Key: test12345" "https://34.171.85.174.nip.io/api/prompt?type=daily"`
 3. 取得JSONの `prompt` を本文として使う
-4. 本文末尾に以下を必ず追記してからNotebookLMへ渡す
+4. `AIプロンプト\フィジカルトレーナー.md` / `AIプロンプト\管理栄養士.md` / `AIプロンプト\doctor.md` / `AIプロンプト\report.md` をUTF-8で読み込み、役割ごとの質問と最終構成に反映する
+5. 本文末尾に以下を必ず追記してからNotebookLMへ渡す
 
 """
 【分析用の摂取データ補完（仮定）】
@@ -20,7 +21,7 @@ C:\Users\user\health-connect-sync
 - 実測の摂取ログ不足を補うための仮定であり、レポート内で仮定であることを明記してください。
 """
 
-5. notebooklm MCP の ask_question で以下3ノートへ質問する
+6. notebooklm MCP の ask_question で以下3ノートへ質問する
    - フィジカルトレーナー:
      https://notebooklm.google.com/notebook/d4209bed-2b9f-47e5-84c4-71981e48a8b8
    - 管理栄養士:
@@ -30,30 +31,55 @@ C:\Users\user\health-connect-sync
    - まず notebook_url で実行し、失敗時は list_notebooks で notebook_id を特定して再試行する
    - 回答取得失敗時は `（回答取得失敗）` として続行
 
-6. 以下Markdown形式でまとめる
+7. `AIプロンプト\\report.md` の構成に合わせて、以下要件でMarkdownを作成する
+- 日本語で、人間味のある文体にする
+- 3専門家セクション（トレーナー/医師/管理栄養士）を含める
+- 専門用語は避ける。使う場合は1回だけ補足する（例: 日常のこまめな活動（NEAT））
+- `Health Connect実測: ...` のような生データ羅列行は書かない
+- 末尾に `## 全栄養素（推定・記録用）` を入れる
+- 絵文字は使わない
+- 数値は小数点2桁までで丸める（不要な末尾0は省略可）
+- 先頭に吹き出しコメントを必ず入れる:
+  - `<!--DOCTOR-->...`
+  - `<!--TRAINER-->...`
+  - `<!--NUTRITIONIST-->...`
+  - `<!--END-->`
+
+最小フォーマット例:
 
 ```
-## フィジカルトレーナーより
+<!--DOCTOR-->[100文字以内]
+<!--TRAINER-->[100文字以内]
+<!--NUTRITIONIST-->[100文字以内]
+<!--END-->
+
+# 本日のAIヘルスカルテ
+
+## トレーナーからのフィードバック（アクセル）
 [回答]
 
 ---
-## 管理栄養士より
+## 医師によるリスクチェック（ブレーキ）
 [回答]
 
 ---
-## 医師より
+## 管理栄養士からの「足し算」処方箋（燃料改善）
 [回答]
+
+---
+## 全栄養素（推定・記録用）
+[丸め済みの栄養素一覧]
 ```
 
-7. 以下で保存する（report_typeはdaily固定）
+8. 以下で保存する（report_typeはdaily固定）
    - `POST https://34.171.85.174.nip.io/api/reports`
    - payload:
      - report_date: JSTの昨日
      - report_type: daily
-     - prompt_used: notebooklm_daily_v3_assumed_yoshinoya_3
+     - prompt_used: notebooklm_daily_v5_ai_prompts_plain
      - content: まとめMarkdown
 
-8. 最後に以下だけ出力
+9. 最後に以下だけ出力
    - 保存結果の id
    - report_date
    - 3専門家それぞれの成功/失敗

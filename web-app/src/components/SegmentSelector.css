@@ -1,0 +1,31 @@
+.segment-selector {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--surface, #1e2028);
+}
+
+.segment-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--border, #2a2d3a);
+  background: transparent;
+  color: var(--text-secondary, #8b90a7);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.segment-btn.active {
+  background: var(--accent, #5b6af0);
+  border-color: var(--accent, #5b6af0);
+  color: #fff;
+  font-weight: 700;
+}
+
+.segment-btn:hover:not(.active) {
+  background: var(--surface-hover, #2a2d3a);
+  color: var(--text-primary, #e8eaf0);
+}

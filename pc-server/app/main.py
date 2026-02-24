@@ -1,15 +1,18 @@
 ﻿from __future__ import annotations
 
 import csv
+import datetime as _dt
 import hashlib
 import io
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .db import DB_PATH, db, dumps_payload, init_db, iso, now_iso
 from .discovery import start_discovery_thread
@@ -32,6 +35,7 @@ from .reports import save_report, list_reports, get_report, delete_report
 from .prompt_gen import build_prompt, calc_nutrient_targets
 
 app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
+_CF_ACCESS_EMAIL = os.getenv("CF_ACCESS_EMAIL", "").strip().lower()
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,6 +49,21 @@ app.add_middleware(
 def _startup() -> None:
     init_db()
     start_discovery_thread()
+
+
+@app.middleware("http")
+async def _enforce_cf_access_email(request, call_next):
+    if not _CF_ACCESS_EMAIL:
+        return await call_next(request)
+
+    if request.url.path == "/healthz":
+        return await call_next(request)
+
+    email = request.headers.get("CF-Access-Authenticated-User-Email", "").strip().lower()
+    if email != _CF_ACCESS_EMAIL:
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+
+    return await call_next(request)
 
 
 def _stable_json(obj: Any) -> str:
@@ -91,9 +110,69 @@ def status(_: None = Depends(require_api_key)) -> StatusResponse:
     )
 
 
+@app.get("/healthz")
+def healthz() -> dict[str, bool]:
+    return {"ok": True}
+
+
+_SUMMARY_CACHE_KEY = "summary_v1"
+_SUMMARY_TTL = 300  # 5分
+
+
+def _get_cached_summary(conn) -> dict | None:
+    row = conn.execute(
+        "SELECT data, cached_at FROM summary_cache WHERE cache_key = ?",
+        (_SUMMARY_CACHE_KEY,),
+    ).fetchone()
+    if row is None:
+        return None
+    cached_at = _dt.datetime.fromisoformat(row["cached_at"])
+    age = (_dt.datetime.now(_dt.timezone.utc) - cached_at).total_seconds()
+    if age > _SUMMARY_TTL:
+        return None
+    return json.loads(row["data"])
+
+
+def _set_cached_summary(conn, data: dict) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO summary_cache (cache_key, data, cached_at) VALUES (?, ?, ?)",
+        (
+            _SUMMARY_CACHE_KEY,
+            json.dumps(data, ensure_ascii=False),
+            _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        ),
+    )
+
+
+def _invalidate_summary_cache(conn) -> None:
+    conn.execute("DELETE FROM summary_cache WHERE cache_key = ?", (_SUMMARY_CACHE_KEY,))
+
+
 @app.get("/api/summary")
-def summary(_: None = Depends(require_api_key)) -> dict[str, Any]:
-    return build_summary()
+def summary(
+    date: str | None = None,
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    # When date is specified, use date-specific cache key
+    cache_key = f"summary_v1_{date}" if date else _SUMMARY_CACHE_KEY
+    with db() as conn:
+        row = conn.execute(
+            "SELECT data, cached_at FROM summary_cache WHERE cache_key = ?",
+            (cache_key,),
+        ).fetchone()
+        if row is not None:
+            cached_at = _dt.datetime.fromisoformat(row["cached_at"])
+            age = (_dt.datetime.now(_dt.timezone.utc) - cached_at).total_seconds()
+            if age <= _SUMMARY_TTL:
+                return json.loads(row["data"])
+
+        result = build_summary()
+        conn.execute(
+            "INSERT OR REPLACE INTO summary_cache (cache_key, data, cached_at) VALUES (?, ?, ?)",
+            (cache_key, json.dumps(result, ensure_ascii=False),
+             _dt.datetime.now(_dt.timezone.utc).isoformat()),
+        )
+        return result
 
 
 @app.get("/api/report/yesterday")
@@ -191,6 +270,8 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
                         micros=micros2,
                         note=note,
                     )
+            with db() as conn:
+                _invalidate_summary_cache(conn)
             return {"ok": True, "count": len(items)}
 
         consumed_at = parse_consumed_at(payload)
@@ -200,6 +281,8 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
             count = float(payload.get("count") or 1)
             note = payload.get("note")
             log_alias(str(alias), consumed_at=consumed_at, count=count, note=note)
+            with db() as conn:
+                _invalidate_summary_cache(conn)
             return {"ok": True}
 
         label = payload.get("label")
@@ -240,6 +323,8 @@ def nutrition_log(payload: dict[str, Any], _: None = Depends(require_api_key)) -
                 micros=micros2,
                 note=note,
             )
+            with db() as conn:
+                _invalidate_summary_cache(conn)
             return {"ok": True}
 
         raise HTTPException(status_code=400, detail="Invalid payload")
@@ -257,6 +342,8 @@ def nutrition_log_delete(
     ok = delete_event(event_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Event not found")
+    with db() as conn:
+        _invalidate_summary_cache(conn)
     return {"ok": True, "deleted_id": event_id}
 
 
@@ -288,6 +375,7 @@ def upsert_intake(
             """,
             (req.day.isoformat(), float(req.intakeKcal), source, req.note, updated_at),
         )
+        _invalidate_summary_cache(conn)
 
     return IntakeCaloriesUpsertResponse(
         ok=True,
@@ -369,6 +457,7 @@ def sync(req: SyncRequest, _: None = Depends(require_api_key)) -> SyncResponse:
             "UPDATE sync_runs SET upserted_count=?, skipped_count=? WHERE sync_id=?",
             (upserted, skipped, req.syncId),
         )
+        _invalidate_summary_cache(conn)
 
     return SyncResponse(accepted=True, upsertedCount=upserted, skippedCount=skipped)
 
@@ -519,15 +608,21 @@ def nutrients_targets(
     birth_year = int(profile.get("birth_year") or 1985)
     sex = str(profile.get("sex") or "male")
 
-    # 最新体重を health_records から取得
-    from .summary import build_summary
-    summary = build_summary()
-    weight_series = summary.get("weightByDate", [])
+    # 最新体重を health_records から直接取得（build_summary() の呼び出しを避ける）
     latest_weight = 70.0  # fallback
-    for x in reversed(weight_series):
-        if x.get("kg") is not None:
-            latest_weight = float(x["kg"])
-            break
+    with db() as conn:
+        row = conn.execute(
+            "SELECT payload_json FROM health_records WHERE type='WeightRecord' ORDER BY time DESC LIMIT 1"
+        ).fetchone()
+    if row:
+        try:
+            payload = json.loads(row["payload_json"])
+            for key in ("inKilograms", "kilograms", "kg"):
+                if key in payload and payload[key] is not None:
+                    latest_weight = float(payload[key])
+                    break
+        except Exception:
+            pass
 
     targets = calc_nutrient_targets(
         height_cm=height,
@@ -538,3 +633,583 @@ def nutrients_targets(
     )
     return {"targets": targets}
 
+
+# ── 期間集計ヘルパー ──────────────────────────────────────────
+
+import datetime as _dt2
+
+
+def _date_range(base_date: str, period: str) -> tuple[str, str]:
+    """Return (start_date, end_date) strings for the given base_date and period.
+
+    - week:  base_date-6 .. base_date (7 days)
+    - month: base_date-29 .. base_date (30 days)
+    - year:  base_date-364 .. base_date (365 days, used for monthly grouping)
+    """
+    end = _dt2.date.fromisoformat(base_date)
+    if period == "week":
+        start = end - _dt2.timedelta(days=6)
+    elif period == "month":
+        start = end - _dt2.timedelta(days=29)
+    else:  # year
+        start = end - _dt2.timedelta(days=364)
+    return start.isoformat(), end.isoformat()
+
+
+def _validate_date_period(date: str | None, period: str) -> str:
+    """Validate date (default today) and period. Returns resolved date string."""
+    if date is None:
+        date = _dt2.date.today().isoformat()
+    else:
+        try:
+            _dt2.date.fromisoformat(date)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="date は YYYY-MM-DD 形式") from exc
+    if period not in ("week", "month", "year"):
+        raise HTTPException(status_code=400, detail="period は week | month | year")
+    return date
+
+
+@app.get("/api/body-data")
+def body_data(
+    date: str | None = None,
+    period: str = "week",
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    base_date = _validate_date_period(date, period)
+    start_date, end_date = _date_range(base_date, period)
+
+    with db() as conn:
+        # Latest weight/body fat on or before base_date
+        latest_w = conn.execute(
+            """SELECT payload_json, time FROM health_records
+               WHERE type='WeightRecord' AND date(time) <= ?
+               ORDER BY time DESC LIMIT 1""",
+            (base_date,),
+        ).fetchone()
+
+        latest_bf = conn.execute(
+            """SELECT payload_json, time FROM health_records
+               WHERE type='BodyFatRecord' AND date(time) <= ?
+               ORDER BY time DESC LIMIT 1""",
+            (base_date,),
+        ).fetchone()
+
+        latest_bmr = conn.execute(
+            """SELECT payload_json, time FROM health_records
+               WHERE type='BasalMetabolicRateRecord' AND date(time) <= ?
+               ORDER BY time DESC LIMIT 1""",
+            (base_date,),
+        ).fetchone()
+
+        # Series data
+        if period == "year":
+            # Monthly averages
+            weight_rows = conn.execute(
+                """SELECT strftime('%Y-%m', time) AS month,
+                          AVG(CAST(json_extract(payload_json,'$.inKilograms') AS REAL)) AS weight_kg
+                   FROM health_records
+                   WHERE type='WeightRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY month ORDER BY month""",
+                (start_date, end_date),
+            ).fetchall()
+            bf_rows = conn.execute(
+                """SELECT strftime('%Y-%m', time) AS month,
+                          AVG(CAST(json_extract(payload_json,'$.percentage') AS REAL)) AS body_fat_pct
+                   FROM health_records
+                   WHERE type='BodyFatRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY month ORDER BY month""",
+                (start_date, end_date),
+            ).fetchall()
+        else:
+            weight_rows = conn.execute(
+                """SELECT date(time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.inKilograms') AS REAL)) AS weight_kg
+                   FROM health_records
+                   WHERE type='WeightRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+            bf_rows = conn.execute(
+                """SELECT date(time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.percentage') AS REAL)) AS body_fat_pct
+                   FROM health_records
+                   WHERE type='BodyFatRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+
+        # Goal weight from profile
+        profile_row = conn.execute("SELECT goal_weight_kg FROM user_profile LIMIT 1").fetchone()
+        goal_weight = profile_row["goal_weight_kg"] if profile_row else None
+
+    # Parse current values
+    def _parse_weight(row) -> float | None:
+        if not row:
+            return None
+        try:
+            p = json.loads(row["payload_json"])
+            for k in ("inKilograms", "kilograms", "kg"):
+                if p.get(k) is not None:
+                    return float(p[k])
+        except Exception:
+            pass
+        return None
+
+    def _parse_bf(row) -> float | None:
+        if not row:
+            return None
+        try:
+            p = json.loads(row["payload_json"])
+            for k in ("percentage", "pct", "value"):
+                if p.get(k) is not None:
+                    return float(p[k])
+        except Exception:
+            pass
+        return None
+
+    def _parse_bmr(row) -> float | None:
+        if not row:
+            return None
+        try:
+            p = json.loads(row["payload_json"])
+            for k in ("inKilocaloriesPerDay", "kcalPerDay", "value"):
+                if p.get(k) is not None:
+                    return float(p[k])
+        except Exception:
+            pass
+        return None
+
+    cur_weight = _parse_weight(latest_w)
+    cur_bf = _parse_bf(latest_bf)
+    cur_bmr = _parse_bmr(latest_bmr)
+
+    # BMI from weight + profile height
+    bmi = None
+    if cur_weight:
+        try:
+            with db() as conn2:
+                p_row = conn2.execute("SELECT height_cm FROM user_profile LIMIT 1").fetchone()
+            if p_row and p_row["height_cm"]:
+                h_m = float(p_row["height_cm"]) / 100.0
+                bmi = round(cur_weight / (h_m * h_m), 1)
+        except Exception:
+            pass
+
+    # Build series
+    weight_by_date = {r["d"] if "d" in r.keys() else r["month"]: r["weight_kg"] for r in weight_rows}
+    bf_by_date = {r["d"] if "d" in r.keys() else r["month"]: r["body_fat_pct"] for r in bf_rows}
+
+    date_keys = sorted(set(list(weight_by_date.keys()) + list(bf_by_date.keys())))
+    series = [
+        {
+            "date": dk,
+            "weight_kg": round(weight_by_date[dk], 2) if dk in weight_by_date and weight_by_date[dk] else None,
+            "body_fat_pct": round(bf_by_date[dk], 1) if dk in bf_by_date and bf_by_date[dk] else None,
+            "bmr_kcal": None,  # BMR series not per-day in typical usage
+        }
+        for dk in date_keys
+    ]
+
+    return {
+        "baseDate": base_date,
+        "period": period,
+        "current": {
+            "weight_kg": round(cur_weight, 2) if cur_weight else None,
+            "body_fat_pct": round(cur_bf, 1) if cur_bf else None,
+            "bmi": bmi,
+            "bmr_kcal": round(cur_bmr) if cur_bmr else None,
+        },
+        "goalWeight": round(goal_weight, 1) if goal_weight else None,
+        "series": series,
+    }
+
+
+@app.get("/api/activity-data")
+def activity_data(
+    date: str | None = None,
+    period: str = "week",
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    base_date = _validate_date_period(date, period)
+    start_date, end_date = _date_range(base_date, period)
+
+    EXERCISE_LABELS: dict[int, str] = {
+        2: "バドミントン", 4: "ベースボール", 5: "バスケットボール",
+        8: "サイクリング", 9: "エアロビクス", 14: "フットボール",
+        16: "フリスビー", 17: "フットサル", 22: "ハイキング",
+        23: "アイスホッケー", 24: "インラインスケート", 25: "マーシャルアーツ",
+        26: "ラクロス", 29: "パドルスポーツ", 30: "パラグライダー",
+        32: "ピラティス", 34: "ラグビー", 35: "ランニング",
+        36: "セーリング", 37: "スキー", 38: "スノーボード",
+        39: "ソフトボール", 40: "スカッシュ", 41: "スケートボード",
+        42: "スキー", 44: "サッカー", 45: "ソフトボール",
+        46: "スカッシュ", 47: "水泳", 48: "テーブルテニス",
+        49: "テニス", 50: "トラック走", 51: "バレーボール",
+        52: "歩行", 53: "水中エクササイズ", 54: "ウェイトトレーニング",
+        55: "ヨガ", 56: "クロスカントリースキー", 57: "スキューバダイビング",
+        58: "スノーシュー", 63: "ハンドボール", 64: "高強度インターバル",
+        74: "ローラースケート", 75: "ロッククライミング", 79: "サーフィン",
+        80: "スピニング", 81: "クロストレーニング",
+        87: "ウォーキング", 97: "エリプティカル",
+    }
+
+    with db() as conn:
+        # Steps
+        if period == "year":
+            steps_rows = conn.execute(
+                """SELECT strftime('%Y-%m', start_time) AS d,
+                          SUM(CAST(json_extract(payload_json,'$.count') AS REAL)) AS steps
+                   FROM health_records WHERE type='StepsRecord' AND date(start_time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+        else:
+            steps_rows = conn.execute(
+                """SELECT date(start_time) AS d,
+                          SUM(CAST(json_extract(payload_json,'$.count') AS REAL)) AS steps
+                   FROM health_records WHERE type='StepsRecord' AND date(start_time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+
+        # Active calories
+        if period == "year":
+            active_cal_rows = conn.execute(
+                """SELECT strftime('%Y-%m', start_time) AS d,
+                          SUM(CAST(json_extract(payload_json,'$.inKilocalories') AS REAL)) AS active_kcal
+                   FROM health_records WHERE type='ActiveCaloriesBurnedRecord' AND date(start_time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+        else:
+            active_cal_rows = conn.execute(
+                """SELECT date(start_time) AS d,
+                          SUM(CAST(json_extract(payload_json,'$.inKilocalories') AS REAL)) AS active_kcal
+                   FROM health_records WHERE type='ActiveCaloriesBurnedRecord' AND date(start_time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+
+        # Today's steps/calories
+        today_steps_row = conn.execute(
+            """SELECT SUM(CAST(json_extract(payload_json,'$.count') AS REAL)) AS steps
+               FROM health_records WHERE type='StepsRecord' AND date(start_time) = ?""",
+            (base_date,),
+        ).fetchone()
+        today_active_row = conn.execute(
+            """SELECT SUM(CAST(json_extract(payload_json,'$.inKilocalories') AS REAL)) AS kcal
+               FROM health_records WHERE type='ActiveCaloriesBurnedRecord' AND date(start_time) = ?""",
+            (base_date,),
+        ).fetchone()
+        today_dist_row = conn.execute(
+            """SELECT SUM(CAST(json_extract(payload_json,'$.inMeters') AS REAL)) AS meters
+               FROM health_records WHERE type='DistanceRecord' AND date(start_time) = ?""",
+            (base_date,),
+        ).fetchone()
+        today_total_row = conn.execute(
+            """SELECT SUM(CAST(json_extract(payload_json,'$.inKilocalories') AS REAL)) AS kcal
+               FROM health_records WHERE type='TotalCaloriesBurnedRecord' AND date(start_time) = ?""",
+            (base_date,),
+        ).fetchone()
+
+        # Exercise sessions for the period (last 7 days for week, base_date for others)
+        ex_start = start_date if period == "week" else base_date
+        exercise_rows = conn.execute(
+            """SELECT date(start_time) AS d, start_time, end_time,
+                      json_extract(payload_json,'$.exerciseType') AS etype,
+                      json_extract(payload_json,'$.title') AS title,
+                      json_extract(payload_json,'$.totalDistance.inMeters') AS dist_m
+               FROM health_records WHERE type='ExerciseSessionRecord'
+               AND date(start_time) BETWEEN ? AND ?
+               ORDER BY start_time DESC LIMIT 20""",
+            (ex_start, base_date),
+        ).fetchall()
+
+    steps_by = {r["d"]: r["steps"] for r in steps_rows}
+    active_by = {r["d"]: r["active_kcal"] for r in active_cal_rows}
+
+    date_keys = sorted(set(list(steps_by.keys()) + list(active_by.keys())))
+    series = [
+        {
+            "date": dk,
+            "steps": int(steps_by[dk]) if dk in steps_by and steps_by[dk] else None,
+            "active_kcal": round(active_by[dk]) if dk in active_by and active_by[dk] else None,
+        }
+        for dk in date_keys
+    ]
+
+    def _dur_min(row) -> int | None:
+        try:
+            from datetime import datetime as _datetime
+            s = _datetime.fromisoformat(row["start_time"].replace("Z", "+00:00"))
+            e = _datetime.fromisoformat(row["end_time"].replace("Z", "+00:00"))
+            return int((e - s).total_seconds() / 60)
+        except Exception:
+            return None
+
+    exercises = []
+    for r in exercise_rows:
+        etype = int(r["etype"]) if r["etype"] is not None else 0
+        label = EXERCISE_LABELS.get(etype, f"エクササイズ({etype})")
+        dist_km = round(float(r["dist_m"]) / 1000, 2) if r["dist_m"] else None
+        exercises.append({
+            "date": r["d"],
+            "type": etype,
+            "title": r["title"] or label,
+            "duration_min": _dur_min(r),
+            "distance_km": dist_km,
+        })
+
+    cur_steps = int(today_steps_row["steps"]) if today_steps_row and today_steps_row["steps"] else None
+    cur_active = round(today_active_row["kcal"]) if today_active_row and today_active_row["kcal"] else None
+    cur_dist = round(float(today_dist_row["meters"]) / 1000, 2) if today_dist_row and today_dist_row["meters"] else None
+    cur_total = round(today_total_row["kcal"]) if today_total_row and today_total_row["kcal"] else None
+
+    return {
+        "baseDate": base_date,
+        "period": period,
+        "current": {
+            "steps": cur_steps,
+            "active_kcal": cur_active,
+            "total_kcal": cur_total,
+            "distance_km": cur_dist,
+        },
+        "series": series,
+        "exercises": exercises,
+    }
+
+
+@app.get("/api/sleep-data")
+def sleep_data(
+    date: str | None = None,
+    period: str = "week",
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    base_date = _validate_date_period(date, period)
+    start_date, end_date = _date_range(base_date, period)
+
+    SLEEP_STAGES = {1: "awake", 2: "sleep", 3: "out", 4: "light", 5: "deep", 6: "rem", 7: "awake"}
+    SLEEP_TYPES = {"sleep", "light", "deep", "rem"}
+
+    with db() as conn:
+        sleep_rows = conn.execute(
+            """SELECT date(start_time) AS d, start_time, end_time, payload_json
+               FROM health_records WHERE type='SleepSessionRecord'
+               AND date(start_time) BETWEEN ? AND ?
+               ORDER BY start_time""",
+            (start_date, end_date),
+        ).fetchall()
+
+        spo2_rows = conn.execute(
+            """SELECT date(time) AS d,
+                      AVG(CAST(json_extract(payload_json,'$.percentage') AS REAL)) AS avg_spo2,
+                      MIN(CAST(json_extract(payload_json,'$.percentage') AS REAL)) AS min_spo2
+               FROM health_records WHERE type='OxygenSaturationRecord'
+               AND date(time) BETWEEN ? AND ?
+               GROUP BY d""",
+            (start_date, end_date),
+        ).fetchall()
+
+    # Parse sleep sessions
+    from datetime import datetime as _datetime
+
+    def _parse_session(row):
+        try:
+            p = json.loads(row["payload_json"])
+            stages = p.get("stages") or []
+            deep_min = light_min = rem_min = awake_min = 0
+            for st in stages:
+                stype = SLEEP_STAGES.get(st.get("stage"), "sleep")
+                try:
+                    s_dt = _datetime.fromisoformat(st["startTime"].replace("Z", "+00:00"))
+                    e_dt = _datetime.fromisoformat(st["endTime"].replace("Z", "+00:00"))
+                    mins = int((e_dt - s_dt).total_seconds() / 60)
+                except Exception:
+                    mins = 0
+                if stype == "deep":
+                    deep_min += mins
+                elif stype in ("light", "sleep"):
+                    light_min += mins
+                elif stype == "rem":
+                    rem_min += mins
+                elif stype == "awake":
+                    awake_min += mins
+
+            s_dt = _datetime.fromisoformat(row["start_time"].replace("Z", "+00:00"))
+            e_dt = _datetime.fromisoformat(row["end_time"].replace("Z", "+00:00"))
+            total_min = int((e_dt - s_dt).total_seconds() / 60)
+            if total_min <= 0:
+                return None
+            # If no stages, put all in light
+            if deep_min + light_min + rem_min == 0:
+                light_min = total_min
+
+            from .db import LOCAL_TZ
+            s_local = s_dt.astimezone(LOCAL_TZ)
+            e_local = e_dt.astimezone(LOCAL_TZ)
+            return {
+                "date": row["d"],
+                "sleep_minutes": total_min,
+                "deep_min": deep_min,
+                "light_min": light_min,
+                "rem_min": rem_min,
+                "bedtime": s_local.strftime("%H:%M"),
+                "wake_time": e_local.strftime("%H:%M"),
+            }
+        except Exception:
+            return None
+
+    sessions = [s for r in sleep_rows if (s := _parse_session(r)) is not None]
+
+    # Build series by date (sum per day)
+    from collections import defaultdict
+    day_totals: dict[str, dict] = defaultdict(lambda: {"sleep_minutes": 0, "deep_min": 0, "light_min": 0, "rem_min": 0})
+    for s in sessions:
+        d = s["date"]
+        day_totals[d]["sleep_minutes"] += s["sleep_minutes"]
+        day_totals[d]["deep_min"] += s["deep_min"]
+        day_totals[d]["light_min"] += s["light_min"]
+        day_totals[d]["rem_min"] += s["rem_min"]
+
+    if period == "year":
+        # Monthly averages
+        monthly: dict[str, list] = defaultdict(list)
+        for d, v in day_totals.items():
+            month = d[:7]
+            monthly[month].append(v["sleep_minutes"])
+        series = [
+            {"date": m, "sleep_minutes": round(sum(vals) / len(vals)) if vals else None,
+             "deep_min": None, "light_min": None, "rem_min": None}
+            for m, vals in sorted(monthly.items())
+        ]
+    else:
+        series = [
+            {"date": d, **{k: v[k] for k in ("sleep_minutes", "deep_min", "light_min", "rem_min")}}
+            for d, v in sorted(day_totals.items())
+        ]
+
+    # Current (base_date)
+    today_session = next((s for s in reversed(sessions) if s["date"] == base_date), None)
+    spo2_by = {r["d"]: r for r in spo2_rows}
+    today_spo2 = spo2_by.get(base_date)
+
+    current = {
+        "sleep_minutes": today_session["sleep_minutes"] if today_session else None,
+        "bedtime": today_session["bedtime"] if today_session else None,
+        "wake_time": today_session["wake_time"] if today_session else None,
+        "avg_spo2": round(today_spo2["avg_spo2"], 1) if today_spo2 and today_spo2["avg_spo2"] else None,
+        "min_spo2": round(today_spo2["min_spo2"], 1) if today_spo2 and today_spo2["min_spo2"] else None,
+    }
+    stages = {
+        "deep_min": today_session["deep_min"] if today_session else None,
+        "light_min": today_session["light_min"] if today_session else None,
+        "rem_min": today_session["rem_min"] if today_session else None,
+    }
+
+    # Period summary
+    all_mins = [v["sleep_minutes"] for v in day_totals.values() if v["sleep_minutes"] > 0]
+    avg_sleep = round(sum(all_mins) / len(all_mins)) if all_mins else None
+    goal_days = sum(1 for m in all_mins if m >= 420)  # 7 hours
+
+    return {
+        "baseDate": base_date,
+        "period": period,
+        "current": current,
+        "stages": stages,
+        "series": series,
+        "periodSummary": {
+            "avg_sleep_min": avg_sleep,
+            "goal_days": goal_days,
+        },
+    }
+
+
+@app.get("/api/vitals-data")
+def vitals_data(
+    date: str | None = None,
+    period: str = "week",
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    base_date = _validate_date_period(date, period)
+    start_date, end_date = _date_range(base_date, period)
+
+    with db() as conn:
+        # Blood pressure
+        if period == "year":
+            bp_rows = conn.execute(
+                """SELECT strftime('%Y-%m', time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL)) AS systolic,
+                          AVG(CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL)) AS diastolic
+                   FROM health_records WHERE type='BloodPressureRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+        else:
+            bp_rows = conn.execute(
+                """SELECT date(time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL)) AS systolic,
+                          AVG(CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL)) AS diastolic
+                   FROM health_records WHERE type='BloodPressureRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+
+        # Resting HR
+        if period == "year":
+            hr_rows = conn.execute(
+                """SELECT strftime('%Y-%m', time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.beatsPerMinute') AS REAL)) AS rhr
+                   FROM health_records WHERE type='RestingHeartRateRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+        else:
+            hr_rows = conn.execute(
+                """SELECT date(time) AS d,
+                          AVG(CAST(json_extract(payload_json,'$.beatsPerMinute') AS REAL)) AS rhr
+                   FROM health_records WHERE type='RestingHeartRateRecord' AND date(time) BETWEEN ? AND ?
+                   GROUP BY d ORDER BY d""",
+                (start_date, end_date),
+            ).fetchall()
+
+        # Today's values
+        today_bp = conn.execute(
+            """SELECT json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS sys,
+                      json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS dia
+               FROM health_records WHERE type='BloodPressureRecord' AND date(time) = ?
+               ORDER BY time DESC LIMIT 1""",
+            (base_date,),
+        ).fetchone()
+
+        today_hr = conn.execute(
+            """SELECT json_extract(payload_json,'$.beatsPerMinute') AS bpm
+               FROM health_records WHERE type='RestingHeartRateRecord' AND date(time) <= ?
+               ORDER BY time DESC LIMIT 1""",
+            (base_date,),
+        ).fetchone()
+
+    bp_by = {r["d"]: r for r in bp_rows}
+    hr_by = {r["d"]: r["rhr"] for r in hr_rows}
+    date_keys = sorted(set(list(bp_by.keys()) + list(hr_by.keys())))
+
+    series = [
+        {
+            "date": dk,
+            "systolic": round(bp_by[dk]["systolic"]) if dk in bp_by and bp_by[dk]["systolic"] else None,
+            "diastolic": round(bp_by[dk]["diastolic"]) if dk in bp_by and bp_by[dk]["diastolic"] else None,
+            "resting_hr": round(hr_by[dk]) if dk in hr_by and hr_by[dk] else None,
+        }
+        for dk in date_keys
+    ]
+
+    return {
+        "baseDate": base_date,
+        "period": period,
+        "current": {
+            "systolic": round(float(today_bp["sys"])) if today_bp and today_bp["sys"] else None,
+            "diastolic": round(float(today_bp["dia"])) if today_bp and today_bp["dia"] else None,
+            "resting_hr": round(float(today_hr["bpm"])) if today_hr and today_hr["bpm"] else None,
+        },
+        "series": series,
+    }
