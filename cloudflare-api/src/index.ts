@@ -706,8 +706,23 @@ async function pruneDetailedHealthRecords(db: D1Database): Promise<void> {
 
 async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void> {
   await pruneDetailedHealthRecords(db)
+  const mutableStartDate = isoDateFromMillis(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY)
+  const mutableStartIso = `${mutableStartDate}T00:00:00.000Z`
 
   const typeCounts = new Map<string, number>()
+  const typeRows = await queryAll<{ type: string; count: number }>(
+    db,
+    `
+    SELECT type, COUNT(*) AS count
+    FROM health_records
+    GROUP BY type
+    `,
+  )
+  for (const row of typeRows) {
+    if (row.type) {
+      typeCounts.set(row.type, row.count ?? 0)
+    }
+  }
   const recordCountByDay = new Map<string, number>()
 
   const stepsByDaySource = new Map<string, number>()
@@ -735,10 +750,11 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
               record_key, device_id, type, record_id, source, start_time, end_time, time,
               last_modified_time, unit, payload_json, ingested_at
             FROM health_records
+            WHERE COALESCE(time, end_time, start_time) >= ?
             ORDER BY record_key ASC
             LIMIT ?
             `,
-            [batchSize],
+            [mutableStartIso, batchSize],
           )
         : await queryAll<HealthRecordRow>(
             db,
@@ -747,11 +763,12 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
               record_key, device_id, type, record_id, source, start_time, end_time, time,
               last_modified_time, unit, payload_json, ingested_at
             FROM health_records
-            WHERE record_key > ?
+            WHERE COALESCE(time, end_time, start_time) >= ?
+              AND record_key > ?
             ORDER BY record_key ASC
             LIMIT ?
             `,
-            [lastRecordKey, batchSize],
+            [mutableStartIso, lastRecordKey, batchSize],
           )
 
     if (rows.length === 0) {
@@ -759,8 +776,6 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
     }
 
     for (const row of rows) {
-      typeCounts.set(row.type, (typeCounts.get(row.type) ?? 0) + 1)
-
       const payload = parseJsonObject(row.payload_json)
       const source = row.source?.trim() || 'unknown'
       const tsIso = row.time ?? row.end_time ?? row.start_time
@@ -905,7 +920,6 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
     recordCountByDay,
   ].forEach((map) => collectMapKeys(map))
 
-  const mutableStartDate = isoDateFromMillis(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY)
   await execute(db, 'DELETE FROM daily_metrics WHERE date >= ?', [mutableStartDate])
   await execute(db, 'DELETE FROM record_type_counts')
 
