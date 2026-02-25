@@ -1,4 +1,3 @@
-import React from 'react'
 import './SegmentSelector.css'
 
 export type Segment = 'week' | 'month' | 'year'

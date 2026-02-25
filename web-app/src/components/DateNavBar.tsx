@@ -1,4 +1,3 @@
-import React from 'react'
 import { useDateContext } from '../context/DateContext'
 import './DateNavBar.css'
 

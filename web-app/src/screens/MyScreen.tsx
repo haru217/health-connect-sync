@@ -1,4 +1,3 @@
-import React from 'react'
 import DateNavBar from '../components/DateNavBar'
 
 export default function MyScreen() {
