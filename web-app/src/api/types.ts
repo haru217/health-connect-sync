@@ -200,3 +200,25 @@ export type RequestState<T> =
   | { status: 'loading' }
   | { status: 'success'; data: T }
   | { status: 'error'; error: string }
+
+export interface HomeSufficiency {
+  sleep: boolean
+  steps: boolean
+  weight: boolean
+  meal: boolean
+}
+
+export interface HomeEvidence {
+  type: string
+  label: string
+  value: string
+  tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+  innerTab?: string
+}
+
+export interface HomeSummaryResponse {
+  date: string
+  report: { content: string; created_at: string } | null
+  sufficiency: HomeSufficiency
+  evidences: HomeEvidence[]
+}

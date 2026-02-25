@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { fetchHomeSummary } from '../api/healthApi'
 import type { RequestState, HomeSummaryResponse, HomeSufficiency, HomeEvidence } from '../api/types'
 import { useDateContext } from '../context/DateContext'
@@ -89,12 +90,15 @@ function extractAgentSections(content: string): {
   }
 }
 
-function AiCard({ title, icon, content, defaultOpen = false }: { title: string, icon: string, content: string, defaultOpen?: boolean }) {
+function AiCard({ title, icon, content, defaultOpen = false }: { title: string, icon: ReactNode, content: string, defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   return (
     <div className="ai-advisor-card">
       <div className="ai-card-header" onClick={() => setIsOpen(!isOpen)}>
-        <div className="ai-card-title">{icon} {title}</div>
+        <div className="ai-card-title">
+          <div className="ai-icon-container">{icon}</div>
+          {title}
+        </div>
         <div className={`ai-card-chevron ${isOpen ? 'open' : ''}`}>›</div>
       </div>
       {isOpen && (
@@ -109,19 +113,23 @@ function AiCard({ title, icon, content, defaultOpen = false }: { title: string, 
 function AiAdvisorSection({ content }: { content: string }) {
   const sections = extractAgentSections(content)
 
+  const doctorIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" /><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" /><circle cx="20" cy="10" r="2" /></svg>
+  const trainerIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11" /><path d="m21 21-1-1" /><path d="m3 3 1 1" /><path d="m18 22 4-4" /><path d="m2 6 4-4" /><path d="m3 10 7-7" /><path d="m14 21 7-7" /></svg>
+  const nutritionIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
+
   if (!sections.doctor && !sections.trainer && !sections.nutritionist) {
     return (
       <div className="ai-advisor-section">
-        <AiCard title="医師" icon="🩺" content={content} defaultOpen={true} />
+        <AiCard title="医師" icon={doctorIcon} content={content} defaultOpen={true} />
       </div>
     )
   }
 
   return (
     <div className="ai-advisor-section">
-      {sections.doctor && <AiCard title="医師" icon="🩺" content={sections.doctor} defaultOpen={true} />}
-      {sections.trainer && <AiCard title="トレーナー" icon="💪" content={sections.trainer} />}
-      {sections.nutritionist && <AiCard title="栄養士" icon="🥗" content={sections.nutritionist} />}
+      {sections.doctor && <AiCard title="医師" icon={doctorIcon} content={sections.doctor} defaultOpen={true} />}
+      {sections.trainer && <AiCard title="トレーナー" icon={trainerIcon} content={sections.trainer} />}
+      {sections.nutritionist && <AiCard title="栄養士" icon={nutritionIcon} content={sections.nutritionist} />}
     </div>
   )
 }
@@ -155,13 +163,15 @@ function EmptyState() {
 }
 
 function getEvidenceIcon(type: string) {
-  switch (type) {
-    case 'sleep': return '😴'
-    case 'steps': return '👟'
-    case 'weight': return '⚖️'
-    case 'meal': return '🍽️'
-    default: return '📊'
-  }
+  const item = ITEMS.find(i => i.key === type)
+  if (item) return item.icon
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
 }
 
 function EvidenceList({
@@ -173,7 +183,14 @@ function EvidenceList({
 }) {
   return (
     <div className="evidence-section">
-      <div className="evidence-section-title">📊 根拠データ</div>
+      <div className="evidence-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        <span>根拠データ</span>
+      </div>
       <div className="evidence-list">
         {evidences.map((evidence, idx) => (
           <div
@@ -181,7 +198,7 @@ function EvidenceList({
             className="evidence-item"
             onClick={() => onNavigate && onNavigate(evidence.tab)}
           >
-            <div className="evidence-icon">{getEvidenceIcon(evidence.type)}</div>
+            <div className="evidence-icon-wrap">{getEvidenceIcon(evidence.type)}</div>
             <div className="evidence-label">{evidence.label}</div>
             <div className="evidence-value">{evidence.value}</div>
             <div className="evidence-arrow">›</div>

@@ -1,5 +1,27 @@
 # Iteration 2 — Codex 用指示書（バイタル系エンドポイント動作確認・修正）
 
+## ⚠️ Iteration 1 の未解決問題（先に対応してください）
+
+ローカルサーバーが `/api/home-summary` に対して `404 Not Found` を返しています。
+`main.py` は更新済みですが、サーバーが古いコードで動いている状態です。
+
+**対応:** PC サーバーを再起動してください。
+
+```powershell
+# PowerShell から
+cd C:\Users\user\health-connect-sync\pc-server
+# 起動中のプロセスを停止してから
+.\run.ps1
+```
+
+再起動後に動作確認：
+```bash
+curl -H "X-Api-Key: <KEY>" "http://localhost:8765/api/home-summary?date=2026-02-25"
+# → {"date": "2026-02-25", "report": null, "sufficiency": {...}, "evidences": [...]} が返ればOK
+```
+
+---
+
 ## 背景
 
 Iteration 0 で以下のエンドポイントを追加済みです：
