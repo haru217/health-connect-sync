@@ -2,12 +2,99 @@
 
 ## 背景
 
-`types.ts` は既に新しい型に更新済みです：
-- `HomeSufficiency` — `sleepValue` / `stepsValue` / `weightValue` / `mealValue` / `bloodPressureValue` フィールドを追加済み
-- `AttentionPoint` — 新規追加済み
-- `HomeSummaryResponse` — `evidences` 削除、`attention_points?: AttentionPoint[]` 追加済み
+Codex が `/api/home-summary` の実装を完了しました。実際のレスポンス構造を確認したうえで、フロントエンドを実装してください。
 
-ただし `healthApi.ts` と `HomeScreen.tsx` がまだ旧型（`evidences`）を参照しているため、**TypeScript エラーが出ている状態**です。これを修正しながら、ホーム画面を全面的に刷新してください。
+### 実際のバックエンドレスポンス構造
+
+```json
+{
+  "date": "2026-02-25",
+  "report": null,
+  "sufficiency": { "sleep": true, "steps": true, "weight": true, "meal": false, "bp": true },
+  "statusItems": [
+    { "key": "sleep", "label": "睡眠", "value": "6h32m", "ok": true, "tab": "health", "innerTab": "sleep", "tone": "normal" },
+    { "key": "steps", "label": "歩数", "value": "3,200", "ok": true, "tab": "exercise", "tone": "normal" },
+    { "key": "meal",  "label": "食事", "value": null,    "ok": false, "tab": "meal",    "tone": "normal" },
+    { "key": "weight","label": "体重", "value": "72.3kg","ok": true, "tab": "health", "innerTab": "composition", "tone": "normal" },
+    { "key": "bp",    "label": "BP",   "value": "120/78","ok": true, "tab": "health", "innerTab": "vital",       "tone": "normal" }
+  ],
+  "attentionPoints": [
+    {
+      "id": "sleep-deficit-3d-2026-02-25",
+      "icon": "⚠️",
+      "message": "睡眠不足が3日連続しています",
+      "severity": "warning",
+      "category": "trend",
+      "navigateTo": { "tab": "health", "subTab": "sleep" },
+      "dataSource": "sleep"
+    }
+  ],
+  "previousReport": { "date": "2026-02-24", "created_at": "..." },
+  "evidences": [...]
+}
+```
+
+**注意点:**
+- BP の `statusItems` への追加は血圧デバイスが連携されている場合のみ（`tone: "warning"` の場合は警告色で表示）
+- `attentionPoints` はキャメルケース（`attention_points` ではない）
+- `evidences` は後方互換用に残っているが、新UIでは使わない
+
+### types.ts の修正が必要
+
+現在の `types.ts` はバックエンドと一致していません。以下の修正が必要です：
+
+```typescript
+// 追加: HealthStatusBar 用
+export interface HomeStatusItem {
+  key: string
+  label: string
+  value: string | null
+  ok: boolean
+  tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+  innerTab?: string
+  tone: 'normal' | 'warning' | 'danger'
+}
+
+// 修正: HomeSufficiency はシンプルなboolマップに戻す
+export interface HomeSufficiency {
+  sleep: boolean
+  steps: boolean
+  weight: boolean
+  meal: boolean
+  bp?: boolean
+}
+
+// 修正: HomeSummaryResponse を実際のレスポンスに合わせる
+export interface HomeSummaryResponse {
+  date: string
+  report: { content: string; created_at: string } | null
+  sufficiency: HomeSufficiency
+  statusItems?: HomeStatusItem[]
+  attentionPoints?: AttentionPoint[]
+  previousReport?: { date: string; created_at: string } | null
+  evidences?: HomeEvidence[]  // 後方互換用、新UIでは使わない
+}
+
+// AttentionPoint の navigateTo を実際のレスポンスに合わせる
+export interface AttentionPoint {
+  id: string
+  icon: string
+  message: string
+  severity: 'critical' | 'warning' | 'info' | 'positive'
+  category?: 'threshold' | 'trend' | 'achievement'
+  navigateTo?: {
+    tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+    subTab?: string
+  }
+  dataSource?: string
+}
+```
+
+`HomeEvidence` は後方互換のため削除せず残してください。
+
+---
+
+`healthApi.ts` と `HomeScreen.tsx` がまだ旧型（`evidences`）を参照しているため、**TypeScript エラーが出ている状態**です。上記の型修正と合わせて解消してください。
 
 ---
 
@@ -46,10 +133,15 @@
 
 ---
 
-## Step 1: healthApi.ts の修正
+## Step 1: types.ts の修正
 
-`toHomeSummaryFromSummary` 関数が `evidences`（廃止済み）を参照していて TypeScript エラーが出ています。
-この関数を以下のように書き換えてください：
+上記「背景」セクションに記載した型修正を行ってください。
+
+## Step 2: healthApi.ts の修正
+
+`toHomeSummaryFromSummary` 関数（`/api/home-summary` が 404 の場合のフォールバック）が
+旧型（`evidences`）を参照していて TypeScript エラーが出ています。
+実際のレスポンス構造（`statusItems` + `attentionPoints`）に合わせて書き換えてください：
 
 ```typescript
 function toHomeSummaryFromSummary(summary: SummaryResponse, date: string): HomeSummaryResponse {
@@ -57,36 +149,36 @@ function toHomeSummaryFromSummary(summary: SummaryResponse, date: string): HomeS
   const sleepHours = valueOnDate(summary.sleepHoursByDate, date)?.hours ?? null
   const intakeKcal = valueOnDate(summary.intakeCaloriesByDate, date)?.kcal ?? null
   const weight = latestOnOrBeforeDate(summary.weightByDate, date)?.kg ?? null
-  const bp = valueOnDate(summary.bloodPressureByDate ?? [], date) ?? null
 
   const sleepTotalMin = sleepHours != null ? Math.round(sleepHours * 60) : null
   const sleepH = sleepTotalMin != null ? Math.floor(sleepTotalMin / 60) : null
   const sleepM = sleepTotalMin != null ? sleepTotalMin % 60 : null
+  const sleepOk = sleepHours != null && sleepHours > 0
+
+  const stepsOk = steps != null && steps >= 1000
+  const weightOk = weight != null && Number.isFinite(weight)
+  const mealOk = intakeKcal != null && intakeKcal > 0
+
+  const statusItems: HomeStatusItem[] = [
+    { key: 'sleep',  label: '睡眠', value: sleepH != null ? `${sleepH}h${sleepM}m` : null, ok: sleepOk,  tab: 'health',   innerTab: 'sleep',       tone: 'normal' },
+    { key: 'steps',  label: '歩数', value: steps != null ? Math.round(steps).toLocaleString('ja-JP') : null, ok: stepsOk, tab: 'exercise', tone: 'normal' },
+    { key: 'meal',   label: '食事', value: intakeKcal != null ? `${Math.round(intakeKcal).toLocaleString('ja-JP')}kcal` : null, ok: mealOk, tab: 'meal', tone: 'normal' },
+    { key: 'weight', label: '体重', value: weight != null ? `${weight.toFixed(1)}kg` : null, ok: weightOk, tab: 'health', innerTab: 'composition', tone: 'normal' },
+  ]
 
   return {
     date,
     report: null,
-    sufficiency: {
-      sleep: sleepHours != null && sleepHours > 0,
-      sleepValue: sleepH != null ? `${sleepH}h${sleepM}m` : undefined,
-      steps: steps != null && steps >= 1000,
-      stepsValue: steps != null ? Math.round(steps).toLocaleString('ja-JP') : undefined,
-      weight: weight != null && Number.isFinite(weight),
-      weightValue: weight != null ? `${weight.toFixed(1)}kg` : undefined,
-      meal: intakeKcal != null && intakeKcal > 0,
-      mealValue: intakeKcal != null ? `${Math.round(intakeKcal).toLocaleString('ja-JP')}kcal` : undefined,
-      bloodPressure: bp != null,
-      bloodPressureValue: bp != null ? `${bp.systolic}/${bp.diastolic}` : undefined,
-      bloodPressureWarning: bp != null && (bp.systolic >= 130 || bp.diastolic >= 85),
-    },
-    attention_points: [],
+    sufficiency: { sleep: sleepOk, steps: stepsOk, weight: weightOk, meal: mealOk },
+    statusItems,
+    attentionPoints: [],
   }
 }
 ```
 
 ---
 
-## Step 2: HomeScreen.tsx 全面書き換え
+## Step 3: HomeScreen.tsx 全面書き換え
 
 ### 画面構成
 
@@ -154,9 +246,9 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       {state.status === 'loading' && <div className="home-loading">読み込み中...</div>}
       {state.status === 'success' && (
         <>
-          <HealthStatusBar sufficiency={state.data.sufficiency} onNavigate={onNavigate} />
-          <AttentionPoints points={state.data.attention_points ?? []} onNavigate={onNavigate} />
-          <AiSection report={state.data.report} />
+          <HealthStatusBar items={state.data.statusItems ?? []} onNavigate={onNavigate} />
+          <AttentionPoints points={state.data.attentionPoints ?? []} onNavigate={onNavigate} />
+          <AiSection report={state.data.report} previousReport={state.data.previousReport} />
         </>
       )}
     </div>
@@ -166,65 +258,34 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
 ### HealthStatusBar（充足度バー）
 
-```tsx
-function HealthStatusBar({ sufficiency, onNavigate }: { ... }) {
-  const items = [
-    {
-      key: 'sleep' as const,
-      label: '睡眠',
-      value: sufficiency.sleepValue ?? null,
-      ok: sufficiency.sleep,
-      tab: 'health' as const,
-      icon: <SleepIcon />,
-    },
-    {
-      key: 'steps' as const,
-      label: '歩数',
-      value: sufficiency.stepsValue ?? null,
-      ok: sufficiency.steps,
-      tab: 'exercise' as const,
-      icon: <StepsIcon />,
-    },
-    {
-      key: 'meal' as const,
-      label: '食事',
-      value: sufficiency.mealValue ?? null,
-      ok: sufficiency.meal,
-      tab: 'meal' as const,
-      icon: <MealIcon />,
-    },
-    {
-      key: 'weight' as const,
-      label: '体重',
-      value: sufficiency.weightValue ?? null,
-      ok: sufficiency.weight,
-      tab: 'health' as const,
-      icon: <WeightIcon />,
-    },
-    // BP は bloodPressure が true の場合のみ表示（デバイス未連携時は非表示）
-    ...(sufficiency.bloodPressure || sufficiency.bloodPressureValue
-      ? [{
-          key: 'bp' as const,
-          label: 'BP',
-          value: sufficiency.bloodPressureValue ?? null,
-          ok: sufficiency.bloodPressure,
-          tab: 'health' as const,
-          warning: sufficiency.bloodPressureWarning ?? false,
-          icon: <BpIcon />,
-        }]
-      : []),
-  ]
+**データソース:** `state.data.statusItems`（バックエンドが `statusItems` 配列で返す）
 
+```tsx
+const ICONS: Record<string, ReactNode> = {
+  sleep:  <svg ...>{/* 月アイコン */}</svg>,
+  steps:  <svg ...>{/* 波線アイコン */}</svg>,
+  meal:   <svg ...>{/* フォークアイコン */}</svg>,
+  weight: <svg ...>{/* 体重計アイコン */}</svg>,
+  bp:     <svg ...>{/* 心臓アイコン */}</svg>,
+}
+
+function HealthStatusBar({
+  items,
+  onNavigate,
+}: {
+  items: HomeStatusItem[]
+  onNavigate?: (tab: HomeStatusItem['tab']) => void
+}) {
   return (
     <div className="health-status-scroll">
       <div className="health-status-bar">
         {items.map(item => (
           <div
             key={item.key}
-            className={`status-pill ${item.ok ? 'on' : 'off'} ${'warning' in item && item.warning ? 'warn' : ''}`}
+            className={`status-pill ${item.ok ? 'on' : 'off'} ${item.tone === 'warning' ? 'warn' : ''}`}
             onClick={() => onNavigate?.(item.tab)}
           >
-            <div className="status-pill-icon">{item.icon}</div>
+            <div className="status-pill-icon">{ICONS[item.key] ?? null}</div>
             <div className="status-pill-label">{item.label}</div>
             <div className="status-pill-value">
               {item.value ?? (item.ok ? '✓' : '✗')}
@@ -235,6 +296,14 @@ function HealthStatusBar({ sufficiency, onNavigate }: { ... }) {
     </div>
   )
 }
+```
+
+呼び出し側:
+```tsx
+<HealthStatusBar
+  items={state.data.statusItems ?? []}
+  onNavigate={onNavigate}
+/>
 ```
 
 SVGアイコンは HomeScreen.tsx 内で定義（旧 SufficiencyBar のアイコンを流用してOK）。
@@ -283,12 +352,24 @@ function AttentionPoints({ points, onNavigate }: { points: AttentionPoint[], onN
 旧の `AiAdvisorSection`・`NoReportCard` を `AiSection` としてまとめる：
 
 ```tsx
-function AiSection({ report }: { report: HomeSummaryResponse['report'] }) {
+function AiSection({
+  report,
+  previousReport,
+}: {
+  report: HomeSummaryResponse['report']
+  previousReport?: HomeSummaryResponse['previousReport']
+}) {
   if (!report) {
     return (
       <div className="home-no-report-card">
         <div>AIレポートはまだありません</div>
-        <div style={{ fontSize: 13, marginTop: 6 }}>データが揃ったらレポートを生成できます</div>
+        {previousReport ? (
+          <div style={{ fontSize: 13, marginTop: 6, color: 'var(--accent-color)' }}>
+            前回のレポート（{previousReport.date}）を見る →
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, marginTop: 6 }}>データが揃ったらレポートを生成できます</div>
+        )}
       </div>
     )
   }
@@ -312,7 +393,7 @@ function AiSection({ report }: { report: HomeSummaryResponse['report'] }) {
 
 ---
 
-## Step 3: HomeScreen.css 更新
+## Step 4: HomeScreen.css 更新
 
 既存の `.home-sufficiency-bar`, `.sufficiency-pill`, `.evidence-*` スタイルを削除し、以下を追加：
 
