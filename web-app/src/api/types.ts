@@ -159,6 +159,8 @@ export interface ProfileResponse {
   birth_year?: number
   sex?: 'male' | 'female' | 'other'
   goal_weight_kg?: number
+  sleep_goal_minutes?: number
+  steps_goal?: number
 }
 
 export type ReportType = 'daily' | 'weekly' | 'monthly'
@@ -210,7 +212,7 @@ export interface HomeEvidence {
 }
 
 export type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
-export type HomeStatusTone = 'normal' | 'warning'
+export type HomeStatusTone = 'normal' | 'warning' | 'critical'
 
 export interface HomeStatusItem {
   key: HomeStatusKey
@@ -220,6 +222,7 @@ export interface HomeStatusItem {
   tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
   innerTab?: 'composition' | 'vital' | 'sleep'
   tone?: HomeStatusTone
+  progress?: number
 }
 
 export type AttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
@@ -227,7 +230,7 @@ export type AttentionCategory = 'threshold' | 'trend' | 'achievement'
 
 export interface AttentionPoint {
   id: string
-  icon: '⚠️' | '📉' | '📈' | '✅' | '🔴'
+  icon: 'warning' | 'down' | 'up' | 'check' | 'alert'
   message: string
   severity: AttentionSeverity
   category: AttentionCategory
@@ -259,4 +262,89 @@ export interface HomeSummaryResponse {
   statusItems?: HomeStatusItem[]
   attentionPoints?: AttentionPoint[]
   previousReport?: PreviousReportLink | null
+}
+
+// ── /api/body-data ──
+export interface BodyDataPoint {
+  date: string
+  weight_kg: number | null
+  body_fat_pct: number | null
+  bmr_kcal: number | null
+}
+
+export interface BodyDataResponse {
+  baseDate: string
+  period: 'week' | 'month' | 'year'
+  current: {
+    weight_kg: number | null
+    body_fat_pct: number | null
+    bmi: number | null
+    bmr_kcal: number | null
+  }
+  goalWeight: number | null
+  series: BodyDataPoint[]
+  periodSummary: {
+    avg_weight_kg: number | null
+    avg_body_fat_pct: number | null
+    avg_bmi: number | null
+    points: number
+  }
+}
+
+// ── /api/sleep-data ──
+export interface SleepDataPoint {
+  date: string
+  sleep_minutes: number | null
+  deep_min: number | null
+  light_min: number | null
+  rem_min: number | null
+}
+
+export interface SleepDataResponse {
+  baseDate: string
+  period: 'week' | 'month' | 'year'
+  current: {
+    sleep_minutes: number | null
+    bedtime: string | null
+    wake_time: string | null
+    avg_spo2: number | null
+    min_spo2: number | null
+  }
+  stages: {
+    deep_min: number | null
+    light_min: number | null
+    rem_min: number | null
+  }
+  series: SleepDataPoint[]
+  periodSummary: {
+    avg_sleep_min: number | null
+    goal_days: number
+    avg_spo2?: number | null
+    min_spo2?: number | null
+  }
+}
+
+// ── /api/vitals-data ──
+export interface VitalsDataPoint {
+  date: string
+  systolic: number | null
+  diastolic: number | null
+  resting_hr: number | null
+}
+
+export interface VitalsDataResponse {
+  baseDate: string
+  period: 'week' | 'month' | 'year'
+  current: {
+    systolic: number | null
+    diastolic: number | null
+    resting_hr: number | null
+  }
+  series: VitalsDataPoint[]
+  periodSummary: {
+    avg_systolic: number | null
+    avg_diastolic: number | null
+    avg_resting_hr: number | null
+    high_bp_points: number
+  }
 }

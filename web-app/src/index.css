@@ -12,8 +12,8 @@
   --text-inverse: #FFFFFF;
 
   /* Fonts */
-  --font-family-body: 'M PLUS 1p', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-family-num: 'Lexend', 'Inter', system-ui, sans-serif;
+  --font-family-body: 'Zen Maru Gothic', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family-num: 'Inter', system-ui, sans-serif;
 
   /* Shadows for glass/soft UI */
   --shadow-sm: 0 4px 12px rgba(136, 212, 180, 0.15);

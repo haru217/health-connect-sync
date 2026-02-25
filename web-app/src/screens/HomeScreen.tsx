@@ -20,6 +20,14 @@ interface HomeScreenProps {
   onNavigate?: (target: HomeNavigateTarget) => void
 }
 
+const ATTENTION_ICONS: Record<string, ReactNode> = {
+  warning: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+  down: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>,
+  up: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>,
+  check: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>,
+  alert: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>,
+}
+
 type StatusMeta = {
   label: string
   icon: ReactNode
@@ -63,7 +71,7 @@ const STATUS_META: Record<HomeStatusItem['key'], StatusMeta> = {
     ),
   },
   bp: {
-    label: 'BP',
+    label: '血圧',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -157,20 +165,51 @@ function StatusBar({
 }) {
   return (
     <section className="home-status-section">
-      <div className="home-status-scroll" role="list">
+      <div className="home-status-grid" role="list">
         {items.map((item) => {
           const meta = STATUS_META[item.key]
-          const value = item.value ? ` ${item.value}` : ''
+          const progress = item.progress ?? (item.ok ? 100 : 0)
+
+          const radius = 14
+          const circ = 2 * Math.PI * radius
+          const offset = circ - (progress / 100) * circ
+          const isWarning = item.tone === 'warning'
+          const isCritical = item.tone === 'critical'
+
+          let trailColor = 'rgba(136, 212, 180, 0.2)'
+          let pathColor = 'var(--accent-color)'
+          let pillToneClass = ''
+
+          if (isCritical) {
+            trailColor = 'rgba(239, 154, 154, 0.3)'
+            pathColor = '#EF5350' // Red
+            pillToneClass = 'critical'
+          } else if (isWarning) {
+            trailColor = 'rgba(255, 204, 128, 0.3)'
+            pathColor = '#FFB74D' // Orange/Yellow
+            pillToneClass = 'warning'
+          }
+
           return (
             <button
               key={item.key}
               type="button"
-              className={`status-pill ${item.ok ? 'ok' : 'ng'} ${item.tone === 'warning' ? 'warning' : ''}`}
+              className={`status-pill ${item.ok ? 'ok' : 'ng'} ${pillToneClass}`}
               onClick={() => onNavigate?.({ tab: item.tab, innerTab: item.innerTab })}
             >
-              <span className="status-icon">{meta.icon}</span>
-              <span className="status-label">{meta.label}{value}</span>
-              <span className="status-mark">{item.ok ? '✓' : '✗'}</span>
+              <div className="status-progress-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" className="spi-ring">
+                  <circle cx="16" cy="16" r={radius} fill="none" stroke={trailColor} strokeWidth="3" />
+                  <circle cx="16" cy="16" r={radius} fill="none" stroke={pathColor} strokeWidth="3"
+                    strokeDasharray={circ} strokeDashoffset={offset}
+                    strokeLinecap="round" transform="rotate(-90 16 16)" />
+                </svg>
+                <div className="spi-icon">{meta.icon}</div>
+              </div>
+              <div className="status-text-stack">
+                <span className="status-label">{meta.label}</span>
+                <span className="status-value">{item.value ?? '-'}</span>
+              </div>
             </button>
           )
         })}
@@ -194,7 +233,10 @@ function AttentionSection({
     <section className="attention-section">
       <div className="home-section-title">注目ポイント</div>
       {points.length === 0 ? (
-        <div className="attention-empty">✅ 特に注目点なし。順調です</div>
+        <div className="attention-empty">
+          <span className="attention-icon" style={{ color: '#5ca67b' }}>{ATTENTION_ICONS.check}</span>
+          <span>特に注目点なし。順調です</span>
+        </div>
       ) : (
         <>
           <div className="attention-list">
@@ -205,7 +247,7 @@ function AttentionSection({
                 className={`attention-item ${point.severity}`}
                 onClick={() => onNavigate?.({ tab: point.navigateTo.tab, innerTab: point.navigateTo.subTab })}
               >
-                <span className="attention-icon">{point.icon}</span>
+                <span className="attention-icon">{ATTENTION_ICONS[point.icon] || ATTENTION_ICONS.alert}</span>
                 <span className="attention-message">{point.message}</span>
                 <span className="attention-arrow">›</span>
               </button>

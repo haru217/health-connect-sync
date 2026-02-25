@@ -9,11 +9,12 @@
 }
 
 .date-nav-label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
-  min-width: 160px;
+  min-width: 170px;
   text-align: center;
+  letter-spacing: 0.02em;
 }
 
 .date-nav-btn {

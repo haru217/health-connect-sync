@@ -117,3 +117,5 @@ curl -H "X-Api-Key: <your-api-key>" https://health-ai.fly.dev/api/status
 - Fly.io free tier では 1 VM（shared-cpu-1x、256MB）まで無料
 - `auto_stop_machines = true` 設定により、アクセスがないとマシンが停止する（次アクセス時に自動起動）
 - SQLite の永続ボリュームは VM 停止後も消えない
+> [!IMPORTANT]
+> 2026-02-23時点で Fly.io は本プロジェクトの現行運用では使用していません（本文中の Fly.io 記載は過去の実装ログ・移行履歴・アーカイブ情報です）。

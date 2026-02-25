@@ -17,34 +17,26 @@
   padding: 0 0 2px;
 }
 
-.home-status-scroll {
+.home-status-grid {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  overflow-x: auto;
   padding: 0 16px 6px;
-  scrollbar-width: thin;
-}
-
-.home-status-scroll::-webkit-scrollbar {
-  height: 6px;
-}
-
-.home-status-scroll::-webkit-scrollbar-thumb {
-  background: rgba(136, 212, 180, 0.45);
-  border-radius: 999px;
 }
 
 .status-pill {
-  min-width: max-content;
+  flex: 1 1 calc(50% - 10px);
+  min-width: 140px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 999px;
+  padding: 12px 14px;
+  border-radius: 12px;
   border: 1px solid rgba(136, 212, 180, 0.25);
   background: var(--surface-color);
   color: var(--text-primary);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .status-pill.ok {
@@ -62,25 +54,64 @@
   background: linear-gradient(135deg, #fff7f2 0%, #ffefea 100%);
 }
 
-.status-icon {
-  display: inline-flex;
+.status-progress-icon {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.spi-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.spi-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(136, 212, 180, 0.16);
+  color: var(--text-primary);
+}
+
+.status-pill.warning .spi-icon {
+  color: #e67700;
+}
+
+.status-pill.critical .spi-icon {
+  color: #c92a2a;
+}
+
+.status-text-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
 }
 
 .status-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  white-space: nowrap;
+  color: var(--text-muted);
+  line-height: 1;
+  margin-bottom: 2px;
 }
 
-.status-mark {
-  font-size: 13px;
+.status-value {
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
   font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 
 .attention-section {
@@ -99,11 +130,12 @@
   align-items: center;
   gap: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(136, 212, 180, 0.2);
+  border: 1px solid rgba(136, 212, 180, 0.45);
   background: var(--surface-color);
   padding: 11px 12px;
   cursor: pointer;
   text-align: left;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .attention-item.critical {
@@ -144,11 +176,16 @@
 }
 
 .attention-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border-radius: 12px;
-  border: 1px solid rgba(136, 212, 180, 0.2);
+  border: 1px solid rgba(136, 212, 180, 0.45);
   background: var(--surface-color);
-  padding: 12px;
+  padding: 11px 12px;
   font-size: 14px;
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .attention-more {

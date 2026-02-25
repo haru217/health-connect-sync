@@ -1,816 +1,369 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
-import { fetchProfile, fetchSummary } from '../api/healthApi'
-import type { ProfileResponse, RequestState, SummaryResponse } from '../api/types'
-import advisorDoctor from '../assets/advisor_doctor.png'
+import { useDateContext } from '../context/DateContext'
+import DateNavBar from '../components/DateNavBar'
+import SegmentSelector from '../components/SegmentSelector'
+import type { Segment } from '../components/SegmentSelector'
+import {
+  fetchBodyData, fetchSleepData, fetchVitalsData
+} from '../api/healthApi'
+import type {
+  BodyDataResponse, SleepDataResponse, VitalsDataResponse
+} from '../api/types'
 import './HealthScreen.css'
 
-type HealthTab = 'composition' | 'circulation' | 'sleep'
-type CompositionRange = 14 | 30 | 90
-type CirculationRange = 14 | 30
-const FIXED_BMR_KCAL_PER_DAY = 1680
+type InnerTab = 'composition' | 'circulation' | 'sleep'
 
-type HealthScreenProps = {
-  initialTab?: HealthTab
-}
-
-interface HealthData {
-  summary: SummaryResponse
-  profile: ProfileResponse
-}
-
-interface CompositionPoint {
-  date: string
-  label: string
-  weight: number | null
-  bodyFat: number | null
-}
-
-interface BloodPressurePoint {
-  date: string
-  label: string
-  systolic: number | null
-  diastolic: number | null
-}
-
-interface RestingPoint {
-  date: string
-  label: string
-  bpm: number | null
-}
-
-interface SleepPoint {
-  date: string
-  label: string
-  hours: number | null
-}
-
-function formatNullable(value: number | null, digits = 0): string {
-  if (value == null) {
-    return '--'
+function formatXLabel(dateStr: string, segment: Segment): string {
+  const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+  if (!dateStr) return ''
+  if (segment === 'week') {
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      const [y, m, d] = parts.map(Number)
+      return WEEKDAYS[new Date(y, m - 1, d).getDay()]
+    }
+    return dateStr
   }
-  return value.toLocaleString('ja-JP', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  })
+  if (segment === 'year') {
+    // dateStr は 'YYYY-MM' 形式
+    const parts = dateStr.split('-')
+    if (parts.length >= 2) return `${parseInt(parts[1], 10)}月`
+    return dateStr
+  }
+  // month: 5日ごとのみ表示
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    const m = parseInt(parts[1], 10)
+    const d = parseInt(parts[2], 10)
+    return d % 5 === 1 || d === 1 ? `${m}/${d}` : ''
+  }
+  return dateStr
 }
 
-function toDateLabel(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00`)
-  return date.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })
+function formatTooltipLabel(dateStr: string, segment: Segment): string {
+  const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+  if (!dateStr) return ''
+  const parts = dateStr.split('-')
+  if (segment === 'week' || segment === 'month') {
+    if (parts.length === 3) {
+      const [y, m, d] = parts.map(Number)
+      const w = WEEKDAYS[new Date(y, m - 1, d).getDay()]
+      return `${m}/${d} (${w})`
+    }
+  }
+  if (segment === 'year') {
+    if (parts.length >= 2) return `${parseInt(parts[0], 10)}年${parseInt(parts[1], 10)}月`
+  }
+  return dateStr
 }
 
-function buildDateRange(days: number): string[] {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const out: string[] = []
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const date = new Date(today)
-    date.setDate(today.getDate() - i)
-    out.push(date.toLocaleDateString('sv-SE'))
-  }
-  return out
-}
-
-function latestByDate<T extends { date: string }>(series: T[]): T | null {
-  if (series.length === 0) {
-    return null
-  }
-  return [...series].sort((a, b) => a.date.localeCompare(b.date))[series.length - 1] ?? null
-}
-
-function averageRecorded(values: Array<number | null>): number | null {
-  const recorded = values.filter((value): value is number => value != null)
-  if (recorded.length === 0) {
-    return null
-  }
-  return recorded.reduce((sum, value) => sum + value, 0) / recorded.length
-}
-
-function maxRecorded(values: Array<number | null>): number | null {
-  const recorded = values.filter((value): value is number => value != null)
-  if (recorded.length === 0) {
-    return null
-  }
-  return Math.max(...recorded)
-}
-
-function minRecorded(values: Array<number | null>): number | null {
-  const recorded = values.filter((value): value is number => value != null)
-  if (recorded.length === 0) {
-    return null
-  }
-  return Math.min(...recorded)
-}
-
-function toBodyFatSeries(summary: SummaryResponse): Array<{ date: string; pct: number }> {
-  if (summary.bodyFatByDate && summary.bodyFatByDate.length > 0) {
-    return summary.bodyFatByDate.map((item) => ({ date: item.date, pct: item.percentage }))
-  }
-  return summary.bodyFatPctByDate.map((item) => ({ date: item.date, pct: item.pct }))
-}
-
-function toRestingSeries(summary: SummaryResponse): Array<{ date: string; bpm: number }> {
-  if (summary.restingHeartRateByDate && summary.restingHeartRateByDate.length > 0) {
-    return summary.restingHeartRateByDate.map((item) => ({ date: item.date, bpm: item.bpm }))
-  }
-  return summary.restingHeartRateBpmByDate.map((item) => ({ date: item.date, bpm: item.bpm }))
-}
-
-function toSpo2Series(summary: SummaryResponse): Array<{ date: string; pct: number }> {
-  if (summary.oxygenSaturationByDate && summary.oxygenSaturationByDate.length > 0) {
-    return summary.oxygenSaturationByDate.map((item) => ({ date: item.date, pct: item.percentage }))
-  }
-  return summary.oxygenSaturationPctByDate.map((item) => ({ date: item.date, pct: item.pct }))
-}
-
-function compositionPoints(summary: SummaryResponse, days: number): CompositionPoint[] {
-  const dates = buildDateRange(days)
-  const weightMap = new Map(summary.weightByDate.map((item) => [item.date, item.kg]))
-  const bodyFatMap = new Map(toBodyFatSeries(summary).map((item) => [item.date, item.pct]))
-  return dates.map((date) => ({
-    date,
-    label: toDateLabel(date),
-    weight: weightMap.get(date) ?? null,
-    bodyFat: bodyFatMap.get(date) ?? null,
-  }))
-}
-
-function bloodPressurePoints(summary: SummaryResponse, days: number): BloodPressurePoint[] {
-  const dates = buildDateRange(days)
-  const bloodSeries = summary.bloodPressureByDate ?? []
-  const systolicMap = new Map(bloodSeries.map((item) => [item.date, item.systolic]))
-  const diastolicMap = new Map(bloodSeries.map((item) => [item.date, item.diastolic]))
-  return dates.map((date) => ({
-    date,
-    label: toDateLabel(date),
-    systolic: systolicMap.get(date) ?? null,
-    diastolic: diastolicMap.get(date) ?? null,
-  }))
-}
-
-function restingPoints(summary: SummaryResponse, days: number): RestingPoint[] {
-  const dates = buildDateRange(days)
-  const restingMap = new Map(toRestingSeries(summary).map((item) => [item.date, item.bpm]))
-  return dates.map((date) => ({
-    date,
-    label: toDateLabel(date),
-    bpm: restingMap.get(date) ?? null,
-  }))
-}
-
-function sleepPoints(summary: SummaryResponse): SleepPoint[] {
-  const dates = buildDateRange(7)
-  const sleepMap = new Map(summary.sleepHoursByDate.map((item) => [item.date, item.hours]))
-  return dates.map((date) => ({
-    date,
-    label: toDateLabel(date),
-    hours: sleepMap.get(date) ?? null,
-  }))
-}
-
-function bmiLabel(value: number | null): string {
-  if (value == null) {
-    return '--'
-  }
-  if (value < 18.5) {
-    return '低体重'
-  }
-  if (value < 25.0) {
-    return '標準'
-  }
-  if (value < 30.0) {
-    return '過体重'
-  }
-  return '肥満'
-}
-
-function bodyFatLabel(value: number | null, sex: ProfileResponse['sex']): string {
-  if (value == null) {
-    return '--'
-  }
-  const isFemale = sex === 'female'
-  if (isFemale) {
-    if (value < 18) return '低'
-    if (value <= 28) return '標準'
-    if (value <= 33) return 'やや高'
-    return '高'
-  }
-  if (value < 10) return '低'
-  if (value <= 20) return '標準'
-  if (value <= 25) return 'やや高'
-  return '高'
-}
-
-function bloodPressureRisk(systolic: number | null, diastolic: number | null): {
-  label: string
-  tone: 'good' | 'warning' | 'danger'
-} {
-  if (systolic == null || diastolic == null) {
-    return { label: '--', tone: 'warning' }
-  }
-  if (systolic >= 140 || diastolic >= 90) {
-    return { label: '要確認', tone: 'danger' }
-  }
-  if (systolic >= 120 || diastolic >= 80) {
-    return { label: '注意', tone: 'warning' }
-  }
-  return { label: '正常', tone: 'good' }
-}
-
-function weeklyChange(series: Array<{ date: string; value: number }>): number | null {
-  if (series.length < 2) {
-    return null
-  }
-  const tail = series.slice(-7)
-  const first = tail[0]
-  const last = tail[tail.length - 1]
-  if (!first || !last) {
-    return null
-  }
-  const days = Math.max(
-    1,
-    Math.round((new Date(`${last.date}T00:00:00`).getTime() - new Date(`${first.date}T00:00:00`).getTime()) / 86400000),
+// InnerTabBar Component
+function InnerTabBar({ tab, onTabChange }: { tab: InnerTab, onTabChange: (t: InnerTab) => void }) {
+  return (
+    <div className="inner-tab-bar">
+      <button type="button" className={`inner-tab ${tab === 'composition' ? 'active' : ''}`} onClick={() => onTabChange('composition')}>体組成</button>
+      <button type="button" className={`inner-tab ${tab === 'circulation' ? 'active' : ''}`} onClick={() => onTabChange('circulation')}>バイタル</button>
+      <button type="button" className={`inner-tab ${tab === 'sleep' ? 'active' : ''}`} onClick={() => onTabChange('sleep')}>睡眠</button>
+    </div>
   )
-  return ((last.value - first.value) / days) * 7
 }
 
-function estimateLatestBmrFromCalories(summary: SummaryResponse): number | null {
-  const totalSeries = summary.totalCaloriesByDate ?? summary.totalCalByDate ?? []
-  const activeSeries = summary.activeCaloriesByDate ?? summary.activeCalByDate ?? []
-  if (totalSeries.length === 0 || activeSeries.length === 0) {
-    return null
-  }
-
-  const activeMap = new Map(activeSeries.map((item) => [item.date, item.kcal]))
-  const totalsDesc = [...totalSeries].sort((a, b) => b.date.localeCompare(a.date))
-  for (const item of totalsDesc) {
-    const active = activeMap.get(item.date)
-    if (active == null) {
-      continue
-    }
-    if (active <= 0 || item.kcal <= 1200) {
-      continue
-    }
-    const bmr = item.kcal - active
-    if (!Number.isFinite(bmr)) {
-      continue
-    }
-    if (bmr >= 900 && bmr <= 4000) {
-      return bmr
-    }
-  }
-  return null
-}
-
-function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'danger'; message: string } {
-  if (value == null) {
-    return { tone: 'warning', message: 'データ不足' }
-  }
-  if (value > 100) {
-    return { tone: 'danger', message: '高め（100超は要確認）' }
-  }
-  if (value >= 90) {
-    return { tone: 'warning', message: 'やや高め' }
-  }
-  if (value < 50) {
-    return { tone: 'warning', message: '低め（運動習慣の影響も）' }
-  }
-  if (value < 60) {
-    return { tone: 'good', message: '良好（60未満）' }
-  }
-  return { tone: 'good', message: '標準範囲（60-100）' }
-}
-
-export default function HealthScreen({ initialTab = 'composition' }: HealthScreenProps) {
-  const [tab, setTab] = useState<HealthTab>(initialTab)
-  const [compositionRange, setCompositionRange] = useState<CompositionRange>(14)
-  const [circulationRange, setCirculationRange] = useState<CirculationRange>(14)
-  const [state, setState] = useState<RequestState<HealthData>>({ status: 'loading' })
-  const [compositionIndex, setCompositionIndex] = useState<number | null>(null)
-  const [bloodPressureIndex, setBloodPressureIndex] = useState<number | null>(null)
-  const [restingIndex, setRestingIndex] = useState<number | null>(null)
-  const [sleepIndex, setSleepIndex] = useState<number | null>(null)
+// CompositionTab Component
+function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
+  const [data, setData] = useState<BodyDataResponse | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let alive = true
-    const load = async () => {
-      try {
-        const [summary, profile] = await Promise.all([fetchSummary(), fetchProfile()])
-        if (!alive) {
-          return
-        }
-        setState({ status: 'success', data: { summary, profile } })
-      } catch (error) {
-        if (!alive) {
-          return
-        }
-        const message = error instanceof Error ? error.message : '不明なエラー'
-        setState({ status: 'error', error: message })
-      }
-    }
-    void load()
-    return () => {
-      alive = false
-    }
-  }, [])
+    let mounted = true
+    setLoading(true)
+    fetchBodyData(date, segment)
+      .then(res => { if (mounted) { setData(res); setLoading(false) } })
+      .catch(() => { if (mounted) { setData(null); setLoading(false) } })
+    return () => { mounted = false }
+  }, [date, segment])
 
-  useEffect(() => {
-    setTab(initialTab)
-  }, [initialTab])
+  if (loading) return <div className="health-empty-state"><span className="health-empty-text">読み込み中...</span></div>
+  if (!data || data.series.length === 0) return <div className="health-empty-state"><span className="health-empty-text">データがありません</span></div>
 
-  if (state.status === 'loading') {
-    return (
-      <div className="health-container fade-in">
-        <div className="card">読み込み中...</div>
-      </div>
-    )
+  const current = data.current
+  const useAverageCard = segment !== 'week'
+  const displayWeight = useAverageCard ? (data.periodSummary.avg_weight_kg ?? current.weight_kg) : current.weight_kg
+  const displayBodyFat = useAverageCard ? (data.periodSummary.avg_body_fat_pct ?? current.body_fat_pct) : current.body_fat_pct
+  const displayBmi = useAverageCard ? (data.periodSummary.avg_bmi ?? current.bmi) : current.bmi
+
+  // 週次変化の計算 (for week segment)
+  const isWeek = segment === 'week'
+  let diffWeight = 0
+  let diffFat = 0
+  if (isWeek && data.series.length > 0) {
+    const first = data.series[0]
+    const last = data.series[data.series.length - 1]
+    if (last.weight_kg && first.weight_kg) diffWeight = last.weight_kg - first.weight_kg
+    if (last.body_fat_pct && first.body_fat_pct) diffFat = last.body_fat_pct - first.body_fat_pct
   }
-
-  if (state.status === 'error') {
-    return (
-      <div className="health-container fade-in">
-        <div className="card">読み込みエラー: {state.error}</div>
-      </div>
-    )
-  }
-
-  const { summary, profile } = state.data
-  const bodyFatSeries = toBodyFatSeries(summary)
-  const spo2Series = toSpo2Series(summary)
-  const restingSeries = toRestingSeries(summary)
-  const bloodSeries = summary.bloodPressureByDate ?? []
-
-  const compositionData = compositionPoints(summary, compositionRange)
-  const bloodPressureData = bloodPressurePoints(summary, circulationRange)
-  const restingData = restingPoints(summary, circulationRange)
-  const sleepData = sleepPoints(summary)
-
-  const latestWeight = latestByDate(summary.weightByDate)?.kg ?? null
-  const latestBodyFat = latestByDate(bodyFatSeries)?.pct ?? null
-  const latestSpo2 = latestByDate(spo2Series)?.pct ?? null
-  const latestResting = latestByDate(restingSeries)?.bpm ?? null
-  const latestBlood = latestByDate(bloodSeries) ?? null
-  const goalWeight = profile.goal_weight_kg ?? null
-  const heightM = summary.heightM ?? (profile.height_cm != null ? profile.height_cm / 100 : null)
-  const bmi = latestWeight != null && heightM != null && heightM > 0 ? latestWeight / (heightM * heightM) : null
-  const estimatedBmr = estimateLatestBmrFromCalories(summary)
-  const displayBmr = FIXED_BMR_KCAL_PER_DAY
-  const remainingWeight =
-    goalWeight != null && latestWeight != null ? goalWeight - latestWeight : null
-  const bpRisk = bloodPressureRisk(latestBlood?.systolic ?? null, latestBlood?.diastolic ?? null)
-  const hrStatus = restingStatus(latestResting)
-  const doctorComment =
-    latestBlood == null
-      ? '血圧データを計測すると循環器リスクをより正確に評価できます。'
-      : bpRisk.tone === 'danger'
-        ? '血圧が高めです。継続する場合は早めの受診を検討してください。'
-        : bpRisk.tone === 'warning'
-          ? '血圧は注意域です。睡眠・塩分・有酸素運動の調整を優先しましょう。'
-          : '血圧は安定しています。現状の生活習慣を維持してください。'
-
-  const weightChange = weeklyChange(summary.weightByDate.map((item) => ({ date: item.date, value: item.kg })))
-  const bodyFatChange = weeklyChange(bodyFatSeries.map((item) => ({ date: item.date, value: item.pct })))
-  const bodyFatText = bodyFatLabel(latestBodyFat, profile.sex)
-
-  const sleepAverage = averageRecorded(sleepData.map((item) => item.hours))
-  const sleepLongest = maxRecorded(sleepData.map((item) => item.hours))
-  const sleepShortest = minRecorded(sleepData.map((item) => item.hours))
-  const sleepGoalDays = sleepData.filter((item) => (item.hours ?? 0) >= 7).length
-
-  const selectedComposition = compositionIndex != null ? compositionData[compositionIndex] : null
-  const selectedBloodPressure = bloodPressureIndex != null ? bloodPressureData[bloodPressureIndex] : null
-  const selectedResting = restingIndex != null ? restingData[restingIndex] : null
-  const selectedSleep = sleepIndex != null ? sleepData[sleepIndex] : null
-
-  const weightValues = compositionData
-    .map((item) => item.weight)
-    .filter((value): value is number => value != null)
-  const weightDomain: [number, number] | ['auto', 'auto'] =
-    weightValues.length > 0
-      ? [Math.floor(Math.min(...weightValues) - 1), Math.ceil(Math.max(...weightValues) + 1)]
-      : ['auto', 'auto']
 
   return (
-    <div className="health-container fade-in">
-      <div className="health-tab-row">
-        <button
-          type="button"
-          className={`health-tab-btn ${tab === 'composition' ? 'active' : ''}`}
-          onClick={() => setTab('composition')}
-        >
-          体組成
-        </button>
-        <button
-          type="button"
-          className={`health-tab-btn ${tab === 'circulation' ? 'active' : ''}`}
-          onClick={() => setTab('circulation')}
-        >
-          循環器
-        </button>
-        <button
-          type="button"
-          className={`health-tab-btn ${tab === 'sleep' ? 'active' : ''}`}
-          onClick={() => setTab('sleep')}
-        >
-          睡眠
-        </button>
+    <div className="tab-content">
+      <div className="health-current-card">
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均体重' : '体重'}</span>
+          <span className="health-metric-value">{displayWeight?.toFixed(1) ?? '-'} kg</span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均体脂肪' : '体脂肪'}</span>
+          <span className="health-metric-value">{displayBodyFat?.toFixed(1) ?? '-'} %</span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均BMI' : 'BMI'}</span>
+          <span className="health-metric-value">
+            {displayBmi != null && <span className={`status-badge ${displayBmi < 25 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayBmi < 25 ? '標準' : '軽度肥満'}</span>}
+            {displayBmi?.toFixed(1) ?? '-'}
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">目標体重</span>
+          <span className="health-metric-value">{data.goalWeight?.toFixed(1) ?? '-'} kg</span>
+        </div>
       </div>
 
-      <section className="health-insight-section">
-        <div className="health-insight-avatar">
-          <img className="health-insight-avatar-image" src={advisorDoctor} alt="Doctor" width={48} height={48} />
+      <div className="health-chart-container">
+        <div className="health-chart-title">体重と体脂肪の推移</div>
+        <div className="health-chart-wrapper">
+          <ResponsiveContainer width="100%" height="100%">
+            {segment === 'year' ? (
+              <LineChart data={data.series}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
+                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                {data.goalWeight != null && <ReferenceLine y={data.goalWeight} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '目標', position: 'insideTopLeft', fill: '#f59e0b', fontSize: 12 }} />}
+                <Line type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              </LineChart>
+            ) : (
+              <LineChart data={data.series}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+                <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} hide />
+                <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                {data.goalWeight != null && <ReferenceLine yAxisId="left" y={data.goalWeight} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '目標', position: 'insideTopLeft', fill: '#f59e0b', fontSize: 12 }} />}
+                <Line yAxisId="right" type="monotone" dataKey="body_fat_pct" name="体脂肪 (%)" stroke="#FFCC80" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                <Line yAxisId="left" type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
         </div>
-        <div className="health-insight-bubble">
-          <div className="health-insight-title">医師</div>
-          <p className="health-insight-text">{doctorComment}</p>
+      </div>
+
+      {isWeek && (
+        <div className="health-list-container">
+          <div className="health-list-item">
+            <span className="health-list-item-label">今週の変化</span>
+            <span className="health-list-item-value">
+              {diffWeight > 0 ? '+' : ''}{diffWeight.toFixed(1)}kg / {diffFat > 0 ? '+' : ''}{diffFat.toFixed(1)}%
+            </span>
+          </div>
         </div>
-      </section>
-
-      {tab === 'composition' && (
-        <>
-          <section className="card">
-            <div className="health-card-header">
-              <h3 className="health-title">体重・体脂肪トレンド</h3>
-              <div className="health-range-row">
-                <button
-                  type="button"
-                  className={`health-range-btn ${compositionRange === 14 ? 'active' : ''}`}
-                  onClick={() => {
-                    setCompositionRange(14)
-                    setCompositionIndex(null)
-                  }}
-                >
-                  2週
-                </button>
-                <button
-                  type="button"
-                  className={`health-range-btn ${compositionRange === 30 ? 'active' : ''}`}
-                  onClick={() => {
-                    setCompositionRange(30)
-                    setCompositionIndex(null)
-                  }}
-                >
-                  1ヶ月
-                </button>
-                <button
-                  type="button"
-                  className={`health-range-btn ${compositionRange === 90 ? 'active' : ''}`}
-                  onClick={() => {
-                    setCompositionRange(90)
-                    setCompositionIndex(null)
-                  }}
-                >
-                  3ヶ月
-                </button>
-              </div>
-            </div>
-            {selectedComposition ? (
-              <p className="health-selected-value">
-                {selectedComposition.label} 体重 {formatNullable(selectedComposition.weight, 1)}kg / 体脂肪{' '}
-                {formatNullable(selectedComposition.bodyFat, 1)}%
-              </p>
-            ) : (
-              <p className="health-selected-value">線をタップして値を表示</p>
-            )}
-            <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-                minWidth={0}
-                minHeight={1}
-                initialDimension={{ width: 320, height: 240 }}
-                debounce={50}
-              >
-                <LineChart
-                  data={compositionData}
-                  onClick={(event) => {
-                    if (event && typeof event.activeTooltipIndex === 'number') {
-                      setCompositionIndex(event.activeTooltipIndex)
-                    }
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis
-                    yAxisId="left"
-                    domain={weightDomain}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#8FA39A' }}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#8FA39A' }}
-                  />
-                  <Line
-                    yAxisId="left"
-                    dataKey="weight"
-                    stroke="var(--accent-color)"
-                    strokeWidth={3}
-                    dot={(props: { cx?: number; cy?: number; index?: number }) => {
-                      if (props.cx == null || props.cy == null || props.index == null) {
-                        return null
-                      }
-                      return (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={props.index === compositionIndex ? 5 : 3.5}
-                          fill={props.index === compositionIndex ? 'var(--accent-color)' : '#9acfb8'}
-                        />
-                      )
-                    }}
-                  />
-                  <Line
-                    yAxisId="right"
-                    dataKey="bodyFat"
-                    stroke="var(--warning-color)"
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="health-title">現在値</h3>
-            <div className="health-metric-grid">
-              <div className="health-metric-item">
-                <span>体重</span>
-                <strong>{formatNullable(latestWeight, 1)} kg</strong>
-              </div>
-              <div className="health-metric-item">
-                <span>目標体重</span>
-                <strong>{formatNullable(goalWeight, 1)} kg</strong>
-              </div>
-              <div className="health-metric-item">
-                <span>残り</span>
-                <strong>{remainingWeight == null ? '--' : `${remainingWeight.toFixed(1)} kg`}</strong>
-              </div>
-              <div className="health-metric-item">
-                <span>体脂肪</span>
-                <strong>{formatNullable(latestBodyFat, 1)} %</strong>
-              </div>
-              <div className="health-metric-item">
-                <span>BMI</span>
-                <strong>
-                  {formatNullable(bmi, 1)} {bmiLabel(bmi)}
-                </strong>
-              </div>
-              <div className="health-metric-item">
-                <span>BMR</span>
-                <strong>{formatNullable(displayBmr, 0)} kcal/日</strong>
-              </div>
-            </div>
-            <p className="health-note">
-              体脂肪判定: {bodyFatText} / BMR: {estimatedBmr != null ? '総消費-活動から推定' : '固定 1680 kcal/日'}
-            </p>
-          </section>
-
-          <section className="card">
-            <h3 className="health-title">変化速度</h3>
-            <div className="health-change-row">
-              <span>体重変化</span>
-              <strong>{weightChange == null ? '--' : `${weightChange.toFixed(2)} kg/週`}</strong>
-            </div>
-            <div className="health-change-row">
-              <span>体脂肪変化</span>
-              <strong>{bodyFatChange == null ? '--' : `${bodyFatChange.toFixed(2)} %/週`}</strong>
-            </div>
-          </section>
-        </>
-      )}
-
-      {tab === 'circulation' && (
-        <>
-          <section className="card">
-            <h3 className="health-title">血圧</h3>
-            <div className="health-latest-row">
-              <strong>
-                {latestBlood == null
-                  ? '-- / --'
-                  : `${Math.round(latestBlood.systolic)} / ${Math.round(latestBlood.diastolic)}`}{' '}
-                mmHg
-              </strong>
-            </div>
-            <p className={`health-status ${bpRisk.tone}`}>{bpRisk.label}</p>
-          </section>
-
-          <section className="card">
-            <div className="health-card-header">
-              <h3 className="health-title">
-                <div className="vital-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="vital-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16M8 8l4-4 4 4M8 20l4 4 4-4"></path></svg>
-                  </span> 血圧トレンド
-                </div>
-              </h3>
-              <div className="health-range-row">
-                <button
-                  type="button"
-                  className={`health-range-btn ${circulationRange === 14 ? 'active' : ''}`}
-                  onClick={() => {
-                    setCirculationRange(14)
-                    setBloodPressureIndex(null)
-                  }}
-                >
-                  2週
-                </button>
-                <button
-                  type="button"
-                  className={`health-range-btn ${circulationRange === 30 ? 'active' : ''}`}
-                  onClick={() => {
-                    setCirculationRange(30)
-                    setBloodPressureIndex(null)
-                  }}
-                >
-                  1ヶ月
-                </button>
-              </div>
-            </div>
-            {selectedBloodPressure ? (
-              <p className="health-selected-value">
-                {selectedBloodPressure.label} {formatNullable(selectedBloodPressure.systolic, 0)} /{' '}
-                {formatNullable(selectedBloodPressure.diastolic, 0)} mmHg
-              </p>
-            ) : (
-              <p className="health-selected-value">線をタップして値を表示</p>
-            )}
-            <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-                minWidth={0}
-                minHeight={1}
-                initialDimension={{ width: 320, height: 240 }}
-                debounce={50}
-              >
-                <LineChart
-                  data={bloodPressureData}
-                  onClick={(event) => {
-                    if (event && typeof event.activeTooltipIndex === 'number') {
-                      setBloodPressureIndex(event.activeTooltipIndex)
-                    }
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <ReferenceLine y={140} stroke="#d36b4d" strokeDasharray="4 4" />
-                  <ReferenceLine y={90} stroke="#5f84c9" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="systolic" stroke="#f08d7f" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="diastolic" stroke="#78a2dc" strokeWidth={2.5} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="health-note">基準線: 140 / 90 mmHg（高血圧域の目安）</p>
-          </section>
-
-          <section className="card">
-            <h3 className="health-title">
-              <div className="vital-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="vital-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h5l2-5 3 10 2-5h8"></path></svg>
-                </span> 安静時心拍トレンド
-              </div>
-            </h3>
-            {selectedResting ? (
-              <p className="health-selected-value">
-                {selectedResting.label}: {formatNullable(selectedResting.bpm, 0)} bpm
-              </p>
-            ) : (
-              <p className="health-selected-value">線をタップして値を表示</p>
-            )}
-            <div style={{ width: '100%', height: 220 }}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-                minWidth={0}
-                minHeight={1}
-                initialDimension={{ width: 320, height: 220 }}
-                debounce={50}
-              >
-                <LineChart
-                  data={restingData}
-                  onClick={(event) => {
-                    if (event && typeof event.activeTooltipIndex === 'number') {
-                      setRestingIndex(event.activeTooltipIndex)
-                    }
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <ReferenceLine y={60} stroke="#7ab97a" strokeDasharray="4 4" />
-                  <ReferenceLine y={100} stroke="#d36b4d" strokeDasharray="4 4" />
-                  <Line
-                    type="monotone"
-                    dataKey="bpm"
-                    stroke="var(--danger-color)"
-                    strokeWidth={2.8}
-                    dot={(props: { cx?: number; cy?: number; index?: number }) => {
-                      if (props.cx == null || props.cy == null || props.index == null) {
-                        return null
-                      }
-                      const selected = props.index === restingIndex
-                      return (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={selected ? 5 : 3.5}
-                          fill={selected ? 'var(--accent-color)' : 'var(--danger-color)'}
-                        />
-                      )
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="health-note">
-              最新: {formatNullable(latestResting, 0)} bpm（{hrStatus.message}） / 血中酸素飽和度: {formatNullable(latestSpo2, 1)}%
-            </p>
-          </section>
-        </>
-      )}
-
-      {tab === 'sleep' && (
-        <>
-          <section className="card">
-            <h3 className="health-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-              睡眠時間グラフ（7日）
-            </h3>
-            {selectedSleep ? (
-              <p className="health-selected-value">
-                {selectedSleep.label}: {formatNullable(selectedSleep.hours, 2)} h
-              </p>
-            ) : (
-              <p className="health-selected-value">棒をタップして値を表示</p>
-            )}
-            <div style={{ width: '100%', height: 240 }}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-                minWidth={0}
-                minHeight={1}
-                initialDimension={{ width: 320, height: 240 }}
-                debounce={50}
-              >
-                <BarChart data={sleepData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <ReferenceLine y={7} stroke="#9fb1ad" strokeDasharray="4 4" />
-                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} onClick={(_, index) => setSleepIndex(index)}>
-                    {sleepData.map((_, index) => (
-                      <Cell
-                        key={`sleep-${index}`}
-                        fill={index === sleepIndex ? 'var(--accent-color)' : 'rgba(136, 212, 180, 0.45)'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          <section className="card">
-            <h3 className="health-title">今週のサマリー</h3>
-            <div className="health-change-row">
-              <span>平均睡眠</span>
-              <strong>{sleepAverage == null ? '--' : `${sleepAverage.toFixed(2)} h`}</strong>
-            </div>
-            <div className="health-change-row">
-              <span>目標達成</span>
-              <strong>{sleepGoalDays} / 7 日</strong>
-            </div>
-            <div className="health-change-row">
-              <span>最長 / 最短</span>
-              <strong>
-                {sleepLongest == null ? '--' : `${sleepLongest.toFixed(2)} h`} /{' '}
-                {sleepShortest == null ? '--' : `${sleepShortest.toFixed(2)} h`}
-              </strong>
-            </div>
-          </section>
-        </>
       )}
     </div>
   )
 }
 
+// CirculationTab Component
+function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
+  const [data, setData] = useState<VitalsDataResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    fetchVitalsData(date, segment)
+      .then(res => { if (mounted) { setData(res); setLoading(false) } })
+      .catch(() => { if (mounted) { setData(null); setLoading(false) } })
+    return () => { mounted = false }
+  }, [date, segment])
+
+  if (loading) return <div className="health-empty-state"><span className="health-empty-text">読み込み中...</span></div>
+  if (!data || data.series.length === 0) return <div className="health-empty-state"><span className="health-empty-text">データがありません</span></div>
+
+  const current = data.current
+  const useAverageCard = segment !== 'week'
+  const displaySystolic = useAverageCard ? (data.periodSummary.avg_systolic ?? current.systolic) : current.systolic
+  const displayDiastolic = useAverageCard ? (data.periodSummary.avg_diastolic ?? current.diastolic) : current.diastolic
+  const displayRestingHr = useAverageCard ? (data.periodSummary.avg_resting_hr ?? current.resting_hr) : current.resting_hr
+
+  let bpStatus = '正常'
+  let bpClass = 'good'
+  if (displaySystolic && displayDiastolic) {
+    if (displaySystolic >= 140 || displayDiastolic >= 90) { bpStatus = '要確認'; bpClass = 'danger' }
+    else if (displaySystolic >= 130 || displayDiastolic >= 85) { bpStatus = '注意'; bpClass = 'warning' }
+  }
+
+  return (
+    <div className="tab-content">
+      <div className="health-current-card">
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均血圧' : '血圧'}</span>
+          <span className="health-metric-value">
+            {displaySystolic != null && <span className={`status-badge ${bpClass}`} style={{ marginRight: 8 }}>{bpStatus}</span>}
+            {displaySystolic ?? '-'}/{displayDiastolic ?? '-'} mmHg
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均安静時心拍' : '安静時心拍'}</span>
+          <span className="health-metric-value">
+            {displayRestingHr != null && <span className={`status-badge ${displayRestingHr < 80 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayRestingHr < 80 ? '良好' : '高め'}</span>}
+            {displayRestingHr ?? '-'} bpm
+          </span>
+        </div>
+      </div>
+
+      <div className="health-chart-container">
+        <div className="health-chart-title">血圧の推移</div>
+        <div className="health-chart-wrapper">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.series}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
+              <YAxis domain={['dataMin - 10', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+              <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <ReferenceLine y={130} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '130', position: 'right', fontSize: 10 }} />
+              <ReferenceLine y={85} stroke="#3b82f6" strokeDasharray="3 3" label={{ value: '85', position: 'right', fontSize: 10 }} />
+              <Line type="monotone" dataKey="systolic" name="収縮期" stroke="#EF9A9A" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="diastolic" name="拡張期" stroke="#90CAF9" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// SleepTab Component
+function SleepTab({ date, segment }: { date: string, segment: Segment }) {
+  const [data, setData] = useState<SleepDataResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    fetchSleepData(date, segment)
+      .then(res => { if (mounted) { setData(res); setLoading(false) } })
+      .catch(() => { if (mounted) { setData(null); setLoading(false) } })
+    return () => { mounted = false }
+  }, [date, segment])
+
+  if (loading) return <div className="health-empty-state"><span className="health-empty-text">読み込み中...</span></div>
+  if (!data || data.series.length === 0) return <div className="health-empty-state"><span className="health-empty-text">データがありません</span></div>
+
+  const current = data.current
+  const stages = data.stages
+  const useAverageCard = segment !== 'week'
+  const displaySleepMinutes = useAverageCard ? (data.periodSummary.avg_sleep_min ?? current.sleep_minutes) : current.sleep_minutes
+  const displayAvgSpo2 = useAverageCard ? (data.periodSummary.avg_spo2 ?? current.avg_spo2) : current.avg_spo2
+  const displayMinSpo2 = useAverageCard ? (data.periodSummary.min_spo2 ?? current.min_spo2) : current.min_spo2
+
+  const formatHours = (min: number | null | undefined) => {
+    if (min == null) return '-'
+    const h = Math.floor(min / 60)
+    const m = Math.floor(min % 60)
+    return `${h}時間${m}分`
+  }
+
+  let sleepStatus = '短め'
+  let sleepClass = 'danger'
+  if (displaySleepMinutes) {
+    if (displaySleepMinutes >= 420) { sleepStatus = '良好'; sleepClass = 'good' }
+    else if (displaySleepMinutes >= 360) { sleepStatus = 'やや短め'; sleepClass = 'warning' }
+  }
+
+  // Convert minutes to hours for display
+  const chartData = data.series.map(d => ({
+    ...d,
+    total_h: d.sleep_minutes != null ? Number((d.sleep_minutes / 60).toFixed(1)) : 0,
+    deep_h: d.deep_min != null ? Number((d.deep_min / 60).toFixed(1)) : 0,
+    light_h: d.light_min != null ? Number((d.light_min / 60).toFixed(1)) : 0,
+    rem_h: d.rem_min != null ? Number((d.rem_min / 60).toFixed(1)) : 0,
+  }))
+
+  return (
+    <div className="tab-content">
+      <div className="health-current-card">
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均睡眠' : '睡眠'}</span>
+          <span className="health-metric-value">
+            {displaySleepMinutes != null && <span className={`status-badge ${sleepClass}`} style={{ marginRight: 8 }}>{sleepStatus}</span>}
+            {formatHours(displaySleepMinutes)}
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">就寝 / 起床</span>
+          <span className="health-metric-value">
+            {useAverageCard ? '- / -' : `${current.bedtime ?? '-'} / ${current.wake_time ?? '-'}`}
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">ステージ</span>
+          <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
+            深い: {stages.deep_min ?? '-'}分  浅い: {stages.light_min ?? '-'}分  レム睡眠: {stages.rem_min ?? '-'}分
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">血中酸素</span>
+          <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
+            平均: {displayAvgSpo2 ?? '-'}%  最低: {displayMinSpo2 ?? '-'}%
+          </span>
+        </div>
+      </div>
+
+      <div className="health-chart-container">
+        <div className="health-chart-title">睡眠時間の推移</div>
+        <div className="health-chart-wrapper">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+              <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} cursor={{ fill: 'rgba(136, 212, 180, 0.1)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <ReferenceLine y={7} stroke="#8FA39A" strokeDasharray="4 4" label={{ value: '目標7h', position: 'insideTopRight', fill: '#8FA39A', fontSize: 10 }} />
+              <Bar dataKey="deep_h" name="深睡眠" stackId="a" fill="#6BCB9F" radius={segment === 'week' ? [0, 0, 0, 0] : [0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+              <Bar dataKey="light_h" name="浅睡眠" stackId="a" fill="#A5D6A7" radius={[0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+              <Bar dataKey="rem_h" name="レム睡眠" stackId="a" fill="#FFCC80" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="health-list-container">
+        <div className="health-list-item">
+          <span className="health-list-item-label">平均睡眠</span>
+          <span className="health-list-item-value">{formatHours(data.periodSummary.avg_sleep_min)}</span>
+        </div>
+        <div className="health-list-item">
+          <span className="health-list-item-label">目標達成日</span>
+          <span className="health-list-item-value">{data.periodSummary.goal_days} 日</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function HealthScreen({ initialTab = 'composition' }: { initialTab?: InnerTab }) {
+  const { activeDate } = useDateContext()
+  const [tab, setTab] = useState<InnerTab>(initialTab)
+  const [segment, setSegment] = useState<Segment>('week')
+
+  return (
+    <div className="health-container">
+      <DateNavBar />
+      <InnerTabBar tab={tab} onTabChange={setTab} />
+      <SegmentSelector value={segment} onChange={(v: string) => setSegment(v as Segment)} />
+      {tab === 'composition' && <CompositionTab date={activeDate} segment={segment} />}
+      {tab === 'circulation' && <CirculationTab date={activeDate} segment={segment} />}
+      {tab === 'sleep' && <SleepTab date={activeDate} segment={segment} />}
+    </div>
+  )
+}

@@ -12,7 +12,7 @@ function formatLabel(dateStr: string): string {
     dt.getMonth() === today.getMonth() &&
     dt.getDate() === today.getDate()
   const day = WEEKDAYS[dt.getDay()]
-  if (isToday) return `${m}月${d}日（${day}）・今日`
+  if (isToday) return `${m}月${d}日（${day}）今日`
   return `${m}月${d}日（${day}）`
 }
 

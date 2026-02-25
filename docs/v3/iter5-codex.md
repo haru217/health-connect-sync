@@ -101,3 +101,72 @@ curl -s -H "X-Api-Key: $KEY" \
 - 末尾への追記のみ。既存コードは変更不要
 - `db`, `Any`, `Depends`, `require_api_key` は import 済みなので追加不要
 - 認証は `require_api_key` で保護すること（`_: None = Depends(require_api_key)`）
+
+---
+
+## 追加タスク: user_profile にゴール列追加
+
+`/api/home-summary` の注目ポイント生成で `sleep_goal_minutes` と `steps_goal` を参照していますが、
+列が存在しない場合はデフォルト値（7時間 / 8000歩）にフォールバックしている状態です。
+ユーザーが自分の目標を設定できるよう、列を正式に追加してください。
+
+### DB マイグレーション
+
+`pc-server/app/db.py` の `init_db()` 内に以下を追加してください（`CREATE TABLE IF NOT EXISTS user_profile` の後）：
+
+```python
+# user_profile にゴール列を追加（既存 DB への後方互換マイグレーション）
+for col, definition in [
+    ("sleep_goal_minutes", "INTEGER DEFAULT 420"),
+    ("steps_goal",         "INTEGER DEFAULT 8000"),
+]:
+    try:
+        conn.execute(f"ALTER TABLE user_profile ADD COLUMN {col} {definition}")
+    except Exception:
+        pass  # 既に存在する場合は無視
+```
+
+### /api/profile GET の修正
+
+`get_profile()` の返却値に2フィールドを追加：
+
+```python
+return {
+    ...,                                          # 既存フィールドはそのまま
+    "sleep_goal_minutes": row["sleep_goal_minutes"] if row else 420,
+    "steps_goal":         row["steps_goal"]         if row else 8000,
+}
+```
+
+### /api/profile PUT の修正
+
+`upsert_profile()` が受け取る入力に2フィールドを追加：
+
+```python
+# 既存の upsert SQL の SET 句に追加
+# sleep_goal_minutes = COALESCE(:sleep_goal_minutes, sleep_goal_minutes)
+# steps_goal         = COALESCE(:steps_goal, steps_goal)
+```
+
+バインドパラメータに `sleep_goal_minutes` / `steps_goal` を追加し、`None` を渡した場合は既存値を保持する（COALESCE パターン）。
+
+### 動作確認
+
+```bash
+# GET でデフォルト値が返ること
+curl -s -H "X-Api-Key: $KEY" "http://localhost:8765/api/profile" | python -m json.tool
+
+# PUT で更新できること
+curl -s -X PUT -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"sleep_goal_minutes": 450, "steps_goal": 10000}' \
+  "http://localhost:8765/api/profile" | python -m json.tool
+
+# GET で更新値が反映されること
+curl -s -H "X-Api-Key: $KEY" "http://localhost:8765/api/profile" | python -m json.tool
+```
+
+### 注意事項
+
+- `init_db()` のマイグレーションは冪等（何度実行しても安全）にすること
+- `profile.py` を修正する場合は `main.py` も合わせて確認すること
+- 既存の `name`, `height_cm`, `goal_weight_kg` 等の動作を壊さないこと
