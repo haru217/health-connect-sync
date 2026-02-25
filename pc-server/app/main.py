@@ -1213,3 +1213,261 @@ def vitals_data(
         },
         "series": series,
     }
+
+
+@app.get("/api/home-summary")
+def home_summary(
+    date: str | None = None,
+    _: None = Depends(require_api_key),
+) -> dict[str, Any]:
+    """ホーム画面専用の軽量エンドポイント。
+
+    AI レポート（当日分）+ データ充足フラグ + 根拠データリストを返す。
+    """
+    import datetime as _dt3
+    from .db import LOCAL_TZ
+
+    if date is None:
+        target_date = _dt3.date.today()
+        date = target_date.isoformat()
+    else:
+        try:
+            target_date = _dt3.date.fromisoformat(date)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="date は YYYY-MM-DD 形式") from exc
+
+    prev_date = (target_date - _dt3.timedelta(days=1)).isoformat()
+    next_date = (target_date + _dt3.timedelta(days=1)).isoformat()
+
+    def _parse_iso_dt(value: Any) -> _dt3.datetime | None:
+        if not isinstance(value, str) or not value:
+            return None
+        try:
+            dt = _dt3.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=_dt3.timezone.utc)
+        return dt
+
+    def _to_local_day(value: Any) -> str | None:
+        dt = _parse_iso_dt(value)
+        if dt is None:
+            return None
+        return dt.astimezone(LOCAL_TZ).date().isoformat()
+
+    def _to_float(value: Any) -> float | None:
+        if isinstance(value, bool) or value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return None
+        return None
+
+    def _find_number(value: Any, key_candidates: set[str], depth: int = 0) -> float | None:
+        if depth > 6 or value is None:
+            return None
+        if isinstance(value, dict):
+            for key in key_candidates:
+                if key in value:
+                    num = _to_float(value.get(key))
+                    if num is not None:
+                        return num
+            for nested in value.values():
+                hit = _find_number(nested, key_candidates, depth + 1)
+                if hit is not None:
+                    return hit
+            return None
+        if isinstance(value, list):
+            for nested in value:
+                hit = _find_number(nested, key_candidates, depth + 1)
+                if hit is not None:
+                    return hit
+            return None
+        return _to_float(value)
+
+    def _extract_weight_kg(payload_json: str) -> float | None:
+        try:
+            payload = json.loads(payload_json)
+        except Exception:
+            return None
+        return _find_number(
+            payload,
+            {
+                "inKilograms",
+                "kilograms",
+                "kg",
+                "weight",
+                "value",
+                "inGrams",
+                "grams",
+            },
+        )
+
+    with db() as conn:
+        # ── AI レポート（当日の daily レポート）
+        report_row = conn.execute(
+            """SELECT content, created_at FROM ai_reports
+               WHERE report_date = ? AND report_type = 'daily'
+               ORDER BY created_at DESC LIMIT 1""",
+            (date,),
+        ).fetchone()
+
+        # 食事データ（nutrition_events）
+        meal_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM nutrition_events WHERE local_date = ?",
+            (date,),
+        ).fetchone()
+
+        # 睡眠候補（前後1日を取得してローカル日付で絞る）
+        sleep_rows = conn.execute(
+            """SELECT start_time, end_time FROM health_records
+               WHERE type='SleepSessionRecord'
+                 AND (
+                   (start_time IS NOT NULL AND date(start_time) BETWEEN ? AND ?)
+                   OR
+                   (end_time IS NOT NULL AND date(end_time) BETWEEN ? AND ?)
+                 )
+               ORDER BY COALESCE(end_time, start_time) DESC""",
+            (prev_date, next_date, prev_date, next_date),
+        ).fetchall()
+
+        # 歩数候補（前後1日を取得してローカル日付で絞る）
+        steps_rows = conn.execute(
+            """SELECT start_time, payload_json FROM health_records
+               WHERE type='StepsRecord'
+                 AND start_time IS NOT NULL
+                 AND date(start_time) BETWEEN ? AND ?""",
+            (prev_date, next_date),
+        ).fetchall()
+
+        # 体重候補（翌日UTCまでを取得してローカル日付で絞る）
+        weight_rows = conn.execute(
+            """SELECT time, payload_json FROM health_records
+               WHERE type='WeightRecord'
+                 AND time IS NOT NULL
+                 AND date(time) <= ?
+               ORDER BY time DESC
+               LIMIT 2000""",
+            (next_date,),
+        ).fetchall()
+
+    # ── 睡眠判定（起床日のローカル日付で当日判定）
+    sleep_ok = False
+    sleep_label = None
+    for row in sleep_rows:
+        start_dt = _parse_iso_dt(row["start_time"])
+        end_dt = _parse_iso_dt(row["end_time"])
+        anchor_dt = end_dt or start_dt
+        if anchor_dt is None:
+            continue
+        if anchor_dt.astimezone(LOCAL_TZ).date().isoformat() != date:
+            continue
+        if start_dt is None or end_dt is None or end_dt <= start_dt:
+            continue
+        total_min = int((end_dt - start_dt).total_seconds() / 60)
+        if total_min <= 0:
+            continue
+        sleep_ok = True
+        h, m = divmod(total_min, 60)
+        sleep_label = f"{h}時間{m}分"
+        break
+
+    # ── 歩数判定（ローカル日付で合算）
+    steps_val: float | None = None
+    for row in steps_rows:
+        if _to_local_day(row["start_time"]) != date:
+            continue
+        try:
+            payload = json.loads(row["payload_json"])
+        except Exception:
+            continue
+        count = _find_number(payload, {"count", "steps", "inCount"})
+        if count is None or count <= 0:
+            continue
+        steps_val = (steps_val or 0.0) + count
+    steps_ok = bool(steps_val and steps_val >= 1000)
+    steps_label = f"{int(steps_val):,}歩" if steps_val else None
+
+    # ── 体重判定（ローカル日付で <= 当日）
+    weight_ok = False
+    weight_label = None
+    for row in weight_rows:
+        local_day = _to_local_day(row["time"])
+        if local_day is None or local_day > date:
+            continue
+        kg = _extract_weight_kg(row["payload_json"])
+        if kg is None:
+            continue
+        # grams fallback
+        if kg > 500:
+            kg = kg / 1000.0
+        if kg <= 0 or kg > 400:
+            continue
+        weight_ok = True
+        weight_label = f"{float(kg):.1f}kg"
+        break
+
+    # ── 食事充足フラグ
+    meal_ok = bool(meal_row and meal_row["c"] > 0)
+
+    # ── 根拠データリスト（データがあるものだけ）
+    evidences = []
+    if sleep_ok and sleep_label:
+        evidences.append(
+            {
+                "type": "sleep",
+                "label": "睡眠",
+                "value": sleep_label,
+                "tab": "health",
+                "innerTab": "sleep",
+            }
+        )
+    if steps_ok and steps_label:
+        evidences.append(
+            {
+                "type": "steps",
+                "label": "歩数",
+                "value": steps_label,
+                "tab": "exercise",
+            }
+        )
+    if weight_ok and weight_label:
+        evidences.append(
+            {
+                "type": "weight",
+                "label": "体重",
+                "value": weight_label,
+                "tab": "health",
+                "innerTab": "composition",
+            }
+        )
+    if meal_ok:
+        evidences.append(
+            {
+                "type": "meal",
+                "label": "食事",
+                "value": f"{meal_row['c']}件",
+                "tab": "meal",
+            }
+        )
+
+    return {
+        "date": date,
+        "report": (
+            {"content": report_row["content"], "created_at": report_row["created_at"]}
+            if report_row
+            else None
+        ),
+        "sufficiency": {
+            "sleep": sleep_ok,
+            "steps": steps_ok,
+            "weight": weight_ok,
+            "meal": meal_ok,
+        },
+        "evidences": evidences,
+    }

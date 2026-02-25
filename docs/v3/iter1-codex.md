@@ -210,3 +210,22 @@ def home_summary(
 - `from datetime import datetime as _datetime` は関数内で必要な箇所のみローカル import します
 - 既存コードへの変更は一切不要です。末尾への追記のみで完結します
 - 動作確認: `curl -H "X-Api-Key: <key>" "http://localhost:8765/api/home-summary?date=2026-02-25"`
+
+---
+
+## 実装後の追加対応（レビュー反映）
+
+以下は実装レビューで見つかった懸念を解消するため、上記サンプル実装に対して追加で反映した変更点です。
+
+1. 睡眠判定の基準日を `start_time` から「起床側（end_time優先）のローカル日付」に変更  
+   - 前日就寝→当日起床の睡眠が当日分として評価されるよう修正
+
+2. 日付判定を UTC の `date(...)` 依存からローカル日付判定へ補正  
+   - `SleepSessionRecord` / `StepsRecord` / `WeightRecord` は前後1日分を取得して、Python側でローカル日付へ変換して判定
+
+3. 体重 payload の抽出キーを拡張  
+   - `inKilograms` / `kilograms` / `kg` に加えて、入れ子構造を含む数値探索を実施
+   - g単位で入っている値に備えて `>500` は `kg` 換算を適用
+
+4. 既存要件（レスポンススキーマ）は維持  
+   - 返却キー構造 (`date`, `report`, `sufficiency`, `evidences`) は変更なし
