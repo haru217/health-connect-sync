@@ -1,0 +1,3933 @@
+{
+  "date": "2026-02-23",
+  "db": "hc_sync_backup.db",
+  "health_records_total": 205,
+  "health_records_by_type": {
+    "HeartRateRecord": 57,
+    "StepsRecord": 36,
+    "SleepSessionRecord": 32,
+    "BasalMetabolicRateRecord": 20,
+    "ActiveCaloriesBurnedRecord": 19,
+    "OxygenSaturationRecord": 18,
+    "DistanceRecord": 12,
+    "SpeedRecord": 3,
+    "TotalCaloriesBurnedRecord": 3,
+    "RestingHeartRateRecord": 2,
+    "BloodPressureRecord": 1,
+    "BodyFatRecord": 1,
+    "WeightRecord": 1
+  },
+  "health_records": [
+    {
+      "rowid": 13180,
+      "record_key": "bd225fbca5e2bba2208cea1cc4ed0796ead416b2dd04d7bc1f4382d298b2467e",
+      "type": "StepsRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:00:00+00:00",
+      "end_time": "2026-02-22T15:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.802024+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 49
+      }
+    },
+    {
+      "rowid": 13181,
+      "record_key": "5d46fe1b579fc7e999cafad05e6afae3ce761ac6db5a6473af217fdca3e66e94",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:00:00+00:00",
+      "end_time": "2026-02-22T15:17:09.660000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.802284+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 28
+      }
+    },
+    {
+      "rowid": 13182,
+      "record_key": "3a5f884e64cd08810999bada0d001c2759faf5606ff1759f6574401556afed3e",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-22T15:17:09.659000+00:00",
+      "end_time": "2026-02-22T15:17:31.659000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.802918+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 11
+      }
+    },
+    {
+      "rowid": 13183,
+      "record_key": "3df6b3f03fd385ce255713bf0a2ebf42b0ce693090c38f1a0c0d5ba3b84198af",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:17:09.659000+00:00",
+      "end_time": "2026-02-22T15:17:31.659000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.803142+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 11
+      }
+    },
+    {
+      "rowid": 13184,
+      "record_key": "32fceb386f903aff338803f7bc7bb3483aea29ec8454cd115ecc4492a041b261",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-22T15:17:31.660000+00:00",
+      "end_time": "2026-02-22T15:18:30.166000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.803480+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 54
+      }
+    },
+    {
+      "rowid": 13185,
+      "record_key": "aacf2d08c2e142941ac855415feb530387682b1936e033df5b890817a6c68886",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:17:31.660000+00:00",
+      "end_time": "2026-02-22T15:18:30.166000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.803523+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 54
+      }
+    },
+    {
+      "rowid": 13186,
+      "record_key": "74bf82b8ef2e41736b5bf35c45be85f57aff635e1b02451753dc894d17c81944",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:18:30.165000+00:00",
+      "end_time": "2026-02-22T15:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.803810+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 18
+      }
+    },
+    {
+      "rowid": 13187,
+      "record_key": "2f0a07c554ab97f3b52ff46b6e29ed1a4a53ee69f440915459e7be123cfb342d",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:54:57.016000+00:00",
+      "end_time": "2026-02-22T15:55:21.664000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.804128+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 4
+      }
+    },
+    {
+      "rowid": 13188,
+      "record_key": "54e1ff61d72ad4717c4c9899db523f8ae67fa7d0e3dfe08255ffe08f034ccc2a",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-22T15:55:21.663000+00:00",
+      "end_time": "2026-02-22T15:55:41.663000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.804184+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13189,
+      "record_key": "b5734bd10834da51892094003c3ab3fb539da0a7973fe785a14d9c6d64fe6e88",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:55:21.663000+00:00",
+      "end_time": "2026-02-22T15:55:41.663000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.804523+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13190,
+      "record_key": "90bb8b3060a7f5d1933c80642fe0475b1ffe116fefaa7c1649950fb59567508d",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-22T15:55:41.664000+00:00",
+      "end_time": "2026-02-22T15:55:43.900000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.804809+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 1
+      }
+    },
+    {
+      "rowid": 13191,
+      "record_key": "afa5eef7f7d960d6b9e37cef25f1b15d3dafb13e5e70a7776a933b552909c225",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:55:41.664000+00:00",
+      "end_time": "2026-02-22T15:55:43.900000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.805494+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 1
+      }
+    },
+    {
+      "rowid": 13192,
+      "record_key": "bdf170733cf7fb4a9e66252b6754c347fb13cf5b5d667ac4b3d970416beacf61",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:55:43.899000+00:00",
+      "end_time": "2026-02-22T15:55:57.017000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.805724+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 2
+      }
+    },
+    {
+      "rowid": 13193,
+      "record_key": "5a16b7af6b44fe9dbd6bd4a00250f10a360f3904b8db49a49922f2951c5ec247",
+      "type": "StepsRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:00:00+00:00",
+      "end_time": "2026-02-22T16:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.806013+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 6
+      }
+    },
+    {
+      "rowid": 13194,
+      "record_key": "89d1c7b4fcdfd47a6d98634adb414cfe5395e990e454a3203bcc4e2232758117",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T16:00:00+00:00",
+      "end_time": "2026-02-22T16:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.806057+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 6
+      }
+    },
+    {
+      "rowid": 13195,
+      "record_key": "fc908f8d8c174870db8900f59e27914e45025f095bc75e5b0095db4ec1273ef7",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:24:04.073000+00:00",
+      "end_time": "2026-02-23T00:25:02.053000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.806853+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 28
+      }
+    },
+    {
+      "rowid": 13196,
+      "record_key": "b060d14ce533a66d55b881847d761832850ad524e69d90f0ebe4b8c28e6b3331",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:25:02.052000+00:00",
+      "end_time": "2026-02-23T00:25:22.052000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.807563+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13197,
+      "record_key": "f5758177b6b1e80c800d77420c1feb858bd02395053aff36f8d1441a7e8c3310",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:25:02.052000+00:00",
+      "end_time": "2026-02-23T00:25:22.052000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.807623+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13198,
+      "record_key": "3eb6e5b4de215a7be1a3bda32639ee0416853d5fe86c54a8ea938b47f8f0d1f0",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:25:22.053000+00:00",
+      "end_time": "2026-02-23T00:25:52.074000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.807895+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 44
+      }
+    },
+    {
+      "rowid": 13199,
+      "record_key": "24424b07da94c289b785f562ce5ed63d7e969198f93556b3c04c96cc65fc1874",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:25:22.053000+00:00",
+      "end_time": "2026-02-23T00:25:52.074000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.808344+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 44
+      }
+    },
+    {
+      "rowid": 13200,
+      "record_key": "00a9816f1ce31a7db1eef3a2d713d266bf488027016299522dbe70877beac8e9",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:30:22.572000+00:00",
+      "end_time": "2026-02-23T00:30:41.655000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.808629+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 8
+      }
+    },
+    {
+      "rowid": 13201,
+      "record_key": "6ddc18345608066119c21ad5aee1e53e2b198f76b07c3fb883761bb3e01796fd",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:30:41.654000+00:00",
+      "end_time": "2026-02-23T00:31:01.654000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.808687+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13202,
+      "record_key": "dbaa0a4928298098d326266ca761aaf7d1dc0fc3825957ac0d6c21e19ccfca79",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:30:41.654000+00:00",
+      "end_time": "2026-02-23T00:31:01.654000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.808952+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13203,
+      "record_key": "f833cca938075c5f632972c91bf0a2ee782d918de91be6b8d9adc5eeac3e65f4",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:31:01.654000+00:00",
+      "end_time": "2026-02-23T00:31:10.806000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.809006+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 15
+      }
+    },
+    {
+      "rowid": 13204,
+      "record_key": "fb96722aa4fa55a889fe1c10015fed84dba160238170e5a2e2a70bf7104e34d4",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:31:01.654000+00:00",
+      "end_time": "2026-02-23T00:31:10.806000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.809291+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 15
+      }
+    },
+    {
+      "rowid": 13205,
+      "record_key": "b25723f49d1aef91bb65125409fe3f616d4ccbf381e5c2f6bba2462f1a9a1b15",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:31:10.805000+00:00",
+      "end_time": "2026-02-23T00:31:30.582000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.809597+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 4
+      }
+    },
+    {
+      "rowid": 13206,
+      "record_key": "184ed6db763803ec8002c117d376703680e16fc710322e1188290ea23447bc3e",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:32:42.740000+00:00",
+      "end_time": "2026-02-23T00:33:05.470000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.809897+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 3
+      }
+    },
+    {
+      "rowid": 13207,
+      "record_key": "2170f46ddf3a5feb2d1a3b8e5b07f9fd499e3bc5068def58b9a4712a1d7222ee",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:33:05.469000+00:00",
+      "end_time": "2026-02-23T00:33:25.469000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.809952+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13208,
+      "record_key": "b3987e3239fd7b04dd4b63e5db03e9f6895eede8eed40aca4e79f8b07299838a",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:33:05.469000+00:00",
+      "end_time": "2026-02-23T00:33:25.469000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.810201+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13209,
+      "record_key": "0c702aa3536d0b32c7b4a3fbb19fb9656cd1050ce34cd012112140cacb83df22",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:33:25.468000+00:00",
+      "end_time": "2026-02-23T00:33:42.741000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.810451+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 2
+      }
+    },
+    {
+      "rowid": 13210,
+      "record_key": "a08e8acba563029b78edb5bb11a937ccbab02a2ab81d65887318fbe295829a9b",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:36:00.520000+00:00",
+      "end_time": "2026-02-23T00:36:35.508000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.810748+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 9
+      }
+    },
+    {
+      "rowid": 13211,
+      "record_key": "3c0b69ae1bc476e03406ab171b2a423195ef830809206fc7c88b60bf5b851f0f",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:36:35.507000+00:00",
+      "end_time": "2026-02-23T00:36:55.507000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.811056+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13212,
+      "record_key": "c9b971f4ee63df5270f88d6dbd4d97c560139c497b77219e7a2728a2b458f297",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:36:35.507000+00:00",
+      "end_time": "2026-02-23T00:36:55.507000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.811368+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 10
+      }
+    },
+    {
+      "rowid": 13213,
+      "record_key": "afe7f6889f4753dbd0498d871c2bb4739c1457ccdce9641cfc5b579be9153cc0",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:36:55.506000+00:00",
+      "end_time": "2026-02-23T00:37:00.521000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.811639+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 1
+      }
+    },
+    {
+      "rowid": 13214,
+      "record_key": "56b08a0dc9095060bb9e387bc2b2a6ed8b0be7bf28bbf157c278a20171a3d8e8",
+      "type": "StepsRecord",
+      "source": "android",
+      "start_time": "2026-02-23T00:36:55.506000+00:00",
+      "end_time": "2026-02-23T00:37:14.333000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.811727+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 19
+      }
+    },
+    {
+      "rowid": 13215,
+      "record_key": "bf004bcb6f8f0d0faaf70c5056301aba8ee7195bfe5a2eb3b3a36609469ad9c1",
+      "type": "StepsRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:37:00.520000+00:00",
+      "end_time": "2026-02-23T00:37:10.513000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.811963+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "count": 9
+      }
+    },
+    {
+      "rowid": 13216,
+      "record_key": "58bd8197ecfbdfd9bb7a3e00b040b4b0ea30a457c13985bebb8d527a1516bed0",
+      "type": "WeightRecord",
+      "source": "com.oceanwing.smarthome",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-23T00:33:53+00:00",
+      "ingested_at": "2026-02-23T00:38:19.812237+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kg": 84
+      }
+    },
+    {
+      "rowid": 13217,
+      "record_key": "08b13ffc200f47d3fb52aa0e0f9e8c339ae61a054d4994435760cd49d9e59538",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:13:23+00:00",
+      "end_time": "2026-02-22T16:37:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.812786+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T16:37:43Z",
+            "stage": 1,
+            "startTime": "2026-02-22T16:13:23Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13218,
+      "record_key": "534f277a6fcbe1f4a8a6a60c74eb454bd90ac923709ddb13f8be9baa9284f9b1",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:37:43+00:00",
+      "end_time": "2026-02-22T22:55:53+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.813258+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:55:53Z",
+            "stage": 2,
+            "startTime": "2026-02-22T16:37:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13219,
+      "record_key": "2989c76723f2a88802f2214b793fba653b8963fcfad2ba9b4bf6d9b9b05db99b",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:37:43+00:00",
+      "end_time": "2026-02-22T16:42:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.813547+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T16:42:43Z",
+            "stage": 4,
+            "startTime": "2026-02-22T16:37:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13220,
+      "record_key": "ff3ce7c3b552c0b3b6cfaed8b9fec3ba52f75b51baf5feb077054d6ae31b07c4",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:42:43+00:00",
+      "end_time": "2026-02-22T17:07:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.813833+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:07:43Z",
+            "stage": 5,
+            "startTime": "2026-02-22T16:42:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13221,
+      "record_key": "34ce8cfb676532e4b8a62d49f070c4bb2deee1622a7ee371e166cebb1c7a013b",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:07:43+00:00",
+      "end_time": "2026-02-22T17:12:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.813900+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:12:43Z",
+            "stage": 4,
+            "startTime": "2026-02-22T17:07:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13222,
+      "record_key": "1e51feb76d86ad8cf9a93ef31a601949d8b9435127cbaf760def2b4277b5977d",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:12:43+00:00",
+      "end_time": "2026-02-22T17:17:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.814163+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:17:43Z",
+            "stage": 5,
+            "startTime": "2026-02-22T17:12:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13223,
+      "record_key": "8840d26bdf447a57e93e28459a826df0111150d8b65fd8383f5b05d6391c493e",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:17:43+00:00",
+      "end_time": "2026-02-22T17:22:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.814464+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:22:43Z",
+            "stage": 4,
+            "startTime": "2026-02-22T17:17:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13224,
+      "record_key": "a8429bff6fd57470218105e185670d8c74706848dd54d341b7afa7d90cdfd47d",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:22:43+00:00",
+      "end_time": "2026-02-22T17:27:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.814751+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:27:43Z",
+            "stage": 5,
+            "startTime": "2026-02-22T17:22:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13225,
+      "record_key": "40842148aa38cfa34c3b6279628fd6d4d2f377185907fdcce97fba8e44e36fd0",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:27:43+00:00",
+      "end_time": "2026-02-22T17:42:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.815053+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T17:42:43Z",
+            "stage": 4,
+            "startTime": "2026-02-22T17:27:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13226,
+      "record_key": "b4b08bd599b0c6c1816881620b6f1bc7870b4367f7c601219ef5f45e50323358",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:42:43+00:00",
+      "end_time": "2026-02-22T18:17:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.815166+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T18:17:43Z",
+            "stage": 5,
+            "startTime": "2026-02-22T17:42:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13227,
+      "record_key": "8a6904f7ec62167fae6edaf74f8734ab0cce4e0676e45b4d91ed062b95e18473",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:17:43+00:00",
+      "end_time": "2026-02-22T18:27:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.815235+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T18:27:43Z",
+            "stage": 4,
+            "startTime": "2026-02-22T18:17:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13228,
+      "record_key": "5b2db8b45ccde1d3b2cf9f4d7e4fe2d92eefbdc99e663003213f9cf1f08b8ad8",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:27:43+00:00",
+      "end_time": "2026-02-22T18:32:43+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.815348+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T18:32:43Z",
+            "stage": 1,
+            "startTime": "2026-02-22T18:27:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13229,
+      "record_key": "3063ffbac895f119d6eef77afd86d9617e559e06820ea07fdaa16d33e057599a",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:32:43+00:00",
+      "end_time": "2026-02-22T18:56:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.815751+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T18:56:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T18:32:43Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13230,
+      "record_key": "079cda108c2d95ea4fb6bb7830bb167ac8804a0f52c28a3fc53053041530e229",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:56:38+00:00",
+      "end_time": "2026-02-22T19:01:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.816047+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T19:01:38Z",
+            "stage": 5,
+            "startTime": "2026-02-22T18:56:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13231,
+      "record_key": "8c271d9047ed2d72ba961b1c72e071c127212eeb43c3059df0291966f6a6a6a6",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:01:38+00:00",
+      "end_time": "2026-02-22T19:29:08+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.816407+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T19:29:08Z",
+            "stage": 4,
+            "startTime": "2026-02-22T19:01:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13232,
+      "record_key": "6d650169bcd18b66dd6b32102ba6ba3f6cf53f1483505b56dec1866d5c7ecb62",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:29:08+00:00",
+      "end_time": "2026-02-22T19:32:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.816871+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T19:32:38Z",
+            "stage": 1,
+            "startTime": "2026-02-22T19:29:08Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13233,
+      "record_key": "4b3861f5142a14913f9037f300669ce10fb57f64c016a4b49c9bb07b3d512333",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:32:38+00:00",
+      "end_time": "2026-02-22T19:37:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.816962+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T19:37:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T19:32:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13234,
+      "record_key": "4ec4607bee0a81f5da133931cbe0825a89a531ec76113487b4beedd6eb96ccae",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:37:38+00:00",
+      "end_time": "2026-02-22T19:57:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.817239+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T19:57:38Z",
+            "stage": 6,
+            "startTime": "2026-02-22T19:37:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13235,
+      "record_key": "3f5907a8d746c349f0c02077b3c85624efce8cdbaf13d502bdd0380c3c596c54",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:57:38+00:00",
+      "end_time": "2026-02-22T21:07:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.817534+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T21:07:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T19:57:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13236,
+      "record_key": "dfd12a88b2ecb79ced87a48a12cbe62f1e383414f6777a27829d9ddd93cc8b61",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:07:38+00:00",
+      "end_time": "2026-02-22T21:22:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.817711+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T21:22:38Z",
+            "stage": 6,
+            "startTime": "2026-02-22T21:07:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13237,
+      "record_key": "f614ab1b4e092a4f2c04edfd63071fa445fecee1ab64ab2154eb41370432fbc2",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:22:38+00:00",
+      "end_time": "2026-02-22T21:25:08+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.818344+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T21:25:08Z",
+            "stage": 1,
+            "startTime": "2026-02-22T21:22:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13238,
+      "record_key": "84d904f844800e0d2b439fa1412042ffc38f70a19df2cd15e8fd025155ee4079",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:25:08+00:00",
+      "end_time": "2026-02-22T21:32:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.818603+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T21:32:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T21:25:08Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13239,
+      "record_key": "5cd9972277aab436ad383cdf4e97c53d464d7e9bd02dd5abf6d78185a1ff3f84",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:32:38+00:00",
+      "end_time": "2026-02-22T21:42:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.818876+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T21:42:38Z",
+            "stage": 6,
+            "startTime": "2026-02-22T21:32:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13240,
+      "record_key": "37b338f74a502abc3cf09904ac5958eca48243500879b404a4fea289b8a88617",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:42:38+00:00",
+      "end_time": "2026-02-22T22:12:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.818935+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:12:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T21:42:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13241,
+      "record_key": "4698b6f7ecc0886baa86e0f8d07f8d7948abb3ed2be7c30c82c3eff78f074773",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:12:38+00:00",
+      "end_time": "2026-02-22T22:17:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.819642+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:17:38Z",
+            "stage": 6,
+            "startTime": "2026-02-22T22:12:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13242,
+      "record_key": "60fce0e0e0bc3904135a749b499d57251b900c79bca1351f737a2c4ddb5b2469",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:17:38+00:00",
+      "end_time": "2026-02-22T22:42:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.819892+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:42:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T22:17:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13243,
+      "record_key": "08d1a61c506530c4f678bba2440ba23c06a4d65d7d49b181454f17115980b92b",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:42:38+00:00",
+      "end_time": "2026-02-22T22:47:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.820208+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:47:38Z",
+            "stage": 6,
+            "startTime": "2026-02-22T22:42:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13244,
+      "record_key": "5823476693841396b6b69f460aca58cee2f1611da88a950161aa3ed45733c00f",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:47:38+00:00",
+      "end_time": "2026-02-22T22:52:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.820272+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:52:38Z",
+            "stage": 4,
+            "startTime": "2026-02-22T22:47:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13245,
+      "record_key": "31f3fd1900ff048d9fa3ceb3e9bb70e188690572aea4542b601e8e06930feb66",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:52:38+00:00",
+      "end_time": "2026-02-22T22:55:53+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.820593+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:55:53Z",
+            "stage": 6,
+            "startTime": "2026-02-22T22:52:38Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13246,
+      "record_key": "ee1f83484f953c1544d82b14842e686ede0a0e683c1801d82f290811f647d299",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:55:53+00:00",
+      "end_time": "2026-02-22T22:57:38+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.820883+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T22:57:38Z",
+            "stage": 1,
+            "startTime": "2026-02-22T22:55:53Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13247,
+      "record_key": "e3b30482a142e2ee64c96a4c2601a0af2fde43bf270b85510f7738280a74b41f",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:55:53+00:00",
+      "end_time": "2026-02-22T23:00:08+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.821384+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T23:00:08Z",
+            "stage": 1,
+            "startTime": "2026-02-22T22:55:53Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13248,
+      "record_key": "d2c0b31d13c46b08396d64befa84c839f28cc72c70314c68f27b518c5f813b8b",
+      "type": "SleepSessionRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:55:53+00:00",
+      "end_time": "2026-02-22T23:42:40+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.821645+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "stages_count": 1
+      },
+      "payload": {
+        "notes": null,
+        "stages": [
+          {
+            "endTime": "2026-02-22T23:42:40Z",
+            "stage": 1,
+            "startTime": "2026-02-22T22:55:53Z"
+          }
+        ],
+        "title": null
+      }
+    },
+    {
+      "rowid": 13262,
+      "record_key": "6f302efb1728edea3046bf512e0ab4999175af63dbd61582bb86351e571e4a83",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:00:00+00:00",
+      "end_time": "2026-02-22T15:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.826183+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 81,
+            "time": "2026-02-22T15:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13263,
+      "record_key": "77e75f4364a18b3201093df7c4d39f889a5c8ec7e0716fc24269350e69fdc463",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:10:00+00:00",
+      "end_time": "2026-02-22T15:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.827555+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 76,
+            "time": "2026-02-22T15:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13264,
+      "record_key": "a7dc179d8a18d0800af1f0a5623b06b11668dd990dd285a23b158c96af0c224b",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:20:00+00:00",
+      "end_time": "2026-02-22T15:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.827995+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 72,
+            "time": "2026-02-22T15:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13265,
+      "record_key": "43866bb865677d676be1a20fa25626c9a38a301e2bcb56998bb6ba2373fbd66f",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:30:00+00:00",
+      "end_time": "2026-02-22T15:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.828303+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 69,
+            "time": "2026-02-22T15:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13266,
+      "record_key": "4038abe29dfd1d79509eba33059ee13b46fb20258372006372b18a116688eaa1",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:40:00+00:00",
+      "end_time": "2026-02-22T15:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.828614+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 68,
+            "time": "2026-02-22T15:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13267,
+      "record_key": "1bdf609ed4e172e36527f05f0b056d56e969c4531815d5963c2c35b752a13b5d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:50:00+00:00",
+      "end_time": "2026-02-22T16:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.828678+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 68,
+            "time": "2026-02-22T15:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13268,
+      "record_key": "9536c9acf85e76d07d40b831277bc1b159edf21f0501213e1620e1ee16f95933",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:00:00+00:00",
+      "end_time": "2026-02-22T16:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.828734+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 69,
+            "time": "2026-02-22T16:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13269,
+      "record_key": "b25210c5e99edc2f8ad21fc28acf47c08ef739473f84f1f280999765c39c8044",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:10:00+00:00",
+      "end_time": "2026-02-22T16:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.829024+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 66,
+            "time": "2026-02-22T16:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13270,
+      "record_key": "1a5bd80dd2d0993fbcd00de02edeeecca81d81f4dcb8b9c9a5bf1f3b36d4f982",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:20:00+00:00",
+      "end_time": "2026-02-22T16:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.829088+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-22T16:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13271,
+      "record_key": "bd7528d375c21dfd1ea975e9331c122d441c00fcc9b4aff4b7f995d294a44a5d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:30:00+00:00",
+      "end_time": "2026-02-22T16:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.829377+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T16:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13272,
+      "record_key": "4beaa0b837a48408b7570d0d9d872f99bc5b47081076f5544bc2f4d87e9bb227",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:40:00+00:00",
+      "end_time": "2026-02-22T16:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.829472+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-22T16:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13273,
+      "record_key": "5d9b70cfd650c3af69ddb560220c81a26a93b7dc5a91331595630e25b3bb3d5d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:50:00+00:00",
+      "end_time": "2026-02-22T17:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.830158+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T16:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13274,
+      "record_key": "18928153c52db1d79bbbaa587ce3e9e153d5d7a71a967dd65de862ea7a1b6126",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:00:00+00:00",
+      "end_time": "2026-02-22T17:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.830427+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T17:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13275,
+      "record_key": "08234912991554d7776efa6506783b3b910bfcfdede261d74d243598d9f64221",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:10:00+00:00",
+      "end_time": "2026-02-22T17:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.830760+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-22T17:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13276,
+      "record_key": "d3b49a9dd126a684b89908fe4fc50d4821080c539a52db078940b12105dfa0aa",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:20:00+00:00",
+      "end_time": "2026-02-22T17:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.830818+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 63,
+            "time": "2026-02-22T17:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13277,
+      "record_key": "7b28cec384140610154ff3678432a9e5b2db51b1a01f51131feab84bfe425272",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:30:00+00:00",
+      "end_time": "2026-02-22T17:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.831063+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T17:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13278,
+      "record_key": "0afd8cbddc85b1b476c0f951fed69960ad54a80cd0baac91a0552fd8525d1b66",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:40:00+00:00",
+      "end_time": "2026-02-22T17:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.831402+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 58,
+            "time": "2026-02-22T17:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13279,
+      "record_key": "029207d86715a3afafa3aa2d381feb2ef49b5e346d9d54ab80da225fe0a86f47",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:50:00+00:00",
+      "end_time": "2026-02-22T18:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.831666+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 58,
+            "time": "2026-02-22T17:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13280,
+      "record_key": "bdf1af8f9b5b63f45d16cedc5ff06cc058b5d341eeb1b940bc7250815c370a59",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:00:00+00:00",
+      "end_time": "2026-02-22T18:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.831924+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 56,
+            "time": "2026-02-22T18:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13281,
+      "record_key": "832b492dc40d49160c5cac3043df40899cc209771589f1c439023cf6b0df8b3f",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:10:00+00:00",
+      "end_time": "2026-02-22T18:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.831984+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 54,
+            "time": "2026-02-22T18:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13282,
+      "record_key": "52f98b4ea2908056774cabb59b802d30c6f316182e3c547feac27e16b8841408",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:20:00+00:00",
+      "end_time": "2026-02-22T18:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.832055+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 53,
+            "time": "2026-02-22T18:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13283,
+      "record_key": "264fd8d856553e7c1408f64eab855d2d05eaa98becdeb4e7d249e90cc0b81952",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:30:00+00:00",
+      "end_time": "2026-02-22T18:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.832110+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 54,
+            "time": "2026-02-22T18:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13284,
+      "record_key": "c0802fa11b8721945764a814805e7aed3afa643aa19eeb4d5ac57391d9694437",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:40:00+00:00",
+      "end_time": "2026-02-22T18:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.832147+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 53,
+            "time": "2026-02-22T18:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13285,
+      "record_key": "4e447ca9aed8cf24caf5ac5fb75b737978994247f3756364bc0524a2248d0fc6",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:50:00+00:00",
+      "end_time": "2026-02-22T19:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.832486+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 52,
+            "time": "2026-02-22T18:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13286,
+      "record_key": "d0416071d3408497b4789bbcb75610b8a788636f2e2dcb5f5a6f6232f33a9c8d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:00:00+00:00",
+      "end_time": "2026-02-22T19:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.832751+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 53,
+            "time": "2026-02-22T19:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13287,
+      "record_key": "7beaddff742d014d97f6b192b3b965b8cd90c63a52672a89132c403b7fd22030",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:10:00+00:00",
+      "end_time": "2026-02-22T19:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833076+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 53,
+            "time": "2026-02-22T19:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13288,
+      "record_key": "8536414b522476869272cd0956b5d6189225173b1c04568415e64cd554bb159c",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:20:00+00:00",
+      "end_time": "2026-02-22T19:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833126+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T19:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13289,
+      "record_key": "703179b29bb09e2a7b817e5415d60553c01a207909d886756ee483deffb8c634",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:30:00+00:00",
+      "end_time": "2026-02-22T19:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833164+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T19:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13290,
+      "record_key": "3bae28b0e3ed62c4d1a76ab3703fe4e3449452a66eb57c3ad3c301d74d34d7e3",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:40:00+00:00",
+      "end_time": "2026-02-22T19:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833201+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 59,
+            "time": "2026-02-22T19:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13291,
+      "record_key": "6a671fc8e2d98271b59161df360626aadbbce2c3454b3524c8fc009f498ef92d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:50:00+00:00",
+      "end_time": "2026-02-22T20:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833487+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T19:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13292,
+      "record_key": "3f122e55de4f0cb856fc9bd8ef0025b191e1fd60341af89d6f370867ade4e27d",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:00:00+00:00",
+      "end_time": "2026-02-22T20:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833841+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T20:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13293,
+      "record_key": "aa84d7b583a09227460fb1340be34844394280522f1255e80cc2a1cd3d285210",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:10:00+00:00",
+      "end_time": "2026-02-22T20:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.833914+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T20:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13294,
+      "record_key": "9ec26caf77de7f44609f9df00f54ae23f48b55fae6158a910eb9829da14883e6",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:20:00+00:00",
+      "end_time": "2026-02-22T20:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836018+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T20:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13295,
+      "record_key": "3c47092ed277083144ac17d35ed505f52105fdc1f983f1d50abf0cf30189275a",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:30:00+00:00",
+      "end_time": "2026-02-22T20:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836384+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T20:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13296,
+      "record_key": "a721e1d30b874cb8cdc8337f539cc50e647df9b63713ecfdafea856f78a47e88",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:40:00+00:00",
+      "end_time": "2026-02-22T20:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836427+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 53,
+            "time": "2026-02-22T20:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13297,
+      "record_key": "0d6ccfd9a6ee687a2a2b90a454a45101cd7d956c1b2aed6797470c7ecbdadedc",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:50:00+00:00",
+      "end_time": "2026-02-22T21:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836695+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 57,
+            "time": "2026-02-22T20:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13298,
+      "record_key": "bce5f653341519a87ab4659fa4cb3528225ba6ad4060c9f2a00d5acf83e7c576",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:00:00+00:00",
+      "end_time": "2026-02-22T21:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836738+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 64,
+            "time": "2026-02-22T21:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13299,
+      "record_key": "569fda1eebe917b7cb87f1f5b76b57da5ba9d9feb4c75e7032efbceeab094eed",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:10:00+00:00",
+      "end_time": "2026-02-22T21:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836773+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 64,
+            "time": "2026-02-22T21:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13300,
+      "record_key": "4d7d3f32d77596d8c2b07f2762fefe7161c75c3645aa50e63b51da9619b5d4c4",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:20:00+00:00",
+      "end_time": "2026-02-22T21:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836813+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 57,
+            "time": "2026-02-22T21:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13301,
+      "record_key": "71e31e8c90e670f08f254add012bb4d7fb0f391552c70a3c797e12a3a4f3c11e",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:30:00+00:00",
+      "end_time": "2026-02-22T21:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.836886+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 56,
+            "time": "2026-02-22T21:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13302,
+      "record_key": "96bc665e59b66e96b52ac95591072ea18b08afb13525b175091c7301a818eb4b",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:40:00+00:00",
+      "end_time": "2026-02-22T21:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.837154+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T21:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13303,
+      "record_key": "36a584af4c8bee1955598106f2631509794ec876a4f6b73fe5e11f98d5b364b1",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:50:00+00:00",
+      "end_time": "2026-02-22T22:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.837413+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 54,
+            "time": "2026-02-22T21:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13304,
+      "record_key": "6a2e69f6d8daba7cb5adef8da04ebc11a4f4d7801a17e1dfba561b31d512110f",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:00:00+00:00",
+      "end_time": "2026-02-22T22:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.837460+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T22:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13305,
+      "record_key": "5794b1a357cf83ca02b5667c00520a99474b33a435f2070b8046433595d43bb4",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:10:00+00:00",
+      "end_time": "2026-02-22T22:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.837575+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 54,
+            "time": "2026-02-22T22:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13306,
+      "record_key": "078a70c4779cdef4a46f69bee807aac38f0b355badf2e477d471a1e509f2d31e",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:20:00+00:00",
+      "end_time": "2026-02-22T22:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.837935+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 55,
+            "time": "2026-02-22T22:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13307,
+      "record_key": "41339473b74c452c1d7021598379f5980ff0d7d43f8b7126f01111a5895e011f",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:30:00+00:00",
+      "end_time": "2026-02-22T22:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.838043+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 54,
+            "time": "2026-02-22T22:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13308,
+      "record_key": "ba0d0475b0fe6330ec598b04ed1d6b7fa2c57175882db2e1c9a73aa3f42ccb42",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:40:00+00:00",
+      "end_time": "2026-02-22T22:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.838321+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T22:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13309,
+      "record_key": "e2db44da84dca5b8227e795314eb906fb2efb176ad0ab37853728106554c6143",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:50:00+00:00",
+      "end_time": "2026-02-22T23:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.838605+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 62,
+            "time": "2026-02-22T22:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13310,
+      "record_key": "5484be4a926b8ead789c86dcd629c457b2bd65447a5e804de77ac2054c5f856e",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:00:00+00:00",
+      "end_time": "2026-02-22T23:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.838891+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T23:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13311,
+      "record_key": "71c7c646a310b438bc0b3fe5f90e5a12a43d0d69fcb0600e3aa23f8882332bde",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:10:00+00:00",
+      "end_time": "2026-02-22T23:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.839173+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 59,
+            "time": "2026-02-22T23:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13312,
+      "record_key": "352f9a31a7d320022f20c48203ceaa1a7c5be1f341cea0ebc2f9688d5b1143bf",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:20:00+00:00",
+      "end_time": "2026-02-22T23:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.839251+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-22T23:20:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13313,
+      "record_key": "d17ae3c562221d70ac2bf82922ef4b88f624c68ab028d595fbcf45b6c9195542",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:30:00+00:00",
+      "end_time": "2026-02-22T23:40:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.839564+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-22T23:30:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13314,
+      "record_key": "18ac863b00d971ec19909059698970adfc9ee19da94c0b03fd93bbbcf54b968c",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:40:00+00:00",
+      "end_time": "2026-02-22T23:50:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.840025+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 58,
+            "time": "2026-02-22T23:40:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13315,
+      "record_key": "a019c8c172cb724af2e213aea70302908d9e4c3a6946b8f6a8ab83ea6c6267ff",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:50:00+00:00",
+      "end_time": "2026-02-23T00:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.840080+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 60,
+            "time": "2026-02-22T23:50:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13316,
+      "record_key": "3ec116cf0114f906b03787045b3c8771ac32b48d10d0ea7e40820469ceef8ad2",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-23T00:00:00+00:00",
+      "end_time": "2026-02-23T00:10:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.840128+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 62,
+            "time": "2026-02-23T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13317,
+      "record_key": "45917fdd8d7f0e5b2d61ea99d32b446de9da0f1469019be2ae6bc9efe8f2393b",
+      "type": "HeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-23T00:10:00+00:00",
+      "end_time": "2026-02-23T00:20:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.840203+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 66,
+            "time": "2026-02-23T00:10:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13318,
+      "record_key": "e330289aa6a576628d3324d79e82e8a00e74348b121625fed0851a7298d846d1",
+      "type": "HeartRateRecord",
+      "source": "jp.co.omron.healthcare.omron_connect",
+      "start_time": "2026-02-23T00:35:09+00:00",
+      "end_time": "2026-02-23T00:35:09+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.840455+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "beatsPerMinute": 61,
+            "time": "2026-02-23T00:35:09Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13323,
+      "record_key": "c9b996c5febd2902a91adc66633ae369908fece405dd904e8bf92417c89befc5",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:00:00+00:00",
+      "end_time": "2026-02-22T15:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.841484+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 16
+      }
+    },
+    {
+      "rowid": 13324,
+      "record_key": "39f5a04316de76d24397dc373045a1c8465133d0d04a1f2dd50b6362b7867d92",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T15:30:00+00:00",
+      "end_time": "2026-02-22T16:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.841536+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 3
+      }
+    },
+    {
+      "rowid": 13325,
+      "record_key": "e86bc0feff50bdfda84bdfedcd7ce897a7d139c32a1ef839e3f0238bd290286b",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:00:00+00:00",
+      "end_time": "2026-02-22T16:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.841618+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 22
+      }
+    },
+    {
+      "rowid": 13326,
+      "record_key": "271395742b819f6cb454cced73cf7f7fe639249011da018920f56e70163a5b8a",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T16:30:00+00:00",
+      "end_time": "2026-02-22T17:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.841929+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13327,
+      "record_key": "ec9499ff67f2362080d9aad6a4f55cd87bd9b36986e639dcd813c739ac1cbfb7",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:00:00+00:00",
+      "end_time": "2026-02-22T17:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.842226+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13328,
+      "record_key": "48ded79b6ac9e7585fcc4f116eccf5807c53a52eccf07201ae805a65adc5e4c0",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T17:30:00+00:00",
+      "end_time": "2026-02-22T18:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.842505+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13329,
+      "record_key": "e52231773a9722807abf2b2b7366d815a22bcdca507a1f5444dfe74e1187e872",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:00:00+00:00",
+      "end_time": "2026-02-22T18:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.842768+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 3
+      }
+    },
+    {
+      "rowid": 13330,
+      "record_key": "dcd3a6d8ac89baf650e1e4aafccffd305e869cbd8cdc3090c570dbfb4a75aa19",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T18:30:00+00:00",
+      "end_time": "2026-02-22T19:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.842825+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 3
+      }
+    },
+    {
+      "rowid": 13331,
+      "record_key": "b8f60c377ebac061badfd3ee4713bd0856fc88e5de44fcba2d6c35dd6012a062",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:00:00+00:00",
+      "end_time": "2026-02-22T19:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.843092+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13332,
+      "record_key": "d13c5e51e782e21a8ca76a4c2fed1813860c7905f47c254e93bf59b9e08577d5",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T19:30:00+00:00",
+      "end_time": "2026-02-22T20:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.843692+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13333,
+      "record_key": "abf9b02a488c9710ae06a0b1fe7e2214a32eeed5ff42059b542d1fa9f10ca0f1",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:00:00+00:00",
+      "end_time": "2026-02-22T20:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.843756+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13334,
+      "record_key": "9879771acd06c371643fc3da9e1438534ba475651cb81803429c216394aa273d",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T20:30:00+00:00",
+      "end_time": "2026-02-22T21:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.844390+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13335,
+      "record_key": "c9b071acd766d104fa899b9e02c3d47f52f958ef746e2d51a8eb3e3142ba88ff",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:00:00+00:00",
+      "end_time": "2026-02-22T21:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.844703+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13336,
+      "record_key": "8433585d70b4515d91947c6715a8cbcf5f6163705a24f90a3e8a458c553f3d9c",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T21:30:00+00:00",
+      "end_time": "2026-02-22T22:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.844771+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13337,
+      "record_key": "baf3a0623f77aa96054a61abed387c4b23a705513b416932d3d312796739d5dd",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:00:00+00:00",
+      "end_time": "2026-02-22T22:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.845081+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13338,
+      "record_key": "e479530b2aa8c3ba3defa49b4b5906faebc1a1d6cf235ca0dd7bd9e654447b06",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T22:30:00+00:00",
+      "end_time": "2026-02-22T23:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.845352+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13339,
+      "record_key": "a9a140cf8b45e44adf3ec410203000397fa87218bb58eb0eabd84aa0bd136c60",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:00:00+00:00",
+      "end_time": "2026-02-22T23:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.845412+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 3
+      }
+    },
+    {
+      "rowid": 13340,
+      "record_key": "5c95128a3fac39ad155daecb36ca9f465acb21339325b6b6a1c379bd08d7ef0f",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-22T23:30:00+00:00",
+      "end_time": "2026-02-23T00:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.845667+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 0
+      }
+    },
+    {
+      "rowid": 13341,
+      "record_key": "ec18b773956bb61f5c6f54093396fa0bc9ec76a97e6f920f3ab5f3fb9498dcce",
+      "type": "ActiveCaloriesBurnedRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": "2026-02-23T00:00:00+00:00",
+      "end_time": "2026-02-23T00:30:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.845720+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 18
+      }
+    },
+    {
+      "rowid": 13347,
+      "record_key": "e090195d3b6f3c901cd02a7d4b467517559607e6588e7cca0508dee5ed5e6521",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:16:20.165000+00:00",
+      "end_time": "2026-02-22T15:18:30.166000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.847677+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 41.11963653564453
+      }
+    },
+    {
+      "rowid": 13348,
+      "record_key": "53c696412c5bb48a45d31e8824bcd9ecd8f76be448a6a3d5069071e8f1f8efda",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:55:21.663000+00:00",
+      "end_time": "2026-02-22T15:55:41.663000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.847739+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 6.3260979652404785
+      }
+    },
+    {
+      "rowid": 13349,
+      "record_key": "679301d67dddeffe5785062c7b0c0768388b8018968ded3893cd8c58b01e4e92",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:55:41.664000+00:00",
+      "end_time": "2026-02-22T15:55:43.900000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.847818+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 0.6326098442077637
+      }
+    },
+    {
+      "rowid": 13350,
+      "record_key": "7b7613ab91862d25e37d484e9f75df668243fa024a3245d8ef6d49aa709e47d4",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:24:04.073000+00:00",
+      "end_time": "2026-02-23T00:25:02.053000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848129+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 17.713075637817383
+      }
+    },
+    {
+      "rowid": 13351,
+      "record_key": "98db3d7ddd1db38442d12bef63a441578ace58d5b2d5fe5889cdcdaa67c42a04",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:25:02.052000+00:00",
+      "end_time": "2026-02-23T00:25:22.052000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848182+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 6.3260979652404785
+      }
+    },
+    {
+      "rowid": 13352,
+      "record_key": "3d2443db8af1b188cd370e1f33c28e5e533596c336a998d6fcedd2124feb67b1",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:25:22.053000+00:00",
+      "end_time": "2026-02-23T00:25:52.074000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848476+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 28.35725212097168
+      }
+    },
+    {
+      "rowid": 13353,
+      "record_key": "4188197f64dd9c5b955806599ade19f788d3e746d1f592835dfac36d6279b692",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:30:22.572000+00:00",
+      "end_time": "2026-02-23T00:30:41.655000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848532+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 5.060878753662109
+      }
+    },
+    {
+      "rowid": 13354,
+      "record_key": "a57cc21b513b5f78b0ac2d107a81e5ed6db0b9eed07781d1d0db490d99799d99",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:30:41.654000+00:00",
+      "end_time": "2026-02-23T00:31:01.654000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848582+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 6.3260979652404785
+      }
+    },
+    {
+      "rowid": 13355,
+      "record_key": "2d48783846494a17e3d7cfb6ccafdfa27f85fcc9d7707f91c310ff343acba5c0",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:31:01.654000+00:00",
+      "end_time": "2026-02-23T00:31:10.806000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.848861+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 10.1375732421875
+      }
+    },
+    {
+      "rowid": 13356,
+      "record_key": "8561a2fac6503e56801df13cd2766eb0aaa358289862a1e64f6dd8b76496a0d1",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:33:05.469000+00:00",
+      "end_time": "2026-02-23T00:33:25.469000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.849132+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 6.3260979652404785
+      }
+    },
+    {
+      "rowid": 13357,
+      "record_key": "fc45f2d334cbcf542767c849359c82ee7e8ca3a135270bf4a6d705d2b94a698a",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:36:35.507000+00:00",
+      "end_time": "2026-02-23T00:36:55.507000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.849211+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 6.3260979652404785
+      }
+    },
+    {
+      "rowid": 13358,
+      "record_key": "5b5490e8427c23e0d2c8185f584ac2f71871ef1f3e3d7c065cba129aafc29b17",
+      "type": "DistanceRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:37:00.520000+00:00",
+      "end_time": "2026-02-23T00:37:10.513000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.849469+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "distance": 5.693488121032715
+      }
+    },
+    {
+      "rowid": 13359,
+      "record_key": "5e8375fe0e23f23a083ea874a5370eb74d106b4f235ec8e85322aecc587a7b69",
+      "type": "TotalCaloriesBurnedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:00:00+00:00",
+      "end_time": "2026-02-23T00:24:24.778000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.849525+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 13.71837043762207
+      }
+    },
+    {
+      "rowid": 13360,
+      "record_key": "8e1b1e5164868595e3121409a013179d28432598aac535ccce1e7a2293e2c444",
+      "type": "TotalCaloriesBurnedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:24:24.777000+00:00",
+      "end_time": "2026-02-23T00:27:51.633000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.849843+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 18.07912826538086
+      }
+    },
+    {
+      "rowid": 13361,
+      "record_key": "fa98709530e8bd2d25b35e9216c15c804787498ac297eba83be2ca0dc0a9e7de",
+      "type": "TotalCaloriesBurnedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:27:51.632000+00:00",
+      "end_time": "2026-02-23T15:00:00+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.850151+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "energy": 21.197834014892578
+      }
+    },
+    {
+      "rowid": 13367,
+      "record_key": "00bc7fedfce9f9fc84bf4a733b299f5c84f8c291ac80e55d11e49a65333c6346",
+      "type": "SpeedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-22T15:17:25.165000+00:00",
+      "end_time": "2026-02-22T15:17:25.166000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.851214+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "speed": 0.31630489230155945,
+            "time": "2026-02-22T15:17:25.165Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13368,
+      "record_key": "c4fd7f0a07b1517f04366786ed62674855039c89f88a76b32dd9752843d7d3ee",
+      "type": "SpeedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:24:33.062000+00:00",
+      "end_time": "2026-02-23T00:24:33.063000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.851280+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "speed": 0.30550962686538696,
+            "time": "2026-02-23T00:24:33.062Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13369,
+      "record_key": "0e8efc5d7ef26c60e7235d06651a00010c6255951c35ee6245920b60b4f633ca",
+      "type": "SpeedRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": "2026-02-23T00:30:32.113000+00:00",
+      "end_time": "2026-02-23T00:30:32.114000+00:00",
+      "time": null,
+      "ingested_at": "2026-02-23T00:38:19.851562+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "samples_count": 1
+      },
+      "payload": {
+        "samples": [
+          {
+            "speed": 0.26521995663642883,
+            "time": "2026-02-23T00:30:32.113Z"
+          }
+        ]
+      }
+    },
+    {
+      "rowid": 13370,
+      "record_key": "ebd9654e90e9e23893d2be71de6abf520e289378651bd9a3f5ec3728fca159fc",
+      "type": "RestingHeartRateRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T15:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.851616+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "beatsPerMinute": 55
+      },
+      "payload": {
+        "beatsPerMinute": 55
+      }
+    },
+    {
+      "rowid": 13371,
+      "record_key": "48c6df2c668d071d277c28c6632c2840acf04709dfa6df6619d2b0511d34475e",
+      "type": "RestingHeartRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T16:37:43+00:00",
+      "ingested_at": "2026-02-23T00:38:19.851901+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "beatsPerMinute": 53
+      },
+      "payload": {
+        "beatsPerMinute": 53
+      }
+    },
+    {
+      "rowid": 13372,
+      "record_key": "048bb49f8915fc5a847cfbb1f674f7eb607c9807a88c04e1bc938aad1dddcb05",
+      "type": "BloodPressureRecord",
+      "source": "jp.co.omron.healthcare.omron_connect",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-23T00:35:09+00:00",
+      "ingested_at": "2026-02-23T00:38:19.851958+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "diastolic": 73,
+        "systolic": 119
+      }
+    },
+    {
+      "rowid": 13373,
+      "record_key": "f4a0474cb4c347d20321f56505cdb9d8927497917092a110cc203767aef36759",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T15:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.852429+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 97
+      },
+      "payload": {
+        "percentage": 97
+      }
+    },
+    {
+      "rowid": 13374,
+      "record_key": "fea095ad588631ad6b556c5b410ba875567f3323cfde4e1f5807744cef75e80d",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T15:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.852683+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 97
+      },
+      "payload": {
+        "percentage": 97
+      }
+    },
+    {
+      "rowid": 13375,
+      "record_key": "53655ba895e8a9c371ccc72432b65fe63f533b9d96f739163aaf7adfb071a8b5",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T16:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.852917+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 97
+      },
+      "payload": {
+        "percentage": 97
+      }
+    },
+    {
+      "rowid": 13376,
+      "record_key": "9226dda5829c83066f21f5639f4d968addfa90dd272b38cfbffcb762c1a15dfd",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T16:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853228+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 96
+      },
+      "payload": {
+        "percentage": 96
+      }
+    },
+    {
+      "rowid": 13377,
+      "record_key": "2a59b11d21a05c1e4a203d467cdaac2fa4fc26aad33aac4ab5927e8eedda3b03",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T17:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853304+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 96
+      },
+      "payload": {
+        "percentage": 96
+      }
+    },
+    {
+      "rowid": 13378,
+      "record_key": "fadf4a7883a4026a8d573ea561fa49bfc7e270327c78f87487fde78cb5aa0fc5",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T17:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853778+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 95
+      },
+      "payload": {
+        "percentage": 95
+      }
+    },
+    {
+      "rowid": 13379,
+      "record_key": "bd1fb28ca28a234a887681a64a1f11f560aa901ee986064c09683814326bd37c",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T18:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853829+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 96
+      },
+      "payload": {
+        "percentage": 96
+      }
+    },
+    {
+      "rowid": 13380,
+      "record_key": "df7f88fd1c36e18d8fd361f194e93883888dabcd2a3e02996ff92656df9cee7d",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T18:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853871+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 96
+      },
+      "payload": {
+        "percentage": 96
+      }
+    },
+    {
+      "rowid": 13381,
+      "record_key": "b9941c6d177459615ea9e4ce4067118ee9b2e7a53f332d750b2f4f3f21526b97",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T19:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853915+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 94
+      },
+      "payload": {
+        "percentage": 94
+      }
+    },
+    {
+      "rowid": 13382,
+      "record_key": "51748556ebb828ef948816c9fe59774a2edc88a6eb1d2081b96072268b7690ef",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T19:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.853954+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 93
+      },
+      "payload": {
+        "percentage": 93
+      }
+    },
+    {
+      "rowid": 13383,
+      "record_key": "003ec0ec432bcd5b3e4c00071be82138ac4a8fe0148c10abc6c5d78edabf0236",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T20:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854206+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 94
+      },
+      "payload": {
+        "percentage": 94
+      }
+    },
+    {
+      "rowid": 13384,
+      "record_key": "fe15e1e1af05bb1e8a6a930e38f58f2e1e0e4328f4d039230c50a16e15c59b85",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T20:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854254+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 93
+      },
+      "payload": {
+        "percentage": 93
+      }
+    },
+    {
+      "rowid": 13385,
+      "record_key": "d8229359b539354b67adff1f21f7e032f458814090bd8ead5798259bae8e5495",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T21:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854495+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 93
+      },
+      "payload": {
+        "percentage": 93
+      }
+    },
+    {
+      "rowid": 13386,
+      "record_key": "f894e0b207a6df916d1cba22d377a3d473fd3e0ae19d7b7b4be1804d84d4ed76",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T21:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854733+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 95
+      },
+      "payload": {
+        "percentage": 95
+      }
+    },
+    {
+      "rowid": 13387,
+      "record_key": "c031540805722b3b99d2f8a7ef48f46347b969e5ca4a9d9ed9e2e6b322a55bb2",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T22:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854780+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 99
+      },
+      "payload": {
+        "percentage": 99
+      }
+    },
+    {
+      "rowid": 13388,
+      "record_key": "e5805be7456c819f99db8a9248de433cdcb5de194184004cf0e8a3b8ebd3554b",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T22:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854821+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 96
+      },
+      "payload": {
+        "percentage": 96
+      }
+    },
+    {
+      "rowid": 13389,
+      "record_key": "59dfd0b58cce36bcf850cf336d4992065095d987bbef32c89fdf8c7e6d7941e4",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T23:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854862+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 98
+      },
+      "payload": {
+        "percentage": 98
+      }
+    },
+    {
+      "rowid": 13390,
+      "record_key": "bcc5793bbb662da34c5b9dd0afbc3102357794dc7c7594883fb82e24863dfd46",
+      "type": "OxygenSaturationRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T23:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.854903+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 92
+      },
+      "payload": {
+        "percentage": 92
+      }
+    },
+    {
+      "rowid": 13395,
+      "record_key": "86f9a7492d87b0a3c9bf172c094910d400c2aba77f194168f21a70f994844151",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T15:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.855441+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13396,
+      "record_key": "091282c23e602a5631a46868a28ab2251066206e874fc04589cab184c7fa2ff7",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T15:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.855698+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13397,
+      "record_key": "491568fb5cf310e15c49942418db63a941146dcf702713d4b54a3672553be77e",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T16:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.855785+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13398,
+      "record_key": "33f8c1f998556959f2333d176b7f7163ab15a04fb1f19b592e2afbabbc4f7372",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T16:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.855836+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13399,
+      "record_key": "8659c894e75fb92b8f4602c3642967dd43d0f7c5a8a16f09c34a77b2cec7d9f7",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T17:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856071+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13400,
+      "record_key": "9cc410abc4cffb1fbfec913a6ea822178873aa45e7d4b211a1a36c9c9005d919",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T17:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856121+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13401,
+      "record_key": "bf55a1c2d9caf167b198a0c1bed15035e24bc9e88d3235eed0659fee056c4e5b",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T18:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856410+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13402,
+      "record_key": "0ad6fb6d22273f16c35794cbe5d12e4613e690815b9073fadc929182d4fbd1ed",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T18:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856463+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13403,
+      "record_key": "36aada1a8c416689f81a1c489dac4c526a74a2667df69b4c21ef7af386968475",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T19:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856540+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13404,
+      "record_key": "797b4b7ced810401982474270ac63a6667ec8c4920313d0d1f06bc6e32d8d4cb",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T19:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856590+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13405,
+      "record_key": "971f7333343e38aef0c77a85e3025e461dd4c8b053d07f52472d80857e23d15b",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T20:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856857+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13406,
+      "record_key": "154ba7784e4d8dbc547684b4019acdf711aa99c1dd8bf9925b3c6b4ca4b1fc94",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T20:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.856911+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13407,
+      "record_key": "3718f91b9e2ce78e327bee64808194c617042825f86d8df95dfd45acca191905",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T21:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857199+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13408,
+      "record_key": "f44f69add71f4080972ebd67f30d9530c7eb1dd525fc84ebc161967665e2e7fa",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T21:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857294+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13409,
+      "record_key": "f962f8bb858ef4876b9dc83218f9bf267ab45f92ca791d3961cece585d284b5a",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T22:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857344+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13410,
+      "record_key": "f116f6db9b708da51899ca5a6e91f93cf1462a09c3396961388c22af9f6f1ae7",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T22:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857619+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13411,
+      "record_key": "b27baf1d058019174177faa38b04e14cae175b1e421977f0637e878d433a63cc",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T23:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857844+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13412,
+      "record_key": "2c0eded0e00298732acb3249a6309882ae05886514a414e934201d793cbfda26",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-22T23:30:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857900+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13413,
+      "record_key": "c07c3f6848891af7639358da4df3a33b14f1b0ae811427451bde6d14f7bcbb91",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.gdjztech.ringconn",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-23T00:00:00+00:00",
+      "ingested_at": "2026-02-23T00:38:19.857988+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 35
+      }
+    },
+    {
+      "rowid": 13414,
+      "record_key": "ee4c5d11cff1df59a156291ac70e6476f8f894913bbf22a05254ba34533482e2",
+      "type": "BasalMetabolicRateRecord",
+      "source": "com.google.android.apps.fitness",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-23T00:33:53+00:00",
+      "ingested_at": "2026-02-23T00:38:19.858042+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {},
+      "payload": {
+        "kcalPerDay": 1680.75
+      }
+    },
+    {
+      "rowid": 13415,
+      "record_key": "02eabc9553427a9596a81b728d3000874a63c6ab83b79539377505dfc0f3aa36",
+      "type": "BodyFatRecord",
+      "source": "com.oceanwing.smarthome",
+      "start_time": null,
+      "end_time": null,
+      "time": "2026-02-23T00:33:53+00:00",
+      "ingested_at": "2026-02-23T00:38:19.858093+00:00",
+      "local_day": "2026-02-23",
+      "key_values": {
+        "percentage": 28.299999237060547
+      },
+      "payload": {
+        "percentage": 28.299999237060547
+      }
+    }
+  ],
+  "nutrition_events_total": 1,
+  "nutrition_events": [
+    {
+      "id": 11,
+      "consumed_at": "2026-02-23T12:00:00+09:00",
+      "local_date": "2026-02-23",
+      "alias": "protein",
+      "label": "ザバス ミルクプロテイン 脂肪0 キャラメル風味 200ml",
+      "count": 1.0,
+      "unit": "1本",
+      "kcal": 107.0,
+      "protein_g": 20.0,
+      "fat_g": 0.0,
+      "carbs_g": 6.8,
+      "micros": {
+        "sugar_g": 3.21,
+        "dietary_fiber_g": 1.284,
+        "sodium_mg": 149.79999999999998,
+        "potassium_mg": 181.9,
+        "calcium_mg": 26.75,
+        "magnesium_mg": 12.84,
+        "phosphorus_mg": 48.15,
+        "iron_mg": 0.428,
+        "zinc_mg": 0.535,
+        "copper_mg": 0.0642,
+        "selenium_mcg": 3.745,
+        "chromium_mcg": 2.14,
+        "manganese_mg": 0.1284,
+        "iodine_mcg": 9.629999999999999,
+        "molybdenum_mcg": 2.675,
+        "vitamin_a_mcg": 37.449999999999996,
+        "vitamin_b1_mg": 0.0535,
+        "vitamin_b2_mg": 0.0642,
+        "vitamin_b6_mg": 0.0749,
+        "vitamin_b12_mcg": 0.214,
+        "niacin_mg": 0.749,
+        "pantothenic_acid_mg": 0.2675,
+        "biotin_mcg": 2.14,
+        "folate_mcg": 19.259999999999998,
+        "vitamin_c_mg": 5.35,
+        "vitamin_d_mcg": 0.321,
+        "vitamin_e_mg": 0.428,
+        "vitamin_k_mcg": 6.42,
+        "epa_mg": 3.21,
+        "dha_mg": 4.28,
+        "omega3_mg": 19.259999999999998,
+        "omega6_mg": 535.0,
+        "cholesterol_mg": 19.259999999999998,
+        "saturated_fat_g": 0.856,
+        "salt_equivalent_g": 0.38049199999999994
+      }
+    }
+  ]
+}

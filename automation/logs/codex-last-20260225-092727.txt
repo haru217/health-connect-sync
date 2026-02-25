@@ -1,0 +1,16 @@
+実行結果（非対話）は **Step1で中止** になりました。
+
+1. JST判定（2026-02-25）
+1. `target_periods`: `daily`
+1. `weekly` はスキップ: JSTで月曜日ではないため（2026-02-25は水曜日）
+1. `monthly` はスキップ: JST日付が1日ではないため（2026-02-25）
+
+1. 失敗内容
+1. 失敗period: `daily`
+1. 理由: `https://34.171.85.174.nip.io/api/prompt?type=daily` への接続が `Connection refused`（`curl: (7)`）で、HTTPステータス取得結果は `0`
+1. ルールに従い、Step1失敗のため処理全体を中止
+
+1. 保存結果
+1. 保存成功件数: 0件（`id/report_type/report_date` なし）
+
+このため、Step1.5（役割プロンプト読込）以降（NotebookLM質問・レポート保存）は実行していません。API疎通復旧後に同手順で再実行できます。

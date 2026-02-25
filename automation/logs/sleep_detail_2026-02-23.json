@@ -1,0 +1,519 @@
+{
+  "date": "2026-02-23",
+  "sleep_records_count": 32,
+  "merged_sleep_minutes": 378.1666666666667,
+  "merged_sleep_hours": 6.302777777777778,
+  "earliest_session_start_jst": "2026-02-23T01:13:23+09:00",
+  "latest_session_end_jst": "2026-02-23T08:42:40+09:00",
+  "records": [
+    {
+      "rowid": 13217,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T16:13:23+00:00",
+      "end_utc": "2026-02-22T16:37:43+00:00",
+      "start_jst": "2026-02-23T01:13:23+09:00",
+      "end_jst": "2026-02-23T01:37:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13218,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T16:37:43+00:00",
+      "end_utc": "2026-02-22T22:55:53+00:00",
+      "start_jst": "2026-02-23T01:37:43+09:00",
+      "end_jst": "2026-02-23T07:55:53+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T01:37:43+09:00",
+          "end": "2026-02-23T07:55:53+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13219,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T16:37:43+00:00",
+      "end_utc": "2026-02-22T16:42:43+00:00",
+      "start_jst": "2026-02-23T01:37:43+09:00",
+      "end_jst": "2026-02-23T01:42:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T01:37:43+09:00",
+          "end": "2026-02-23T01:42:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13220,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T16:42:43+00:00",
+      "end_utc": "2026-02-22T17:07:43+00:00",
+      "start_jst": "2026-02-23T01:42:43+09:00",
+      "end_jst": "2026-02-23T02:07:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T01:42:43+09:00",
+          "end": "2026-02-23T02:07:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13221,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:07:43+00:00",
+      "end_utc": "2026-02-22T17:12:43+00:00",
+      "start_jst": "2026-02-23T02:07:43+09:00",
+      "end_jst": "2026-02-23T02:12:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:07:43+09:00",
+          "end": "2026-02-23T02:12:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13222,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:12:43+00:00",
+      "end_utc": "2026-02-22T17:17:43+00:00",
+      "start_jst": "2026-02-23T02:12:43+09:00",
+      "end_jst": "2026-02-23T02:17:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:12:43+09:00",
+          "end": "2026-02-23T02:17:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13223,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:17:43+00:00",
+      "end_utc": "2026-02-22T17:22:43+00:00",
+      "start_jst": "2026-02-23T02:17:43+09:00",
+      "end_jst": "2026-02-23T02:22:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:17:43+09:00",
+          "end": "2026-02-23T02:22:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13224,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:22:43+00:00",
+      "end_utc": "2026-02-22T17:27:43+00:00",
+      "start_jst": "2026-02-23T02:22:43+09:00",
+      "end_jst": "2026-02-23T02:27:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:22:43+09:00",
+          "end": "2026-02-23T02:27:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13225,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:27:43+00:00",
+      "end_utc": "2026-02-22T17:42:43+00:00",
+      "start_jst": "2026-02-23T02:27:43+09:00",
+      "end_jst": "2026-02-23T02:42:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:27:43+09:00",
+          "end": "2026-02-23T02:42:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13226,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T17:42:43+00:00",
+      "end_utc": "2026-02-22T18:17:43+00:00",
+      "start_jst": "2026-02-23T02:42:43+09:00",
+      "end_jst": "2026-02-23T03:17:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T02:42:43+09:00",
+          "end": "2026-02-23T03:17:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13227,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T18:17:43+00:00",
+      "end_utc": "2026-02-22T18:27:43+00:00",
+      "start_jst": "2026-02-23T03:17:43+09:00",
+      "end_jst": "2026-02-23T03:27:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T03:17:43+09:00",
+          "end": "2026-02-23T03:27:43+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13228,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T18:27:43+00:00",
+      "end_utc": "2026-02-22T18:32:43+00:00",
+      "start_jst": "2026-02-23T03:27:43+09:00",
+      "end_jst": "2026-02-23T03:32:43+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13229,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T18:32:43+00:00",
+      "end_utc": "2026-02-22T18:56:38+00:00",
+      "start_jst": "2026-02-23T03:32:43+09:00",
+      "end_jst": "2026-02-23T03:56:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T03:32:43+09:00",
+          "end": "2026-02-23T03:56:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13230,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T18:56:38+00:00",
+      "end_utc": "2026-02-22T19:01:38+00:00",
+      "start_jst": "2026-02-23T03:56:38+09:00",
+      "end_jst": "2026-02-23T04:01:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T03:56:38+09:00",
+          "end": "2026-02-23T04:01:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13231,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T19:01:38+00:00",
+      "end_utc": "2026-02-22T19:29:08+00:00",
+      "start_jst": "2026-02-23T04:01:38+09:00",
+      "end_jst": "2026-02-23T04:29:08+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T04:01:38+09:00",
+          "end": "2026-02-23T04:29:08+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13232,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T19:29:08+00:00",
+      "end_utc": "2026-02-22T19:32:38+00:00",
+      "start_jst": "2026-02-23T04:29:08+09:00",
+      "end_jst": "2026-02-23T04:32:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13233,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T19:32:38+00:00",
+      "end_utc": "2026-02-22T19:37:38+00:00",
+      "start_jst": "2026-02-23T04:32:38+09:00",
+      "end_jst": "2026-02-23T04:37:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T04:32:38+09:00",
+          "end": "2026-02-23T04:37:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13234,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T19:37:38+00:00",
+      "end_utc": "2026-02-22T19:57:38+00:00",
+      "start_jst": "2026-02-23T04:37:38+09:00",
+      "end_jst": "2026-02-23T04:57:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T04:37:38+09:00",
+          "end": "2026-02-23T04:57:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13235,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T19:57:38+00:00",
+      "end_utc": "2026-02-22T21:07:38+00:00",
+      "start_jst": "2026-02-23T04:57:38+09:00",
+      "end_jst": "2026-02-23T06:07:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T04:57:38+09:00",
+          "end": "2026-02-23T06:07:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13236,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T21:07:38+00:00",
+      "end_utc": "2026-02-22T21:22:38+00:00",
+      "start_jst": "2026-02-23T06:07:38+09:00",
+      "end_jst": "2026-02-23T06:22:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T06:07:38+09:00",
+          "end": "2026-02-23T06:22:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13237,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T21:22:38+00:00",
+      "end_utc": "2026-02-22T21:25:08+00:00",
+      "start_jst": "2026-02-23T06:22:38+09:00",
+      "end_jst": "2026-02-23T06:25:08+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13238,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T21:25:08+00:00",
+      "end_utc": "2026-02-22T21:32:38+00:00",
+      "start_jst": "2026-02-23T06:25:08+09:00",
+      "end_jst": "2026-02-23T06:32:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T06:25:08+09:00",
+          "end": "2026-02-23T06:32:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13239,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T21:32:38+00:00",
+      "end_utc": "2026-02-22T21:42:38+00:00",
+      "start_jst": "2026-02-23T06:32:38+09:00",
+      "end_jst": "2026-02-23T06:42:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T06:32:38+09:00",
+          "end": "2026-02-23T06:42:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13240,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T21:42:38+00:00",
+      "end_utc": "2026-02-22T22:12:38+00:00",
+      "start_jst": "2026-02-23T06:42:38+09:00",
+      "end_jst": "2026-02-23T07:12:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T06:42:38+09:00",
+          "end": "2026-02-23T07:12:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13241,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:12:38+00:00",
+      "end_utc": "2026-02-22T22:17:38+00:00",
+      "start_jst": "2026-02-23T07:12:38+09:00",
+      "end_jst": "2026-02-23T07:17:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T07:12:38+09:00",
+          "end": "2026-02-23T07:17:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13242,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:17:38+00:00",
+      "end_utc": "2026-02-22T22:42:38+00:00",
+      "start_jst": "2026-02-23T07:17:38+09:00",
+      "end_jst": "2026-02-23T07:42:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T07:17:38+09:00",
+          "end": "2026-02-23T07:42:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13243,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:42:38+00:00",
+      "end_utc": "2026-02-22T22:47:38+00:00",
+      "start_jst": "2026-02-23T07:42:38+09:00",
+      "end_jst": "2026-02-23T07:47:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T07:42:38+09:00",
+          "end": "2026-02-23T07:47:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13244,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:47:38+00:00",
+      "end_utc": "2026-02-22T22:52:38+00:00",
+      "start_jst": "2026-02-23T07:47:38+09:00",
+      "end_jst": "2026-02-23T07:52:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T07:47:38+09:00",
+          "end": "2026-02-23T07:52:38+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13245,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:52:38+00:00",
+      "end_utc": "2026-02-22T22:55:53+00:00",
+      "start_jst": "2026-02-23T07:52:38+09:00",
+      "end_jst": "2026-02-23T07:55:53+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": [
+        {
+          "start": "2026-02-23T07:52:38+09:00",
+          "end": "2026-02-23T07:55:53+09:00"
+        }
+      ]
+    },
+    {
+      "rowid": 13246,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:55:53+00:00",
+      "end_utc": "2026-02-22T22:57:38+00:00",
+      "start_jst": "2026-02-23T07:55:53+09:00",
+      "end_jst": "2026-02-23T07:57:38+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13247,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:55:53+00:00",
+      "end_utc": "2026-02-22T23:00:08+00:00",
+      "start_jst": "2026-02-23T07:55:53+09:00",
+      "end_jst": "2026-02-23T08:00:08+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    },
+    {
+      "rowid": 13248,
+      "source": "com.gdjztech.ringconn",
+      "start_utc": "2026-02-22T22:55:53+00:00",
+      "end_utc": "2026-02-22T23:42:40+00:00",
+      "start_jst": "2026-02-23T07:55:53+09:00",
+      "end_jst": "2026-02-23T08:42:40+09:00",
+      "bucket_day": "2026-02-23",
+      "has_stage_data": true,
+      "stage_count": 1,
+      "intervals_jst": []
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+﻿services:
+  api:
+    build: ./app
+    restart: always
+    environment:
+      - API_KEY=${API_KEY}
+      - DB_PATH=/data/hc_sync.db
+      - PORT=8080
+      - TZ=Asia/Tokyo
+      - DISCOVERY_ENABLED=false
+    volumes:
+      - ./data:/data
+    expose:
+      - "8080"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    depends_on:
+      - api
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    profiles:
+      - legacy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

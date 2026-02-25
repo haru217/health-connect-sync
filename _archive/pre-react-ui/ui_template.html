@@ -1,0 +1,1495 @@
+﻿<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Health AI Advisor</title>
+  <!-- 既存フォント -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+  <!-- CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+  <style>
+    /* ── CSS変数（既存テーマ継承） ── */
+    :root {
+      --bg: #09132a;
+      --panel: #152847;
+      --line: rgba(122, 153, 199, 0.22);
+      --txt: #eaf2ff;
+      --muted: #9fb3d8;
+      --acc: #33ff20;
+      --good: #85ff9f;
+      --bad: #ff90a6;
+      --warn: #ffc676;
+      --nav-h: 64px;
+    }
+    /* ── リセット ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: "Noto Sans JP", sans-serif;
+      color: var(--txt);
+      background: radial-gradient(circle at 15% 0, #173569 0, #09132a 45%, #070e20 100%);
+      /* スマホサイズ制限 */
+    }
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 95;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: linear-gradient(to bottom, rgba(9, 19, 42, 0.98), rgba(9, 19, 42, 0.85));
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar h1 { font-size: 17px; letter-spacing: .02em; }
+    .menu-btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--txt);
+      border-radius: 8px;
+      width: 36px;
+      height: 32px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* ── ビュー ── */
+    .view { display: none; padding: 16px 12px calc(var(--nav-h) + 16px); }
+    .view.active { display: block; }
+
+    .summary-banner {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(21, 40, 71, 0.75);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .summary-banner strong {
+      color: var(--txt);
+      font-weight: 700;
+    }
+
+    /* ── 底部ナビ ── */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      height: var(--nav-h);
+      background: rgba(15, 30, 58, 0.97);
+      border-top: 1px solid var(--line);
+      display: flex;
+      z-index: 100;
+    }
+    #bottom-nav button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    #bottom-nav button .icon { line-height: 1; }
+    #bottom-nav .nav-icon {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #bottom-nav .nav-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #85ff9f;
+      stroke-width: 1.8;
+      fill: #ffffff;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    #bottom-nav button.active .nav-icon svg {
+      stroke: #33ff20;
+    }
+    #bottom-nav button.active { color: var(--acc); }
+
+    /* ── カード ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
+    .card-value { font-family: Lexend; font-size: 28px; font-weight: 700; color: var(--acc); }
+    .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── サブメニュー ── */
+    .submenu { display: flex; gap: 8px; margin-bottom: 16px; }
+    .submenu button {
+      flex: 1;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 4px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .submenu button.active {
+      background: var(--acc);
+      color: #09132a;
+      border-color: var(--acc);
+      font-weight: 700;
+    }
+    .subview { display: none; }
+    .subview.active { display: block; }
+
+    /* ── 期間切替 ── */
+    #period-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      padding: 8px 12px 0;
+      background: linear-gradient(to bottom, rgba(9, 19, 42, 0.98), rgba(9, 19, 42, 0.78));
+      backdrop-filter: blur(3px);
+    }
+    .period-switch {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .period-switch button {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 4px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .period-switch button.active {
+      background: var(--acc);
+      color: #09132a;
+      border-color: var(--acc);
+      font-weight: 700;
+    }
+
+    /* ── 栄養素横棒グラフ ── */
+    .nutrient-bar-wrap { display: grid; gap: 10px; }
+    .nutrient-row { display: grid; grid-template-columns: 90px 1fr 80px; align-items: center; gap: 8px; }
+    .nutrient-label { font-size: 12px; }
+    .bar-track { height: 12px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+    .bar-fill.green { background: var(--acc); }
+    .bar-fill.yellow { background: var(--warn); }
+    .bar-fill.red { background: var(--bad); }
+    .nutrient-val { font-size: 11px; color: var(--muted); text-align: right; }
+
+    /* ── フォーム部品 ── */
+    input, select, textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--txt);
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    textarea { resize: vertical; min-height: 120px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: var(--acc);
+      color: #09132a;
+      font: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--acc);
+      color: var(--acc);
+    }
+    .btn.danger {
+      background: var(--bad);
+      color: #09132a;
+    }
+
+    /* ── レポートカード ── */
+    .report-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .report-card:hover { border-color: var(--acc); }
+    .report-meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .report-preview { font-size: 13px; line-height: 1.5; }
+    .report-body { font-size: 14px; line-height: 1.7; }
+    .report-body h1, .report-body h2, .report-body h3 { color: var(--acc); margin: 12px 0 6px; }
+    .report-body p { margin-bottom: 8px; }
+
+    /* ── チップ（badge） ── */
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .chip.daily { background: rgba(51,255,32,0.2); color: var(--acc); }
+    .chip.weekly { background: rgba(255,198,118,0.2); color: var(--warn); }
+    .chip.monthly { background: rgba(255,144,166,0.2); color: var(--bad); }
+
+    /* ── セクション見出し ── */
+    .section-title { font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ── ローディング ── */
+    .loading { text-align: center; color: var(--muted); padding: 20px; font-size: 13px; }
+
+    #settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      height: 100%;
+      background: rgba(9, 19, 42, 0.98);
+      z-index: 210;
+      overflow-y: auto;
+      padding: 16px 12px 90px;
+      display: none;
+    }
+    #settings-overlay.open { display: block; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>Health AI</h1>
+    <button class="menu-btn" onclick="openSettings()" aria-label="設定を開く">☰</button>
+  </header>
+  <div id="period-toolbar">
+    <div class="period-switch">
+      <button class="period-btn active" data-period="daily" onclick="setPeriod('daily')">日</button>
+      <button class="period-btn" data-period="weekly" onclick="setPeriod('weekly')">週</button>
+      <button class="period-btn" data-period="monthly" onclick="setPeriod('monthly')">月</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       🏠 ホーム
+  ══════════════════════════════════════════ -->
+  <div id="view-home" class="view active">
+    <div class="summary-banner" id="summary-home"><strong>今日:</strong> 読み込み中...</div>
+    <h2 id="home-title" style="font-size:18px;margin-bottom:16px;">今日のサマリー</h2>
+
+    <div id="home-weight" class="card">
+      <div class="card-title">⚖️ 体重</div>
+      <div class="card-value" id="hw-val">--</div>
+      <div class="card-sub" id="hw-sub">読み込み中...</div>
+    </div>
+
+    <div id="home-steps" class="card">
+      <div class="card-title">👟 歩数</div>
+      <div class="card-value" id="hs-val">--</div>
+      <div class="card-sub" id="hs-sub">読み込み中...</div>
+    </div>
+
+    <div id="home-sleep" class="card">
+      <div class="card-title" id="home-sleep-title">😴 睡眠（昨夜）</div>
+      <div class="card-value" id="hsl-val">--</div>
+      <div class="card-sub" id="hsl-sub">読み込み中...</div>
+    </div>
+
+    <div id="home-cal" class="card">
+      <div class="card-title">🔥 カロリー収支</div>
+      <div class="card-value" id="hc-val">--</div>
+      <div class="card-sub" id="hc-sub">読み込み中...</div>
+    </div>
+
+    <div id="home-tip" class="card">
+      <div class="card-title">💡 ひとことアドバイス</div>
+      <div id="ht-val" style="font-size:14px;line-height:1.7;">読み込み中...</div>
+    </div>
+
+    <div id="home-vitals" class="card">
+      <div class="card-title">❤️ バイタル（最新）</div>
+      <div id="hv-content" style="font-size:14px;line-height:2;">読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       🍽 食事
+  ══════════════════════════════════════════ -->
+  <div id="view-food" class="view">
+    <div class="summary-banner" id="summary-food"><strong>食事:</strong> 読み込み中...</div>
+    <div class="submenu">
+      <button class="active" onclick="switchSub('food','food-log',this)">食事ログ</button>
+      <button onclick="switchSub('food','food-suppl',this)">サプリ</button>
+      <button onclick="switchSub('food','food-nutrients',this)">栄養素</button>
+    </div>
+
+    <!-- 食事ログ -->
+    <div id="food-log" class="subview active">
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+        <input type="date" id="food-date" style="margin:0;" />
+        <button class="btn" style="width:auto;padding:10px 16px;margin:0;" onclick="loadFoodLog()">表示</button>
+      </div>
+      <div id="food-log-list"></div>
+
+      <div class="section-title">追加</div>
+      <input type="text" id="fl-label" placeholder="食品名" />
+      <select id="fl-timing">
+        <option value="08:00">朝食</option>
+        <option value="12:00">昼食</option>
+        <option value="19:00">夕食</option>
+        <option value="15:00">間食</option>
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input type="number" id="fl-kcal" placeholder="kcal" step="1" />
+        <input type="number" id="fl-protein" placeholder="タンパク質(g)" step="0.1" />
+        <input type="number" id="fl-fat" placeholder="脂質(g)" step="0.1" />
+        <input type="number" id="fl-carbs" placeholder="炭水化物(g)" step="0.1" />
+      </div>
+      <button class="btn" onclick="addFoodLog()">追加する</button>
+    </div>
+
+    <!-- サプリ -->
+    <div id="food-suppl" class="subview">
+      <div class="section-title">今日のサプリチェック</div>
+      <div id="suppl-list"></div>
+    </div>
+
+    <!-- 栄養素 -->
+    <div id="food-nutrients" class="subview">
+      <div class="section-title">今日の栄養素（目標比）</div>
+      <div id="nutrient-bars-main" class="nutrient-bar-wrap"></div>
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer;color:var(--muted);font-size:13px;">▼ 詳細</summary>
+        <div id="nutrient-bars-detail" class="nutrient-bar-wrap" style="margin-top:10px;"></div>
+      </details>
+      <div id="nutrient-bars" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       🏃 運動
+  ══════════════════════════════════════════ -->
+  <div id="view-exercise" class="view">
+    <div class="summary-banner" id="summary-exercise"><strong>運動:</strong> 読み込み中...</div>
+    <div class="submenu">
+      <button class="active" onclick="switchExercisePeriod('week', this)">週間</button>
+      <button onclick="switchExercisePeriod('month', this)">月間</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="card" style="text-align:center;padding:10px;">
+        <div class="card-title">平均歩数</div>
+        <div class="card-value" id="ex-avg-steps" style="font-size:20px;">--</div>
+        <div class="card-sub">歩/日</div>
+      </div>
+      <div class="card" style="text-align:center;padding:10px;">
+        <div class="card-title">推定距離</div>
+        <div class="card-value" id="ex-total-dist" style="font-size:20px;">--</div>
+        <div class="card-sub">km</div>
+      </div>
+      <div class="card" style="text-align:center;padding:10px;">
+        <div class="card-title">活動Cal</div>
+        <div class="card-value" id="ex-total-cal" style="font-size:20px;">--</div>
+        <div class="card-sub">kcal</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">歩数</div>
+      <canvas id="chart-ex-steps" height="160"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">活動カロリー</div>
+      <canvas id="chart-ex-calories" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ❤️ 健康
+  ══════════════════════════════════════════ -->
+  <div id="view-health" class="view">
+    <div class="summary-banner" id="summary-health"><strong>健康:</strong> 読み込み中...</div>
+    <div class="submenu">
+      <button class="active" onclick="switchSub('health','health-diet',this)">ダイエット</button>
+      <button onclick="switchSub('health','health-vitals',this)">バイタル</button>
+    </div>
+
+    <!-- ダイエット -->
+    <div id="health-diet" class="subview active">
+      <div class="card">
+        <div class="card-title" id="health-weight-title">体重（14日）</div>
+        <canvas id="chart-weight" height="180"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title" id="health-bodyfat-title">体脂肪率（14日）</div>
+        <canvas id="chart-bodyfat" height="140"></canvas>
+      </div>
+      <div class="card" id="diet-status-card">
+        <div class="card-title">ダイエット状況</div>
+        <div id="diet-status">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- バイタル -->
+    <div id="health-vitals" class="subview">
+      <div class="card">
+        <div class="card-title" id="health-rhr-title">安静時心拍（14日）</div>
+        <canvas id="chart-rhr" height="140"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title" id="health-sleep-title">睡眠時間（14日）</div>
+        <canvas id="chart-sleep" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       🤖 AI
+  ══════════════════════════════════════════ -->
+  <div id="view-ai" class="view">
+    <div class="summary-banner" id="summary-ai"><strong>AI:</strong> 読み込み中...</div>
+    <div class="submenu">
+      <button class="active" onclick="switchSub('ai','ai-gen',this)">プロンプト生成</button>
+      <button onclick="switchSub('ai','ai-save',this)">保存</button>
+      <button onclick="switchSub('ai','ai-history',this)">履歴</button>
+    </div>
+
+    <!-- プロンプト生成 -->
+    <div id="ai-gen" class="subview active">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn" style="background:var(--panel);color:var(--acc);border:1px solid var(--acc);" onclick="genPrompt('daily')">日次</button>
+        <button class="btn" style="background:var(--panel);color:var(--warn);border:1px solid var(--warn);" onclick="genPrompt('weekly')">週次</button>
+        <button class="btn" style="background:var(--panel);color:var(--bad);border:1px solid var(--bad);" onclick="genPrompt('monthly')">月次</button>
+      </div>
+      <textarea id="prompt-output" placeholder="「日次」「週次」「月次」ボタンを押してプロンプトを生成..." readonly></textarea>
+      <button class="btn secondary" onclick="copyPrompt()">📋 コピーする</button>
+      <div id="ai-agent-comments">
+        <div class="card" style="padding:10px;">
+          <div class="card-title">医師コメント</div>
+          <div id="ai-comment-doctor-text" style="font-size:13px;">読み込み中...</div>
+        </div>
+        <div class="card" style="padding:10px;">
+          <div class="card-title">トレーナーコメント</div>
+          <div id="ai-comment-trainer-text" style="font-size:13px;">読み込み中...</div>
+        </div>
+        <div class="card" style="padding:10px;">
+          <div class="card-title">管理栄養士コメント</div>
+          <div id="ai-comment-nutritionist-text" style="font-size:13px;">読み込み中...</div>
+        </div>
+      </div>
+      <p id="prompt-hint" style="font-size:12px;color:var(--muted);text-align:center;display:none;">
+        ↑ コピーして Claude や ChatGPT に貼り付け、返答をこのアプリに保存できます
+      </p>
+    </div>
+
+    <!-- レポート保存 -->
+    <div id="ai-save" class="subview">
+      <input type="date" id="save-date" />
+      <select id="save-type">
+        <option value="daily">日次レポート</option>
+        <option value="weekly">週次レポート</option>
+        <option value="monthly">月次レポート</option>
+      </select>
+      <textarea id="save-content" placeholder="LLMの返答をここに貼り付けてください..."></textarea>
+      <button class="btn" onclick="saveReport()">レポートを保存</button>
+    </div>
+
+    <!-- 履歴 -->
+    <div id="ai-history" class="subview">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="btn secondary" style="font-size:12px;padding:8px;" onclick="loadHistory(null)">全て</button>
+        <button class="btn secondary" style="font-size:12px;padding:8px;" onclick="loadHistory('daily')">日次</button>
+        <button class="btn secondary" style="font-size:12px;padding:8px;" onclick="loadHistory('weekly')">週次</button>
+        <button class="btn secondary" style="font-size:12px;padding:8px;" onclick="loadHistory('monthly')">月次</button>
+      </div>
+      <div id="history-list"></div>
+
+      <!-- レポート詳細モーダル（インライン表示） -->
+      <div id="report-detail" style="display:none;">
+        <button class="btn secondary" onclick="closeDetail()">← 履歴に戻る</button>
+        <div class="card">
+          <div id="detail-meta" class="report-meta"></div>
+          <div id="detail-body" class="report-body"></div>
+        </div>
+        <button class="btn danger" id="detail-delete-btn">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-overlay">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;">
+      <h2 style="font-size:16px;">⚙️ 設定</h2>
+      <button class="menu-btn" onclick="closeSettings()" aria-label="設定を閉じる">×</button>
+    </div>
+    <div class="section-title">プロフィール</div>
+    <div class="card">
+      <input type="text" id="pf-name" placeholder="名前" />
+      <input type="number" id="pf-height" placeholder="身長(cm)" step="0.1" />
+      <input type="number" id="pf-birth-year" placeholder="生年（例: 1985）" step="1" />
+      <select id="pf-sex">
+        <option value="male">男性</option>
+        <option value="female">女性</option>
+        <option value="other">その他</option>
+      </select>
+      <input type="number" id="pf-goal-weight" placeholder="目標体重(kg)" step="0.1" />
+      <button class="btn" onclick="saveProfile()">保存する</button>
+      <p id="pf-result" style="font-size:12px;color:var(--acc);text-align:center;display:none;">✓ 保存しました</p>
+    </div>
+
+    <div class="section-title">サーバー</div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);">APIキー</div>
+      <div id="api-key-display" style="font-family:monospace;font-size:12px;word-break:break-all;margin-top:4px;">（設定済み）</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:10px;">接続状態</div>
+      <div id="conn-status" style="font-size:13px;margin-top:4px;">確認中...</div>
+    </div>
+  </div>
+
+  <!-- 底部ナビ -->
+  <nav id="bottom-nav">
+    <button class="active" data-tab="home" onclick="switchTab('home',this)">
+      <span class="icon nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
+      </span><span>ホーム</span>
+    </button>
+    <button data-tab="food" onclick="switchTab('food',this)">
+      <span class="icon nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7 3v10"/><path d="M10 3v10"/><path d="M4 7h9"/><path d="M14 3v18"/><path d="M19 3c1.7 1.9 1.7 5.1 0 7"/></svg>
+      </span><span>食事</span>
+    </button>
+    <button data-tab="exercise" onclick="switchTab('exercise',this)">
+      <span class="icon nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="6.5" cy="5.5" r="2"/><path d="M8 8l3 3 2-1 3 1"/><path d="m9 11-2 4 2 1 2-3"/><path d="m14 11-1 4 2 5"/><path d="M6 20h4"/></svg>
+      </span><span>運動</span>
+    </button>
+    <button data-tab="health" onclick="switchTab('health',this)">
+      <span class="icon nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9-9c-1.3-3 1.2-6.5 4.7-6.5 1.8 0 3.2.9 4.3 2.4 1.1-1.5 2.5-2.4 4.3-2.4 3.5 0 6 3.5 4.7 6.5-2 4.6-9 9-9 9Z"/></svg>
+      </span><span>健康</span>
+    </button>
+    <button data-tab="ai" onclick="switchTab('ai',this)">
+      <span class="icon nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M9 7V5h6v2"/><circle cx="10" cy="13" r="1"/><circle cx="14" cy="13" r="1"/><path d="M12 15v2"/></svg>
+      </span><span>AI</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  API クライアント
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// APIキーは URL パラメータ ?key=xxx または localStorage から取得
+const API_KEY = new URLSearchParams(location.search).get('key')
+  || localStorage.getItem('api_key') || '';
+if (API_KEY) localStorage.setItem('api_key', API_KEY);
+
+async function api(path, { method = 'GET', body } = {}) {
+  const opts = {
+    method,
+    headers: { 'X-Api-Key': API_KEY, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const err = await res.json();
+      if (err && typeof err.detail === 'string' && err.detail.length > 0) {
+        detail = `: ${err.detail}`;
+      }
+    } catch (_) {}
+    throw new Error(`${res.status} ${res.statusText}${detail}`);
+  }
+  return res.json();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ナビゲーション
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let currentPeriod = 'daily';
+let currentExercisePeriod = 'week';
+
+function periodDays() {
+  return currentPeriod === 'weekly' ? 7 : currentPeriod === 'monthly' ? 30 : 1;
+}
+
+function chartDays() {
+  return currentPeriod === 'weekly' ? 30 : currentPeriod === 'monthly' ? 90 : 14;
+}
+
+function activityDays() {
+  return currentPeriod === 'weekly' ? 28 : currentPeriod === 'monthly' ? 60 : 7;
+}
+
+function periodLabel() {
+  return currentPeriod === 'weekly' ? '週次' : currentPeriod === 'monthly' ? '月次' : '今日';
+}
+
+function updatePeriodButtons() {
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === currentPeriod);
+  });
+}
+
+function applyPeriodLabels() {
+  const homeTitle = document.getElementById('home-title');
+  if (homeTitle) homeTitle.textContent = `${periodLabel()}サマリー`;
+
+  const homeSleepTitle = document.getElementById('home-sleep-title');
+  if (homeSleepTitle) {
+    homeSleepTitle.textContent = currentPeriod === 'daily'
+      ? '😴 睡眠（昨夜）'
+      : `😴 睡眠（${periodDays()}日平均）`;
+  }
+
+  const cd = chartDays();
+  const ad = activityDays();
+  const titleMap = {
+    'health-weight-title': `体重（${cd}日）`,
+    'health-bodyfat-title': `体脂肪率（${cd}日）`,
+    'health-rhr-title': `安静時心拍（${cd}日）`,
+    'health-sleep-title': `睡眠時間（${cd}日）`,
+  };
+  Object.entries(titleMap).forEach(([id, text]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
+}
+
+function setPeriod(period) {
+  if (!['daily', 'weekly', 'monthly'].includes(period)) return;
+  currentPeriod = period;
+  updatePeriodButtons();
+  applyPeriodLabels();
+
+  const activeTab = document.querySelector('#bottom-nav button.active')?.dataset.tab || 'home';
+  if (activeTab === 'home') loadHome();
+  if (activeTab === 'exercise') loadExercise();
+  if (activeTab === 'health') loadHealthCharts();
+  if (activeTab === 'food') {
+    const activeSub = document.querySelector('#view-food .subview.active')?.id;
+    if (activeSub === 'food-suppl') loadSupplements();
+    if (activeSub === 'food-nutrients') loadNutrientBars();
+  }
+  if (activeTab === 'ai') {
+    const activeSub = document.querySelector('#view-ai .subview.active')?.id;
+    if (activeSub === 'ai-gen') genPrompt(currentPeriod);
+    if (activeSub === 'ai-save') {
+      const sel = document.getElementById('save-type');
+      if (sel) sel.value = currentPeriod;
+    }
+    if (activeSub === 'ai-history') loadHistory(currentPeriod);
+  }
+}
+
+function openSettings() {
+  const overlay = document.getElementById('settings-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  loadSettings();
+}
+
+function closeSettings() {
+  const overlay = document.getElementById('settings-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+}
+
+function switchExercisePeriod(period, btn) {
+  if (!['week', 'month'].includes(period)) return;
+  currentExercisePeriod = period;
+  const view = document.getElementById('view-exercise');
+  view?.querySelectorAll('.submenu button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadExercise();
+}
+
+function switchTab(tab, btn) {
+  closeSettings();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  btn.classList.add('active');
+  onTabActivate(tab);
+}
+
+function switchSub(tabId, subId, btn) {
+  const view = document.getElementById('view-' + tabId);
+  view.querySelectorAll('.subview').forEach(v => v.classList.remove('active'));
+  view.querySelectorAll('.submenu button').forEach(b => b.classList.remove('active'));
+  document.getElementById(subId).classList.add('active');
+  btn.classList.add('active');
+  onSubActivate(subId);
+}
+
+// タブ切り替え時の初期ロード
+function onTabActivate(tab) {
+  if (tab === 'home') loadHome();
+  if (tab === 'food') { initFoodDate(); loadFoodLog(); }
+  if (tab === 'exercise') loadExercise();
+  if (tab === 'health') loadHealthCharts();
+  if (tab === 'ai' ) {
+    const activeSub = document.querySelector('#view-ai .subview.active')?.id;
+    if (activeSub === 'ai-gen') genPrompt(currentPeriod);
+    if (activeSub === 'ai-history') loadHistory(currentPeriod);
+    if (activeSub === 'ai-gen') loadAiAgentComments(currentPeriod);
+  }
+}
+
+function onSubActivate(subId) {
+  if (subId === 'food-suppl') loadSupplements();
+  if (subId === 'food-nutrients') loadNutrientBars();
+  if (subId === 'health-diet') loadHealthCharts();
+  if (subId === 'ai-history') loadHistory(currentPeriod);
+  if (subId === 'ai-gen') {
+    genPrompt(currentPeriod);
+    loadAiAgentComments(currentPeriod);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  🏠 ホーム
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function loadHome() {
+  try {
+    const s = await api('/api/summary');
+    const days = periodDays();
+
+    // 体重
+    const wLast = lastNumber(s.weightByDate, 'kg');
+    const wAvg = avgOrNull(tailNumbers(s.weightByDate, 'kg', days));
+    const wDisplay = days === 1 ? wLast : wAvg;
+    document.getElementById('hw-val').textContent =
+      wDisplay != null ? wDisplay.toFixed(1) + ' kg' : '--';
+    const diet = s.diet;
+    document.getElementById('hw-sub').textContent = days === 1
+      ? (diet ? `トレンド: ${diet.trend} / MA7 Δ7d: ${diet.ma7Delta7d?.toFixed(2) ?? '--'} kg` : '')
+      : `${days}日平均: ${wAvg != null ? wAvg.toFixed(1) : '--'} kg / 最新: ${wLast != null ? wLast.toFixed(1) : '--'} kg`;
+
+    // 歩数
+    const stLast = lastNumber(s.stepsByDate, 'steps');
+    const stVals = tailNumbers(s.stepsByDate, 'steps', days);
+    const stAvg = avgOrNull(stVals);
+    const stSum = sumOrNull(stVals);
+    document.getElementById('hs-val').textContent =
+      (days === 1 ? stLast : stAvg) != null ? Math.round(days === 1 ? stLast : stAvg).toLocaleString() + ' 歩' : '--';
+    if (days === 1) {
+      const stAvg7 = avgOrNull(tailNumbers(s.stepsByDate, 'steps', 7));
+      document.getElementById('hs-sub').textContent =
+        stAvg7 != null ? `7日平均: ${Math.round(stAvg7).toLocaleString()} 歩` : '';
+    } else {
+      document.getElementById('hs-sub').textContent =
+        `${days}日合計: ${stSum != null ? Math.round(stSum).toLocaleString() : '--'} 歩`;
+    }
+
+    // 睡眠（昨夜）
+    const slLast = lastNumber(s.sleepHoursByDate, 'hours');
+    const slAvg = avgOrNull(tailNumbers(s.sleepHoursByDate, 'hours', days));
+    document.getElementById('hsl-val').textContent =
+      (days === 1 ? slLast : slAvg) != null ? (days === 1 ? slLast : slAvg).toFixed(1) + ' h' : '--';
+    document.getElementById('hsl-sub').textContent = days === 1
+      ? (s.sleepHoursByDate?.slice(-1)[0]?.date ?? '')
+      : `${days}日平均`;
+
+    // カロリー収支
+    const cbLast = lastNumber(s.calorieBalanceByDate, 'kcal');
+    const cbVals = tailNumbers(s.calorieBalanceByDate, 'kcal', days);
+    const cbAvg = avgOrNull(cbVals);
+    const cbSum = sumOrNull(cbVals);
+    const cbVal = days === 1 ? cbLast : cbSum;
+    const el = document.getElementById('hc-val');
+    el.textContent = cbVal != null ? (cbVal > 0 ? '+' : '') + Math.round(cbVal) + ' kcal' : '--';
+    const colorBase = days === 1 ? cbVal : cbAvg;
+    el.style.color = colorBase == null ? 'var(--txt)' : colorBase > 200 ? 'var(--bad)' : colorBase < -200 ? 'var(--good)' : 'var(--warn)';
+    document.getElementById('hc-sub').textContent = cbVal != null
+      ? (days === 1 ? '摂取 - 消費' : `${days}日合計（平均 ${Math.round(cbAvg ?? 0)} kcal/日）`)
+      : '食事記録または消費データなし';
+
+    // バイタル
+    const rhrLast = lastNumber(s.restingHeartRateBpmByDate, 'bpm');
+    const rhrAvg = avgOrNull(tailNumbers(s.restingHeartRateBpmByDate, 'bpm', days));
+    const spo2Last = lastNumber(s.oxygenSaturationPctByDate, 'pct');
+    const spo2Avg = avgOrNull(tailNumbers(s.oxygenSaturationPctByDate, 'pct', days));
+    document.getElementById('hv-content').innerHTML = [
+      (days === 1 ? rhrLast : rhrAvg) != null ? `安静時心拍: <b>${Math.round(days === 1 ? rhrLast : rhrAvg)} bpm</b>` : null,
+      (days === 1 ? spo2Last : spo2Avg) != null ? `SpO2: <b>${(days === 1 ? spo2Last : spo2Avg).toFixed(1)} %</b>` : null,
+    ].filter(Boolean).join('<br>') || 'データなし';
+
+    document.getElementById('ht-val').textContent = buildQuickAdvice({
+      days,
+      stepsAvg: stAvg,
+      sleepAvg: slAvg,
+      calorieAvg: days === 1 ? cbLast : cbAvg,
+      trend: diet?.trend,
+    });
+    const summary = document.getElementById('summary-home');
+    if (summary) {
+      summary.innerHTML = `<strong>${periodLabel()}:</strong> 体重 ${wDisplay != null ? wDisplay.toFixed(1) : '--'}kg / 歩数 ${Math.round(days === 1 ? (stLast ?? 0) : (stAvg ?? 0)).toLocaleString()}歩 / 収支 ${cbVal != null ? Math.round(cbVal) : '--'}kcal`;
+    }
+  } catch (e) {
+    console.error('loadHome error:', e);
+    const tip = document.getElementById('ht-val');
+    if (tip) tip.textContent = 'データ取得後にアドバイスを表示します。';
+    const summary = document.getElementById('summary-home');
+    if (summary) summary.innerHTML = '<strong>今日:</strong> 読み込みエラー';
+  }
+}
+
+function lastNumber(series, key) {
+  if (!series?.length) return null;
+  for (let i = series.length - 1; i >= 0; i -= 1) {
+    const v = series[i]?.[key];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
+function tailNumbers(series, key, days) {
+  if (!series?.length) return [];
+  return series
+    .slice(-days)
+    .map(x => x?.[key])
+    .filter(v => typeof v === 'number' && Number.isFinite(v));
+}
+
+function avgOrNull(values) {
+  if (!values?.length) return null;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function sumOrNull(values) {
+  if (!values?.length) return null;
+  return values.reduce((a, b) => a + b, 0);
+}
+
+function buildQuickAdvice({ days, stepsAvg, sleepAvg, calorieAvg, trend }) {
+  if (sleepAvg != null && sleepAvg < 6) {
+    return `${days}日ベースで睡眠が短めです。まずは就寝を30分早めるだけでも回復と食欲コントロールが改善しやすいです。`;
+  }
+  if (stepsAvg != null && stepsAvg < 6000) {
+    return `${days}日平均の歩数がやや少なめです。1日1,000歩だけ上乗せすると、無理なく消費を積み上げられます。`;
+  }
+  if (calorieAvg != null && calorieAvg > 200) {
+    return `${days}日平均でカロリー収支がプラスです。間食か夕食のどちらかを100〜200kcal調整すると体重管理が安定します。`;
+  }
+  if (calorieAvg != null && calorieAvg < -600) {
+    return `${days}日平均でカロリー赤字が大きめです。タンパク質を確保しつつ、赤字は1日-500kcal程度にすると継続しやすくなります。`;
+  }
+  if (trend === 'down') {
+    return '体重トレンドは良い方向です。今のペースを維持して、睡眠と歩数を崩さないのが最優先です。';
+  }
+  return '全体バランスは悪くありません。次の1週間は「睡眠6.5時間以上」と「歩数+1,000」を目標にしましょう。';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  🍽 食事ログ
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function initFoodDate() {
+  const el = document.getElementById('food-date');
+  if (el && !el.value) el.value = todayStr();
+}
+
+function todayStr() {
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function normalizeDateStr(raw) {
+  if (!raw) return '';
+  const m = String(raw).trim().match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (!m) return '';
+  const yyyy = m[1];
+  const mm = m[2].padStart(2, '0');
+  const dd = m[3].padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+const SUPPLEMENT_LABELS_JA = Object.freeze({
+  protein: 'ザバス ミルクプロテイン 脂肪0 キャラメル風味 200ml',
+  vitamin_d: 'ビタミンD3 2000IU（ソフトジェル）',
+  multivitamin: 'スーパーマルチビタミン＆ミネラル',
+  fish_oil: 'スーパーフィッシュオイル',
+});
+
+function getDisplayLabel(alias, label) {
+  if (alias && SUPPLEMENT_LABELS_JA[alias]) return SUPPLEMENT_LABELS_JA[alias];
+  return label ?? '';
+}
+
+async function loadFoodLog() {
+  const date = document.getElementById('food-date').value || todayStr();
+  const el = document.getElementById('food-log-list');
+  const summary = document.getElementById('summary-food');
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+  try {
+    const data = await api(`/api/nutrition/day?date=${date}`);
+    const protein = data?.totals?.protein_g;
+    const kcal = data?.totals?.kcal;
+    if (summary) {
+      summary.innerHTML = `<strong>食事:</strong> ${date} / タンパク質 ${protein != null ? protein.toFixed(1) : '--'}g / ${kcal != null ? Math.round(kcal) : '--'}kcal`;
+    }
+    if (!data.events?.length) {
+      el.innerHTML = '<p style="color:var(--muted);font-size:13px;">記録なし</p>';
+      return;
+    }
+    el.innerHTML = data.events.map(e => {
+      const displayLabel = getDisplayLabel(e.alias, e.label);
+      return `
+      <div class="card" style="padding:10px;display:flex;align-items:center;gap:10px;">
+        <button onclick="deleteFoodLog(${e.id})" style="background:none;border:none;color:var(--bad);font-size:18px;cursor:pointer;flex-shrink:0;">×</button>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;">${displayLabel}</div>
+          <div style="font-size:12px;color:var(--muted);">
+            ${[e.kcal && e.kcal + 'kcal', e.protein_g && 'P' + e.protein_g + 'g',
+               e.fat_g && 'F' + e.fat_g + 'g', e.carbs_g && 'C' + e.carbs_g + 'g']
+              .filter(Boolean).join(' / ') || '栄養素未入力'}
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<p style="color:var(--bad);">読み込みエラー</p>';
+    if (summary) summary.innerHTML = '<strong>食事:</strong> 読み込みエラー';
+  }
+}
+
+async function addFoodLog() {
+  const date = document.getElementById('food-date').value || todayStr();
+  const time = document.getElementById('fl-timing').value;
+  const label = document.getElementById('fl-label').value.trim();
+  if (!label) { alert('食品名を入力してください'); return; }
+
+  const payload = {
+    label,
+    consumed_at: date + 'T' + time + ':00',
+    kcal: parseFloat(document.getElementById('fl-kcal').value) || null,
+    protein_g: parseFloat(document.getElementById('fl-protein').value) || null,
+    fat_g: parseFloat(document.getElementById('fl-fat').value) || null,
+    carbs_g: parseFloat(document.getElementById('fl-carbs').value) || null,
+  };
+  try {
+    await api('/api/nutrition/log', { method: 'POST', body: payload });
+    document.getElementById('fl-label').value = '';
+    loadFoodLog();
+  } catch (e) {
+    alert('追加に失敗しました: ' + e.message);
+  }
+}
+
+async function deleteFoodLog(id) {
+  if (!confirm('この食事ログを削除しますか？')) return;
+  try {
+    await api(`/api/nutrition/log/${id}`, { method: 'DELETE' });
+    loadFoodLog();
+  } catch (e) {
+    alert('削除エラー: ' + e.message);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  サプリ
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function loadSupplements() {
+  const el = document.getElementById('suppl-list');
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+  try {
+    const [suppls, dayData] = await Promise.all([
+      api('/api/supplements'),
+      api(`/api/nutrition/day?date=${todayStr()}`),
+    ]);
+    const checkedAliases = new Set(
+      (dayData.events || []).map(e => e.alias).filter(Boolean)
+    );
+    el.innerHTML = suppls.supplements.map(s => {
+      const checked = checkedAliases.has(s.alias);
+      const displayLabel = getDisplayLabel(s.alias, s.label);
+      return `
+        <div class="card" style="padding:10px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:22px;">${checked ? '✅' : '⬜'}</span>
+          <div style="flex:1;">
+            <div style="font-size:13px;">${displayLabel}</div>
+          </div>
+          ${!checked ? `<button class="btn" style="width:auto;padding:8px 12px;margin:0;font-size:12px;" onclick="logSuppl('${s.alias}')">チェック</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<p style="color:var(--bad);">読み込みエラー</p>';
+  }
+}
+
+async function logSuppl(alias) {
+  try {
+    await api('/api/nutrition/log', { method: 'POST', body: { alias, count: 1 } });
+    loadSupplements();
+  } catch (e) {
+    alert('ログ追加エラー: ' + e.message);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  栄養素横棒グラフ
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function loadNutrientBars() {
+  const el = document.getElementById('nutrient-bars');
+  const mainEl = document.getElementById('nutrient-bars-main');
+  const detailEl = document.getElementById('nutrient-bars-detail');
+  const rawDate = document.getElementById('food-date')?.value || todayStr();
+  const date = normalizeDateStr(rawDate);
+  const path = date
+    ? `/api/nutrients/targets?date=${encodeURIComponent(date)}`
+    : '/api/nutrients/targets';
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+  if (mainEl) mainEl.innerHTML = '<div class="loading">読み込み中...</div>';
+  if (detailEl) detailEl.innerHTML = '';
+  try {
+    const data = await api(path);
+    const targets = data.targets;
+    const renderRows = (items) => items.map(t => {
+      const pct = t.target > 0 && t.actual != null
+        ? Math.min(100, Math.round((t.actual / t.target) * 100))
+        : 0;
+      const actualText = t.actual != null
+        ? `${t.actual.toFixed(1)} / ${t.target}${t.unit}`
+        : `-- / ${t.target}${t.unit}`;
+      return `
+        <div class="nutrient-row">
+          <div class="nutrient-label">${t.name}</div>
+          <div class="bar-track">
+            <div class="bar-fill ${t.status}" style="width:${pct}%;"></div>
+          </div>
+          <div class="nutrient-val">${actualText}</div>
+        </div>
+      `;
+    }).join('');
+    const mainKeys = new Set(['energy_kcal', 'protein_g', 'fat_g', 'carbs_g']);
+    const mains = targets.filter(t => mainKeys.has(t.key));
+    const details = targets.filter(t => !mainKeys.has(t.key));
+    if (mainEl) mainEl.innerHTML = renderRows(mains);
+    if (detailEl) detailEl.innerHTML = renderRows(details);
+    el.innerHTML = '';
+  } catch (e) {
+    const msg = `<p style="color:var(--bad);">${e.message}</p>`;
+    if (mainEl) mainEl.innerHTML = msg;
+    else el.innerHTML = msg;
+    if (detailEl) detailEl.innerHTML = '';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  🏃 運動
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function loadExercise() {
+  const days = currentExercisePeriod === 'month' ? 30 : 7;
+  try {
+    const s = await api('/api/summary');
+    const steps = (s.stepsByDate || []).slice(-days);
+    const active = (s.activeCaloriesByDate || []).slice(-days);
+    const stepsVals = steps.map(x => Number(x.steps || 0));
+    const activeVals = active.map(x => Number(x.kcal || 0));
+    const totalSteps = stepsVals.reduce((a, b) => a + b, 0);
+    const avgSteps = stepsVals.length ? totalSteps / stepsVals.length : 0;
+    const totalActive = activeVals.reduce((a, b) => a + b, 0);
+    const distanceKm = totalSteps * 0.00075;
+
+    document.getElementById('ex-avg-steps').textContent = Math.round(avgSteps).toLocaleString();
+    document.getElementById('ex-total-dist').textContent = distanceKm.toFixed(1);
+    document.getElementById('ex-total-cal').textContent = Math.round(totalActive).toLocaleString();
+
+    const labels = steps.map(x => (x.date || '').slice(5));
+    mkChart('chart-ex-steps', 'bar',
+      labels,
+      [{ label: '歩数', data: steps.map(x => x.steps), backgroundColor: 'rgba(51,255,32,0.5)' }]
+    );
+    mkChart('chart-ex-calories', 'line',
+      labels,
+      [{ label: '活動カロリー', data: labels.map((_, i) => active[i]?.kcal ?? null), borderColor: '#ffc676', tension: 0.3, spanGaps: true }]
+    );
+
+    const summary = document.getElementById('summary-exercise');
+    if (summary) {
+      summary.innerHTML = `<strong>運動:</strong> ${days}日平均 ${Math.round(avgSteps).toLocaleString()}歩 / 活動 ${Math.round(totalActive).toLocaleString()}kcal`;
+    }
+  } catch (e) {
+    const summary = document.getElementById('summary-exercise');
+    if (summary) summary.innerHTML = '<strong>運動:</strong> 読み込みエラー';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ❤️ 健康チャート
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const chartInstances = {};
+
+function mkChart(id, type, labels, datasets, opts = {}) {
+  if (chartInstances[id]) chartInstances[id].destroy();
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: datasets.length > 1, labels: { color: '#9fb3d8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#9fb3d8', font: { size: 10 }, maxTicksLimit: 7 }, grid: { color: 'rgba(122,153,199,0.1)' } },
+        y: { ticks: { color: '#9fb3d8', font: { size: 10 } }, grid: { color: 'rgba(122,153,199,0.1)' } },
+      },
+      ...opts,
+    },
+  });
+}
+
+async function loadHealthCharts() {
+  try {
+    const s = await api('/api/summary');
+    const dChart = chartDays();
+
+    // 体重
+    const w30 = (s.weightByDate || []).slice(-dChart);
+    mkChart('chart-weight', 'line',
+      w30.map(x => x.date.slice(5)),
+      [{
+        label: '体重 (kg)',
+        data: w30.map(x => x.kg),
+        borderColor: '#33ff20',
+        backgroundColor: 'rgba(51,255,32,0.1)',
+        tension: 0.3,
+        spanGaps: true,
+      }]
+    );
+
+    // 体脂肪
+    const bf = (s.bodyFatPctByDate || []).slice(-dChart);
+    mkChart('chart-bodyfat', 'line',
+      bf.map(x => x.date.slice(5)),
+      [{
+        label: '体脂肪率 (%)',
+        data: bf.map(x => x.pct),
+        borderColor: '#ffc676',
+        backgroundColor: 'rgba(255,198,118,0.1)',
+        tension: 0.3,
+        spanGaps: true,
+      }]
+    );
+
+    // ダイエット状況テキスト
+    const diet = s.diet;
+    if (diet) {
+      const trendMap = { gain: '増加中', plateau: '停滞', slow_loss: 'ゆるやか減量', loss: '減量中', unknown: '不明' };
+      document.getElementById('diet-status').innerHTML = `
+        <div style="font-size:15px;font-weight:700;color:var(--acc);">${trendMap[diet.trend] ?? diet.trend}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px;">
+          MA7 Δ7d: ${diet.ma7Delta7d?.toFixed(2) ?? '--'} kg<br>
+          推定赤字: ${diet.estimatedDeficitKcalPerDay?.toFixed(0) ?? '--'} kcal/日
+        </div>
+      `;
+      const healthSummary = document.getElementById('summary-health');
+      if (healthSummary) {
+        healthSummary.innerHTML = `<strong>健康:</strong> トレンド ${trendMap[diet.trend] ?? diet.trend} / MA7 Δ7d ${diet.ma7Delta7d?.toFixed(2) ?? '--'}kg`;
+      }
+    }
+
+    // 安静時心拍
+    const rhr = (s.restingHeartRateBpmByDate || []).slice(-dChart);
+    mkChart('chart-rhr', 'line',
+      rhr.map(x => x.date.slice(5)),
+      [{ label: '安静時心拍', data: rhr.map(x => x.bpm), borderColor: '#ff90a6', tension: 0.3, spanGaps: true }]
+    );
+
+    // 睡眠
+    const sleep = (s.sleepHoursByDate || []).slice(-dChart);
+    mkChart('chart-sleep', 'bar',
+      sleep.map(x => x.date.slice(5)),
+      [{ label: '睡眠時間', data: sleep.map(x => x.hours), backgroundColor: 'rgba(122,153,199,0.5)' }]
+    );
+  } catch (e) {
+    console.error('loadHealthCharts error:', e);
+    const healthSummary = document.getElementById('summary-health');
+    if (healthSummary) healthSummary.innerHTML = '<strong>健康:</strong> 読み込みエラー';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  🤖 AI
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let _lastPrompt = '';
+let _lastPromptType = 'daily';
+
+async function genPrompt(type) {
+  const ta = document.getElementById('prompt-output');
+  ta.value = '生成中...';
+  try {
+    const data = await api(`/api/prompt?type=${type}`);
+    ta.value = data.prompt;
+    _lastPrompt = data.prompt;
+    _lastPromptType = type;
+    document.getElementById('prompt-hint').style.display = 'block';
+    loadAiAgentComments(type);
+  } catch (e) {
+    ta.value = 'エラー: ' + e.message;
+  }
+}
+
+function extractAgentComments(content) {
+  const doctor = content.match(/(?:^|\n)##\s*2\.\s*健康・医療視点[\s\S]*?(?=\n##\s*3\.|\n##\s*\d+\.|$)/)?.[0] ?? '';
+  const trainer = content.match(/(?:^|\n)##\s*1\.\s*体重・ダイエット視点[\s\S]*?(?=\n##\s*2\.|\n##\s*\d+\.|$)/)?.[0] ?? '';
+  const nutritionist = content.match(/(?:^|\n)##\s*3\.\s*栄養・サプリ視点[\s\S]*?(?=\n##\s*\d+\.|$)/)?.[0] ?? '';
+  return { doctor: doctor.trim(), trainer: trainer.trim(), nutritionist: nutritionist.trim() };
+}
+
+async function loadAiAgentComments(type) {
+  const d = document.getElementById('ai-comment-doctor-text');
+  const t = document.getElementById('ai-comment-trainer-text');
+  const n = document.getElementById('ai-comment-nutritionist-text');
+  const summary = document.getElementById('summary-ai');
+  if (d) d.textContent = '読み込み中...';
+  if (t) t.textContent = '読み込み中...';
+  if (n) n.textContent = '読み込み中...';
+  try {
+    const list = await api(`/api/reports?report_type=${type}`);
+    const latest = list?.reports?.[0];
+    if (!latest) {
+      if (d) d.textContent = 'コメント未保存';
+      if (t) t.textContent = 'コメント未保存';
+      if (n) n.textContent = 'コメント未保存';
+      if (summary) summary.innerHTML = `<strong>AI:</strong> ${type} レポート未保存`;
+      return;
+    }
+    const full = await api(`/api/reports/${latest.id}`);
+    const comments = extractAgentComments(full.content ?? '');
+    if (d) d.innerHTML = comments.doctor ? marked.parse(comments.doctor) : 'コメント未保存';
+    if (t) t.innerHTML = comments.trainer ? marked.parse(comments.trainer) : 'コメント未保存';
+    if (n) n.innerHTML = comments.nutritionist ? marked.parse(comments.nutritionist) : 'コメント未保存';
+    if (summary) summary.innerHTML = `<strong>AI:</strong> 最新 ${latest.report_date} / ${latest.report_type}`;
+  } catch (e) {
+    if (d) d.textContent = '読み込みエラー';
+    if (t) t.textContent = '読み込みエラー';
+    if (n) n.textContent = '読み込みエラー';
+    if (summary) summary.innerHTML = '<strong>AI:</strong> 読み込みエラー';
+  }
+}
+
+async function copyPrompt() {
+  const text = document.getElementById('prompt-output').value;
+  if (!text || text === '生成中...') return;
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('コピーしました！');
+  } catch {
+    // フォールバック: textareaを選択してCtrl+Cを促す
+    document.getElementById('prompt-output').select();
+    alert('テキストを選択しました。Ctrl+C でコピーしてください');
+  }
+}
+
+async function saveReport() {
+  const date = document.getElementById('save-date').value || todayStr();
+  const type = document.getElementById('save-type').value;
+  const content = document.getElementById('save-content').value.trim();
+  if (!content) { alert('レポート内容を貼り付けてください'); return; }
+
+  try {
+    await api('/api/reports', {
+      method: 'POST',
+      body: {
+        report_date: date,
+        report_type: type,
+        prompt_used: _lastPrompt || '（プロンプト未保存）',
+        content,
+      },
+    });
+    document.getElementById('save-content').value = '';
+    alert('保存しました！');
+  } catch (e) {
+    alert('保存エラー: ' + e.message);
+  }
+}
+
+async function loadHistory(filterType) {
+  const el = document.getElementById('history-list');
+  const detail = document.getElementById('report-detail');
+  el.style.display = 'block';
+  detail.style.display = 'none';
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+
+  try {
+    const url = filterType ? `/api/reports?report_type=${filterType}` : '/api/reports';
+    const data = await api(url);
+    if (!data.reports?.length) {
+      el.innerHTML = '<p style="color:var(--muted);font-size:13px;">レポートなし</p>';
+      return;
+    }
+    el.innerHTML = data.reports.map(r => `
+      <div class="report-card" onclick="showDetail(${r.id})">
+        <div class="report-meta">
+          ${r.report_date} &nbsp;
+          <span class="chip ${r.report_type}">${r.report_type === 'daily' ? '日次' : r.report_type === 'weekly' ? '週次' : '月次'}</span>
+        </div>
+        <div class="report-preview">${escHtml(r.preview ?? '')}${(r.preview?.length >= 200) ? '...' : ''}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = '<p style="color:var(--bad);">読み込みエラー: ' + e.message + '</p>';
+  }
+}
+
+let _detailId = null;
+
+async function showDetail(id) {
+  _detailId = id;
+  document.getElementById('history-list').style.display = 'none';
+  const detail = document.getElementById('report-detail');
+  detail.style.display = 'block';
+  document.getElementById('detail-body').innerHTML = '<div class="loading">読み込み中...</div>';
+  try {
+    const r = await api(`/api/reports/${id}`);
+    document.getElementById('detail-meta').textContent = `${r.report_date} / ${r.report_type}`;
+    document.getElementById('detail-body').innerHTML = marked.parse(r.content ?? '');
+    document.getElementById('detail-delete-btn').onclick = () => deleteReport(id);
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = '<p style="color:var(--bad);">読み込みエラー</p>';
+  }
+}
+
+function closeDetail() {
+  document.getElementById('history-list').style.display = 'block';
+  document.getElementById('report-detail').style.display = 'none';
+}
+
+async function deleteReport(id) {
+  if (!confirm('このレポートを削除しますか？')) return;
+  try {
+    await api(`/api/reports/${id}`, { method: 'DELETE' });
+    closeDetail();
+    loadHistory(null);
+  } catch (e) {
+    alert('削除エラー: ' + e.message);
+  }
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ⚙️ 設定
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function loadSettings() {
+  try {
+    const p = await api('/api/profile');
+    if (p.name) document.getElementById('pf-name').value = p.name;
+    if (p.height_cm) document.getElementById('pf-height').value = p.height_cm;
+    if (p.birth_year) document.getElementById('pf-birth-year').value = p.birth_year;
+    if (p.sex) document.getElementById('pf-sex').value = p.sex;
+    if (p.goal_weight_kg) document.getElementById('pf-goal-weight').value = p.goal_weight_kg;
+  } catch {}
+
+  // 接続確認
+  try {
+    const st = await api('/api/status');
+    document.getElementById('conn-status').textContent =
+      `✅ 接続OK（レコード ${st.totalRecords} 件）`;
+    document.getElementById('conn-status').style.color = 'var(--good)';
+  } catch {
+    document.getElementById('conn-status').textContent = '❌ 接続失敗';
+    document.getElementById('conn-status').style.color = 'var(--bad)';
+  }
+}
+
+async function saveProfile() {
+  const body = {};
+  const name = document.getElementById('pf-name').value.trim();
+  const height = parseFloat(document.getElementById('pf-height').value);
+  const birth = parseInt(document.getElementById('pf-birth-year').value);
+  const sex = document.getElementById('pf-sex').value;
+  const goal = parseFloat(document.getElementById('pf-goal-weight').value);
+
+  if (name) body.name = name;
+  if (!isNaN(height)) body.height_cm = height;
+  if (!isNaN(birth)) body.birth_year = birth;
+  body.sex = sex;
+  if (!isNaN(goal)) body.goal_weight_kg = goal;
+
+  try {
+    await api('/api/profile', { method: 'PUT', body });
+    const r = document.getElementById('pf-result');
+    r.style.display = 'block';
+    setTimeout(() => { r.style.display = 'none'; }, 2000);
+  } catch (e) {
+    alert('保存エラー: ' + e.message);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  初期化
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 保存日付の初期値
+document.getElementById('save-date').value = todayStr();
+initFoodDate();
+applyPeriodLabels();
+updatePeriodButtons();
+
+// 初回ロード
+loadHome();
+</script>
+</body>
+</html>
+
