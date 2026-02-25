@@ -918,7 +918,13 @@ def activity_data(
             (base_date,),
         ).fetchone()
         today_dist_row = conn.execute(
-            """SELECT SUM(CAST(json_extract(payload_json,'$.inMeters') AS REAL)) AS meters
+            """SELECT SUM(
+                        COALESCE(
+                          CAST(json_extract(payload_json,'$.inMeters') AS REAL),
+                          CAST(json_extract(payload_json,'$.meters') AS REAL),
+                          0
+                        )
+                      ) AS meters
                FROM health_records WHERE type='DistanceRecord' AND date(start_time) = ?""",
             (base_date,),
         ).fetchone()
@@ -934,7 +940,8 @@ def activity_data(
             """SELECT date(start_time) AS d, start_time, end_time,
                       json_extract(payload_json,'$.exerciseType') AS etype,
                       json_extract(payload_json,'$.title') AS title,
-                      json_extract(payload_json,'$.totalDistance.inMeters') AS dist_m
+                      json_extract(payload_json,'$.totalDistance.inMeters') AS dist_m,
+                      json_extract(payload_json,'$.energy.inKilocalories') AS kcal
                FROM health_records WHERE type='ExerciseSessionRecord'
                AND date(start_time) BETWEEN ? AND ?
                ORDER BY start_time DESC LIMIT 20""",
@@ -974,12 +981,17 @@ def activity_data(
             "title": r["title"] or label,
             "duration_min": _dur_min(r),
             "distance_km": dist_km,
+            "kcal": round(float(r["kcal"])) if r["kcal"] else None,
         })
 
     cur_steps = int(today_steps_row["steps"]) if today_steps_row and today_steps_row["steps"] else None
     cur_active = round(today_active_row["kcal"]) if today_active_row and today_active_row["kcal"] else None
     cur_dist = round(float(today_dist_row["meters"]) / 1000, 2) if today_dist_row and today_dist_row["meters"] else None
     cur_total = round(today_total_row["kcal"]) if today_total_row and today_total_row["kcal"] else None
+    valid_steps = [s["steps"] for s in series if s["steps"] is not None]
+    valid_kcal = [s["active_kcal"] for s in series if s["active_kcal"] is not None]
+    avg_steps = round(sum(valid_steps) / len(valid_steps)) if valid_steps else None
+    total_active_kcal = round(sum(valid_kcal)) if valid_kcal else None
 
     return {
         "baseDate": base_date,
@@ -992,6 +1004,10 @@ def activity_data(
         },
         "series": series,
         "exercises": exercises,
+        "periodSummary": {
+            "avg_steps": avg_steps,
+            "total_active_kcal": total_active_kcal,
+        },
     }
 
 
