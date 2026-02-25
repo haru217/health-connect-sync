@@ -1,0 +1,76 @@
+‡plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.kapt")
+}
+
+android {
+    namespace = "com.haru.hcsyncbridge"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.haru.hcsyncbridge"
+        minSdk = 28
+        targetSdk = 34
+        versionCode = 1
+        versionName = "0.1"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // Kotlin 2.x requires the Compose compiler plugin (applied above).
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+dependencies {
+    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // Health Connect (adjust if needed)
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha01")
+
+    // Health AI Advisor UI Dependencies
+    // Charts
+    implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-alpha.28")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.4")
+
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+}
+‡"(80bb975014657e342d35ecf5b79a369e4c2a98df2Jfile:///C:/Users/user/health-connect-sync/android-app/app/build.gradle.kts:)file:///C:/Users/user/health-connect-sync

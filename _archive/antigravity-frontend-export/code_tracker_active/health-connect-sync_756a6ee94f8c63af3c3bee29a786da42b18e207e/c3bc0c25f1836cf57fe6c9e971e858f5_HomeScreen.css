@@ -1,0 +1,322 @@
+õ+.home-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+
+.home-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.home-status-section {
+  padding: 0 0 2px;
+}
+
+.home-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 16px 6px;
+}
+
+.status-pill {
+  flex: 1 1 calc(50% - 10px);
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(136, 212, 180, 0.25);
+  background: var(--surface-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.status-pill.ok {
+  background: linear-gradient(135deg, #f0fdf7 0%, #e8f9f1 100%);
+}
+
+.status-pill.ng {
+  border-color: #e6e8ee;
+  background: #fafbfe;
+  color: var(--text-muted);
+}
+
+.status-pill.warning {
+  border-color: rgba(240, 141, 127, 0.35);
+  background: linear-gradient(135deg, #fff7f2 0%, #ffefea 100%);
+}
+
+.status-progress-icon {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.spi-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.spi-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+}
+
+.status-pill.warning .spi-icon {
+  color: #e67700;
+}
+
+.status-pill.critical .spi-icon {
+  color: #c92a2a;
+}
+
+.status-text-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.status-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.status-value {
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.attention-section {
+  margin: 0 16px;
+}
+
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attention-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(136, 212, 180, 0.45);
+  background: var(--surface-color);
+  padding: 11px 12px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.attention-item.critical {
+  border-color: rgba(220, 53, 69, 0.45);
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.attention-item.warning {
+  border-left: 4px solid #f08d7f;
+}
+
+.attention-item.info {
+  border-left: 4px solid #5f84c9;
+}
+
+.attention-item.positive {
+  border-left: 4px solid #5ca67b;
+}
+
+.attention-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.attention-message {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.attention-item.critical .attention-message {
+  font-weight: 700;
+}
+
+.attention-arrow {
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+.attention-empty {
+  border-radius: 12px;
+  border: 1px solid rgba(136, 212, 180, 0.2);
+  background: var(--surface-color);
+  padding: 12px;
+  font-size: 14px;
+}
+
+.attention-more {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent-color);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.home-summary-card {
+  margin: 0 16px;
+  padding: 14px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  border: 1px solid rgba(136, 212, 180, 0.25);
+}
+
+.home-summary-text {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ai-advisor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.ai-advisor-card {
+  background: var(--surface-color);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(136, 212, 180, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.ai-card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+}
+
+.ai-card-header:active {
+  background: rgba(136, 212, 180, 0.1);
+}
+
+.ai-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.ai-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(136, 212, 180, 0.2) 0%, rgba(136, 212, 180, 0.05) 100%);
+  color: #2f7f64;
+  border: 1px solid rgba(136, 212, 180, 0.2);
+}
+
+.ai-card-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ai-card-chevron.open {
+  transform: rotate(90deg);
+}
+
+.ai-card-body {
+  padding: 14px 16px 16px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #3a3f4e;
+  white-space: pre-wrap;
+  border-top: 1px solid rgba(136, 212, 180, 0.15);
+}
+
+.home-no-report-card,
+.home-empty-state {
+  margin: 0 16px;
+  padding: 20px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  border: 1px dashed rgba(136, 212, 180, 0.5);
+  text-align: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-report-link {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: var(--accent-color);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .status-pill {
+    padding: 9px 11px;
+  }
+
+  .status-label {
+    font-size: 12px;
+  }
+
+  .attention-message {
+    font-size: 13px;
+  }
+}Í ÍÏ*cascade08
+Ï± ±ß*cascade08
+ßõ+ "(756a6ee94f8c63af3c3bee29a786da42b18e207e2Lfile:///c:/Users/user/health-connect-sync/web-app/src/screens/HomeScreen.css:)file:///c:/Users/user/health-connect-sync
