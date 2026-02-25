@@ -1,5 +1,6 @@
-import { apiFetch } from './client'
+﻿import { apiFetch } from './client'
 import type {
+  HomeSummaryResponse,
   NutrientTargetsResponse,
   NutritionDayResponse,
   ProfileResponse,
@@ -10,7 +11,6 @@ import type {
   SaveReportRequest,
   SummaryResponse,
   SupplementsResponse,
-  HomeSummaryResponse,
 } from './types'
 
 function valueOnDate<T extends { date: string }>(
@@ -44,51 +44,72 @@ function toHomeSummaryFromSummary(summary: SummaryResponse, date: string): HomeS
   const sleepHours = valueOnDate(summary.sleepHoursByDate, date)?.hours ?? null
   const intakeKcal = valueOnDate(summary.intakeCaloriesByDate, date)?.kcal ?? null
   const weight = latestOnOrBeforeDate(summary.weightByDate, date)?.kg ?? null
+  const bp = latestOnOrBeforeDate(summary.bloodPressureByDate, date) ?? null
+
+  const totalSleepMinutes = sleepHours == null ? null : Math.round(sleepHours * 60)
+  const sleepValue =
+    totalSleepMinutes == null
+      ? null
+      : `${Math.floor(totalSleepMinutes / 60)}h${String(totalSleepMinutes % 60).padStart(2, '0')}m`
+  const stepsValue = steps == null ? null : `${Math.round(steps).toLocaleString('ja-JP')}`
+  const weightValue = weight == null ? null : `${weight.toFixed(1)}kg`
+  const mealValue = intakeKcal == null ? null : `${Math.round(intakeKcal).toLocaleString('ja-JP')}kcal`
+  const bloodPressureValue = bp == null ? null : `${Math.round(bp.systolic)}/${Math.round(bp.diastolic)}`
 
   const sufficiency = {
     sleep: sleepHours != null && sleepHours > 0,
     steps: steps != null && steps >= 1000,
     weight: weight != null && Number.isFinite(weight),
     meal: intakeKcal != null && intakeKcal > 0,
+    bp: bp != null,
   }
 
-  const evidences: HomeSummaryResponse['evidences'] = []
-  if (sufficiency.sleep && sleepHours != null) {
-    const totalMinutes = Math.round(sleepHours * 60)
-    const hours = Math.floor(totalMinutes / 60)
-    const minutes = totalMinutes % 60
-    evidences.push({
-      type: 'sleep',
+  const statusItems: NonNullable<HomeSummaryResponse['statusItems']> = [
+    {
+      key: 'sleep',
       label: '睡眠',
-      value: `${hours}時間${minutes}分`,
+      value: sleepValue,
+      ok: sufficiency.sleep,
       tab: 'health',
       innerTab: 'sleep',
-    })
-  }
-  if (sufficiency.steps && steps != null) {
-    evidences.push({
-      type: 'steps',
+      tone: 'normal',
+    },
+    {
+      key: 'steps',
       label: '歩数',
-      value: `${Math.round(steps).toLocaleString('ja-JP')}歩`,
+      value: stepsValue,
+      ok: sufficiency.steps,
       tab: 'exercise',
-    })
-  }
-  if (sufficiency.weight && weight != null) {
-    evidences.push({
-      type: 'weight',
+      tone: 'normal',
+    },
+    {
+      key: 'meal',
+      label: '食事',
+      value: mealValue,
+      ok: sufficiency.meal,
+      tab: 'meal',
+      tone: 'normal',
+    },
+    {
+      key: 'weight',
       label: '体重',
-      value: `${weight.toFixed(1)}kg`,
+      value: weightValue,
+      ok: sufficiency.weight,
       tab: 'health',
       innerTab: 'composition',
-    })
-  }
-  if (sufficiency.meal) {
-    const mealCount = intakeKcal == null ? 0 : 1
-    evidences.push({
-      type: 'meal',
-      label: '食事',
-      value: `${mealCount}件`,
-      tab: 'meal',
+      tone: 'normal',
+    },
+  ]
+
+  if (bp != null) {
+    statusItems.push({
+      key: 'bp',
+      label: 'BP',
+      value: bloodPressureValue,
+      ok: true,
+      tab: 'health',
+      innerTab: 'vital',
+      tone: bp.systolic >= 130 || bp.diastolic >= 85 ? 'warning' : 'normal',
     })
   }
 
@@ -96,7 +117,10 @@ function toHomeSummaryFromSummary(summary: SummaryResponse, date: string): HomeS
     date,
     report: null,
     sufficiency,
-    evidences,
+    evidences: [],
+    statusItems,
+    attentionPoints: [],
+    previousReport: null,
   }
 }
 

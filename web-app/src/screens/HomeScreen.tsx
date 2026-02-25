@@ -1,47 +1,48 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary } from '../api/healthApi'
-import type { RequestState, HomeSummaryResponse, HomeSufficiency, HomeEvidence } from '../api/types'
+import type {
+  AttentionPoint,
+  HomeStatusItem,
+  HomeSummaryResponse,
+  RequestState,
+} from '../api/types'
 import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
 import './HomeScreen.css'
 
-interface HomeScreenProps {
-  onNavigate?: (tab: 'home' | 'health' | 'exercise' | 'meal' | 'my') => void
+export type HomeNavigateTarget = {
+  tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+  innerTab?: 'composition' | 'vital' | 'sleep'
 }
 
-const ITEMS = [
-  {
-    key: 'sleep',
+interface HomeScreenProps {
+  onNavigate?: (target: HomeNavigateTarget) => void
+}
+
+type StatusMeta = {
+  label: string
+  icon: ReactNode
+}
+
+const STATUS_META: Record<HomeStatusItem['key'], StatusMeta> = {
+  sleep: {
     label: '睡眠',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
-    )
+    ),
   },
-  {
-    key: 'steps',
+  steps: {
     label: '歩数',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
-    )
+    ),
   },
-  {
-    key: 'weight',
-    label: '体重',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="5" width="16" height="14" rx="3" ry="3" />
-        <path d="M12 5v4" />
-        <path d="M8 9h8" />
-      </svg>
-    )
-  },
-  {
-    key: 'meal',
+  meal: {
     label: '食事',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,29 +50,26 @@ const ITEMS = [
         <path d="M7 2v20" />
         <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
       </svg>
-    )
+    ),
   },
-] as const
-
-function SufficiencyBar({ sufficiency }: { sufficiency: HomeSufficiency }) {
-  return (
-    <div className="home-sufficiency-bar">
-      {ITEMS.map(item => {
-        const isOn = sufficiency[item.key as keyof HomeSufficiency]
-        return (
-          <div
-            key={item.key}
-            className={`sufficiency-pill ${isOn ? 'on' : 'off'}`}
-          >
-            <div className="sufficiency-icon">
-              {item.icon}
-            </div>
-            <span className="sufficiency-label">{item.label}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
+  weight: {
+    label: '体重',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="5" width="16" height="14" rx="3" ry="3" />
+        <path d="M12 5v4" />
+        <path d="M8 9h8" />
+      </svg>
+    ),
+  },
+  bp: {
+    label: 'BP',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+    ),
+  },
 }
 
 function extractAgentSections(content: string): {
@@ -90,62 +88,159 @@ function extractAgentSections(content: string): {
   }
 }
 
-function AiCard({ title, icon, content, defaultOpen = false }: { title: string, icon: ReactNode, content: string, defaultOpen?: boolean }) {
+function stripTags(raw: string): string {
+  return raw
+    .replace(/<!--[^]*?-->/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function summaryLine(content: string): string {
+  const sections = extractAgentSections(content)
+  const source = sections.doctor ?? sections.trainer ?? sections.nutritionist ?? content
+  const plain = stripTags(source)
+  if (plain.length <= 96) {
+    return plain
+  }
+  return `${plain.slice(0, 96)}...`
+}
+
+function AiCard({ title, icon, content, defaultOpen = false }: { title: string; icon: ReactNode; content: string; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   return (
     <div className="ai-advisor-card">
-      <div className="ai-card-header" onClick={() => setIsOpen(!isOpen)}>
+      <button type="button" className="ai-card-header" onClick={() => setIsOpen(!isOpen)}>
         <div className="ai-card-title">
           <div className="ai-icon-container">{icon}</div>
           {title}
         </div>
         <div className={`ai-card-chevron ${isOpen ? 'open' : ''}`}>›</div>
-      </div>
-      {isOpen && (
-        <div className="ai-card-body">
-          {content}
-        </div>
-      )}
+      </button>
+      {isOpen ? <div className="ai-card-body">{content}</div> : null}
     </div>
   )
 }
 
-function AiAdvisorSection({ content }: { content: string }) {
+function ExpertSection({ content }: { content: string }) {
   const sections = extractAgentSections(content)
 
   const doctorIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" /><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" /><circle cx="20" cy="10" r="2" /></svg>
   const trainerIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6.5 6.5 11 11" /><path d="m21 21-1-1" /><path d="m3 3 1 1" /><path d="m18 22 4-4" /><path d="m2 6 4-4" /><path d="m3 10 7-7" /><path d="m14 21 7-7" /></svg>
   const nutritionIcon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
 
-  if (!sections.doctor && !sections.trainer && !sections.nutritionist) {
+  const hasAny = Boolean(sections.doctor || sections.trainer || sections.nutritionist)
+  if (!hasAny) {
     return (
-      <div className="ai-advisor-section">
+      <section className="ai-advisor-section">
+        <div className="home-section-title">3人の専門家から</div>
         <AiCard title="医師" icon={doctorIcon} content={content} defaultOpen={true} />
-      </div>
+      </section>
     )
   }
 
   return (
-    <div className="ai-advisor-section">
-      {sections.doctor && <AiCard title="医師" icon={doctorIcon} content={sections.doctor} defaultOpen={true} />}
-      {sections.trainer && <AiCard title="トレーナー" icon={trainerIcon} content={sections.trainer} />}
-      {sections.nutritionist && <AiCard title="栄養士" icon={nutritionIcon} content={sections.nutritionist} />}
-    </div>
+    <section className="ai-advisor-section">
+      <div className="home-section-title">3人の専門家から</div>
+      {sections.trainer ? <AiCard title="トレーナー" icon={trainerIcon} content={sections.trainer} defaultOpen={true} /> : null}
+      {sections.doctor ? <AiCard title="医師" icon={doctorIcon} content={sections.doctor} /> : null}
+      {sections.nutritionist ? <AiCard title="管理栄養士" icon={nutritionIcon} content={sections.nutritionist} /> : null}
+    </section>
   )
 }
 
-function NoReportCard() {
+function StatusBar({
+  items,
+  onNavigate,
+}: {
+  items: HomeStatusItem[]
+  onNavigate?: (target: HomeNavigateTarget) => void
+}) {
   return (
-    <div className="home-no-report-card">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '12px', color: 'var(--text-muted)' }}>
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-        <path d="M9 14h6"></path>
-        <path d="M9 10h6"></path>
-      </svg>
-      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>AIレポートはまだありません</div>
-      <div style={{ fontSize: '13px', marginTop: '6px' }}>今日のデータが揃ったら<br />AIプロンプトでレポートを生成できます</div>
-    </div>
+    <section className="home-status-section">
+      <div className="home-status-scroll" role="list">
+        {items.map((item) => {
+          const meta = STATUS_META[item.key]
+          const value = item.value ? ` ${item.value}` : ''
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={`status-pill ${item.ok ? 'ok' : 'ng'} ${item.tone === 'warning' ? 'warning' : ''}`}
+              onClick={() => onNavigate?.({ tab: item.tab, innerTab: item.innerTab })}
+            >
+              <span className="status-icon">{meta.icon}</span>
+              <span className="status-label">{meta.label}{value}</span>
+              <span className="status-mark">{item.ok ? '✓' : '✗'}</span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function AttentionSection({
+  points,
+  onNavigate,
+}: {
+  points: AttentionPoint[]
+  onNavigate?: (target: HomeNavigateTarget) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? points : points.slice(0, 5)
+  const remaining = points.length - visible.length
+
+  return (
+    <section className="attention-section">
+      <div className="home-section-title">注目ポイント</div>
+      {points.length === 0 ? (
+        <div className="attention-empty">✅ 特に注目点なし。順調です</div>
+      ) : (
+        <>
+          <div className="attention-list">
+            {visible.map((point) => (
+              <button
+                key={point.id}
+                type="button"
+                className={`attention-item ${point.severity}`}
+                onClick={() => onNavigate?.({ tab: point.navigateTo.tab, innerTab: point.navigateTo.subTab })}
+              >
+                <span className="attention-icon">{point.icon}</span>
+                <span className="attention-message">{point.message}</span>
+                <span className="attention-arrow">›</span>
+              </button>
+            ))}
+          </div>
+          {remaining > 0 ? (
+            <button type="button" className="attention-more" onClick={() => setExpanded((prev) => !prev)}>
+              {expanded ? '折りたたむ' : `他${remaining}件`}
+            </button>
+          ) : null}
+        </>
+      )}
+    </section>
+  )
+}
+
+function NoReportCard({
+  previousReport,
+  onNavigate,
+}: {
+  previousReport?: HomeSummaryResponse['previousReport']
+  onNavigate?: (target: HomeNavigateTarget) => void
+}) {
+  return (
+    <section className="home-no-report-card">
+      <div className="home-section-title">今日のまとめ</div>
+      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>レポート未生成です</div>
+      {previousReport ? (
+        <button type="button" className="home-report-link" onClick={() => onNavigate?.({ tab: 'my' })}>
+          前回のレポート（{previousReport.date}）を見る
+        </button>
+      ) : (
+        <div style={{ fontSize: '13px', marginTop: '6px', color: 'var(--text-muted)' }}>前回レポートはまだありません</div>
+      )}
+    </section>
   )
 }
 
@@ -156,57 +251,27 @@ function EmptyState() {
         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
         <line x1="12" y1="18" x2="12.01" y2="18"></line>
       </svg>
-      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>データがありません</div>
-      <div style={{ fontSize: '13px', marginTop: '6px' }}>スマートフォンからデータを<br />同期してください</div>
+      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>データが少ない日です</div>
+      <div style={{ fontSize: '13px', marginTop: '6px' }}>スマートフォンからデータを同期してください</div>
     </div>
   )
 }
 
-function getEvidenceIcon(type: string) {
-  const item = ITEMS.find(i => i.key === type)
-  if (item) return item.icon
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  )
-}
-
-function EvidenceList({
-  evidences,
-  onNavigate,
-}: {
-  evidences: HomeEvidence[]
-  onNavigate?: (tab: HomeEvidence['tab']) => void
-}) {
-  return (
-    <div className="evidence-section">
-      <div className="evidence-section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10" />
-          <line x1="12" y1="20" x2="12" y2="4" />
-          <line x1="6" y1="20" x2="6" y2="14" />
-        </svg>
-        <span>根拠データ</span>
-      </div>
-      <div className="evidence-list">
-        {evidences.map((evidence, idx) => (
-          <div
-            key={idx}
-            className="evidence-item"
-            onClick={() => onNavigate && onNavigate(evidence.tab)}
-          >
-            <div className="evidence-icon-wrap">{getEvidenceIcon(evidence.type)}</div>
-            <div className="evidence-label">{evidence.label}</div>
-            <div className="evidence-value">{evidence.value}</div>
-            <div className="evidence-arrow">›</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+function fallbackStatusItems(data: HomeSummaryResponse): HomeStatusItem[] {
+  if (data.statusItems && data.statusItems.length > 0) {
+    return data.statusItems
+  }
+  const sufficiency = data.sufficiency
+  const items: HomeStatusItem[] = [
+    { key: 'sleep', label: '睡眠', value: null, ok: Boolean(sufficiency.sleep), tab: 'health', innerTab: 'sleep', tone: 'normal' },
+    { key: 'steps', label: '歩数', value: null, ok: Boolean(sufficiency.steps), tab: 'exercise', tone: 'normal' },
+    { key: 'meal', label: '食事', value: null, ok: Boolean(sufficiency.meal), tab: 'meal', tone: 'normal' },
+    { key: 'weight', label: '体重', value: null, ok: Boolean(sufficiency.weight), tab: 'health', innerTab: 'composition', tone: 'normal' },
+  ]
+  if (sufficiency.bp) {
+    items.push({ key: 'bp', label: 'BP', value: null, ok: true, tab: 'health', innerTab: 'vital', tone: 'normal' })
+  }
+  return items
 }
 
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
@@ -218,8 +283,10 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     setState({ status: 'loading' })
 
     fetchHomeSummary(activeDate)
-      .then(res => {
-        if (alive) setState({ status: 'success', data: res })
+      .then((res) => {
+        if (alive) {
+          setState({ status: 'success', data: res })
+        }
       })
       .catch((error) => {
         console.error(error)
@@ -230,8 +297,11 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               date: activeDate,
               report: null,
               sufficiency: { sleep: false, steps: false, weight: false, meal: false },
-              evidences: []
-            }
+              evidences: [],
+              statusItems: [],
+              attentionPoints: [],
+              previousReport: null,
+            },
           })
         }
       })
@@ -241,35 +311,55 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     }
   }, [activeDate])
 
+  const content = useMemo(() => {
+    if (state.status !== 'success') {
+      return null
+    }
+    const data = state.data
+    const statusItems = fallbackStatusItems(data)
+    const attentionPoints = data.attentionPoints ?? []
+    const hasSomeData = statusItems.some((item) => item.ok)
+    const hasReport = data.report != null
+
+    return {
+      data,
+      statusItems,
+      attentionPoints,
+      hasSomeData,
+      hasReport,
+    }
+  }, [state])
+
   return (
     <div className="home-container">
       <DateNavBar />
 
-      {state.status === 'loading' && (
+      {state.status === 'loading' ? (
         <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>読み込み中...</div>
-      )}
+      ) : null}
 
-      {state.status === 'success' && (() => {
-        const { data } = state
-        const hasSomeData = Object.values(data.sufficiency).some(val => val)
-        const hasReport = data.report != null
+      {content ? (
+        <>
+          <StatusBar items={content.statusItems} onNavigate={onNavigate} />
+          <AttentionSection points={content.attentionPoints} onNavigate={onNavigate} />
 
-        return (
-          <>
-            <SufficiencyBar sufficiency={data.sufficiency} />
+          {content.hasReport ? (
+            <>
+              <section className="home-summary-card">
+                <div className="home-section-title">今日のまとめ</div>
+                <p className="home-summary-text">{summaryLine(content.data.report!.content)}</p>
+              </section>
+              <ExpertSection content={content.data.report!.content} />
+            </>
+          ) : null}
 
-            {hasReport && <AiAdvisorSection content={data.report!.content} />}
+          {!content.hasReport && content.hasSomeData ? (
+            <NoReportCard previousReport={content.data.previousReport} onNavigate={onNavigate} />
+          ) : null}
 
-            {!hasReport && hasSomeData && <NoReportCard />}
-
-            {!hasSomeData && <EmptyState />}
-
-            {data.evidences.length > 0 && (
-              <EvidenceList evidences={data.evidences} onNavigate={onNavigate} />
-            )}
-          </>
-        )
-      })()}
+          {!content.hasSomeData ? <EmptyState /> : null}
+        </>
+      ) : null}
     </div>
   )
 }

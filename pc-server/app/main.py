@@ -1279,10 +1279,18 @@ def home_summary(
 ) -> dict[str, Any]:
     """ホーム画面専用の軽量エンドポイント。
 
-    AI レポート（当日分）+ データ充足フラグ + 根拠データリストを返す。
+    AI レポート + 数値付き充足ステータス + 注目ポイント + 後方互換データを返す。
     """
     import datetime as _dt3
     from .db import LOCAL_TZ
+
+    SLEEP_TARGET_MIN = 420
+    SLEEP_DEFICIT_PCT = 0.70
+    SLEEP_WEEKLY_PCT = 0.80
+    STEPS_TARGET = 8000
+
+    severity_rank = {"critical": 4, "warning": 3, "info": 2, "positive": 1}
+    category_rank = {"threshold": 1, "trend": 2, "achievement": 3}
 
     if date is None:
         target_date = _dt3.date.today()
@@ -1295,6 +1303,9 @@ def home_summary(
 
     prev_date = (target_date - _dt3.timedelta(days=1)).isoformat()
     next_date = (target_date + _dt3.timedelta(days=1)).isoformat()
+    trend_14_start = (target_date - _dt3.timedelta(days=13)).isoformat()
+    trend_30_start = (target_date - _dt3.timedelta(days=30)).isoformat()
+    sleep_window_start = (target_date - _dt3.timedelta(days=8)).isoformat()
 
     def _parse_iso_dt(value: Any) -> _dt3.datetime | None:
         if not isinstance(value, str) or not value:
@@ -1365,6 +1376,44 @@ def home_summary(
             },
         )
 
+    def _extract_bp(payload_json: str) -> tuple[float | None, float | None]:
+        try:
+            payload = json.loads(payload_json)
+        except Exception:
+            return (None, None)
+        sys = _find_number(payload, {"systolic", "inMillimetersOfMercury", "sys"})
+        dia = _find_number(payload, {"diastolic", "inMillimetersOfMercury", "dia"})
+        return (sys, dia)
+
+    def _extract_spo2_pct(payload_json: str) -> float | None:
+        try:
+            payload = json.loads(payload_json)
+        except Exception:
+            return None
+        return _find_number(payload, {"percentage", "pct", "spo2"})
+
+    def _extract_bpm(payload_json: str) -> float | None:
+        try:
+            payload = json.loads(payload_json)
+        except Exception:
+            return None
+        return _find_number(payload, {"beatsPerMinute", "bpm"})
+
+    def _fmt_sleep(value_min: int | None) -> str | None:
+        if value_min is None or value_min <= 0:
+            return None
+        h, m = divmod(value_min, 60)
+        return f"{h}h{m:02d}m"
+
+    def _last_n_days(n: int) -> list[str]:
+        return [(target_date - _dt3.timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
+
+    def _series_avg(values: list[float | int | None]) -> float | None:
+        nums = [float(v) for v in values if isinstance(v, (int, float))]
+        if not nums:
+            return None
+        return sum(nums) / len(nums)
+
     with db() as conn:
         # ── AI レポート（当日の daily レポート）
         report_row = conn.execute(
@@ -1373,14 +1422,25 @@ def home_summary(
                ORDER BY created_at DESC LIMIT 1""",
             (date,),
         ).fetchone()
-
-        # 食事データ（nutrition_events）
-        meal_row = conn.execute(
-            "SELECT COUNT(*) AS c FROM nutrition_events WHERE local_date = ?",
+        previous_report_row = conn.execute(
+            """SELECT report_date, created_at
+               FROM ai_reports
+               WHERE report_type = 'daily' AND report_date < ?
+               ORDER BY report_date DESC, created_at DESC LIMIT 1""",
             (date,),
         ).fetchone()
 
-        # 睡眠候補（前後1日を取得してローカル日付で絞る）
+        # 食事データ（nutrition_events + intake_calories_daily）
+        meal_row = conn.execute(
+            "SELECT COUNT(*) AS c, SUM(kcal) AS kcal FROM nutrition_events WHERE local_date = ?",
+            (date,),
+        ).fetchone()
+        intake_row = conn.execute(
+            "SELECT intake_kcal FROM intake_calories_daily WHERE day = ?",
+            (date,),
+        ).fetchone()
+
+        # 睡眠候補（トレンド判定のため8日+α）
         sleep_rows = conn.execute(
             """SELECT start_time, end_time FROM health_records
                WHERE type='SleepSessionRecord'
@@ -1390,54 +1450,90 @@ def home_summary(
                    (end_time IS NOT NULL AND date(end_time) BETWEEN ? AND ?)
                  )
                ORDER BY COALESCE(end_time, start_time) DESC""",
-            (prev_date, next_date, prev_date, next_date),
+            (sleep_window_start, next_date, sleep_window_start, next_date),
         ).fetchall()
 
-        # 歩数候補（前後1日を取得してローカル日付で絞る）
+        # 歩数候補（14日）
         steps_rows = conn.execute(
             """SELECT start_time, payload_json FROM health_records
                WHERE type='StepsRecord'
                  AND start_time IS NOT NULL
                  AND date(start_time) BETWEEN ? AND ?""",
-            (prev_date, next_date),
+            (trend_14_start, next_date),
         ).fetchall()
 
-        # 体重候補（翌日UTCまでを取得してローカル日付で絞る）
+        # 体重候補（30日）
         weight_rows = conn.execute(
             """SELECT time, payload_json FROM health_records
                WHERE type='WeightRecord'
                  AND time IS NOT NULL
-                 AND date(time) <= ?
+                 AND date(time) BETWEEN ? AND ?
                ORDER BY time DESC
                LIMIT 2000""",
-            (next_date,),
+            (trend_30_start, next_date),
         ).fetchall()
 
-    # ── 睡眠判定（起床日のローカル日付で当日判定）
-    sleep_ok = False
-    sleep_label = None
+        # バイタル候補（30日）
+        bp_linked_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM health_records WHERE type='BloodPressureRecord'",
+        ).fetchone()
+        bp_rows = conn.execute(
+            """SELECT time, payload_json FROM health_records
+               WHERE type='BloodPressureRecord'
+                 AND time IS NOT NULL
+                 AND date(time) BETWEEN ? AND ?
+               ORDER BY time DESC
+               LIMIT 4000""",
+            (trend_30_start, date),
+        ).fetchall()
+        spo2_rows = conn.execute(
+            """SELECT time, payload_json FROM health_records
+               WHERE type='OxygenSaturationRecord'
+                 AND time IS NOT NULL
+                 AND date(time) BETWEEN ? AND ?
+               ORDER BY time DESC
+               LIMIT 4000""",
+            (trend_30_start, date),
+        ).fetchall()
+        hr_rows = conn.execute(
+            """SELECT time, payload_json FROM health_records
+               WHERE type='RestingHeartRateRecord'
+                 AND time IS NOT NULL
+                 AND date(time) BETWEEN ? AND ?
+               ORDER BY time DESC
+               LIMIT 4000""",
+            (trend_30_start, date),
+        ).fetchall()
+
+        profile_row = conn.execute(
+            "SELECT goal_weight_kg FROM user_profile LIMIT 1"
+        ).fetchone()
+
+    # ── 睡眠集計（起床日のローカル日付で当日判定）
+    sleep_by_day: dict[str, int] = {}
     for row in sleep_rows:
         start_dt = _parse_iso_dt(row["start_time"])
         end_dt = _parse_iso_dt(row["end_time"])
         anchor_dt = end_dt or start_dt
-        if anchor_dt is None:
+        if anchor_dt is None or start_dt is None or end_dt is None or end_dt <= start_dt:
             continue
-        if anchor_dt.astimezone(LOCAL_TZ).date().isoformat() != date:
-            continue
-        if start_dt is None or end_dt is None or end_dt <= start_dt:
+        local_day = anchor_dt.astimezone(LOCAL_TZ).date().isoformat()
+        if local_day > date:
             continue
         total_min = int((end_dt - start_dt).total_seconds() / 60)
         if total_min <= 0:
             continue
-        sleep_ok = True
-        h, m = divmod(total_min, 60)
-        sleep_label = f"{h}時間{m}分"
-        break
+        sleep_by_day[local_day] = sleep_by_day.get(local_day, 0) + total_min
 
-    # ── 歩数判定（ローカル日付で合算）
-    steps_val: float | None = None
+    sleep_today_min = sleep_by_day.get(date)
+    sleep_ok = bool(sleep_today_min and sleep_today_min > 0)
+    sleep_label = _fmt_sleep(sleep_today_min)
+
+    # ── 歩数集計（ローカル日付で合算）
+    steps_by_day: dict[str, float] = {}
     for row in steps_rows:
-        if _to_local_day(row["start_time"]) != date:
+        local_day = _to_local_day(row["start_time"])
+        if local_day is None or local_day > date:
             continue
         try:
             payload = json.loads(row["payload_json"])
@@ -1446,13 +1542,15 @@ def home_summary(
         count = _find_number(payload, {"count", "steps", "inCount"})
         if count is None or count <= 0:
             continue
-        steps_val = (steps_val or 0.0) + count
-    steps_ok = bool(steps_val and steps_val >= 1000)
-    steps_label = f"{int(steps_val):,}歩" if steps_val else None
+        steps_by_day[local_day] = steps_by_day.get(local_day, 0.0) + count
 
-    # ── 体重判定（ローカル日付で <= 当日）
-    weight_ok = False
-    weight_label = None
+    steps_val = steps_by_day.get(date)
+    steps_ok = bool(steps_val and steps_val >= 1000)
+    steps_label = f"{int(round(steps_val)):,}" if steps_val else None
+
+    # ── 体重集計（最新 <= 当日）
+    latest_weight_kg: float | None = None
+    weight_by_day: dict[str, float] = {}
     for row in weight_rows:
         local_day = _to_local_day(row["time"])
         if local_day is None or local_day > date:
@@ -1460,19 +1558,380 @@ def home_summary(
         kg = _extract_weight_kg(row["payload_json"])
         if kg is None:
             continue
-        # grams fallback
         if kg > 500:
             kg = kg / 1000.0
         if kg <= 0 or kg > 400:
             continue
-        weight_ok = True
-        weight_label = f"{float(kg):.1f}kg"
+        if latest_weight_kg is None:
+            latest_weight_kg = kg
+        if local_day not in weight_by_day:
+            weight_by_day[local_day] = kg
+
+    weight_ok = latest_weight_kg is not None
+    weight_label = f"{float(latest_weight_kg):.1f}kg" if latest_weight_kg is not None else None
+
+    # ── 食事充足（カロリー優先）
+    intake_kcal = float(intake_row["intake_kcal"]) if intake_row and intake_row["intake_kcal"] is not None else None
+    meal_kcal = float(meal_row["kcal"]) if meal_row and meal_row["kcal"] is not None else None
+    meal_count = int(meal_row["c"]) if meal_row and meal_row["c"] is not None else 0
+    meal_total_kcal = intake_kcal if intake_kcal is not None else meal_kcal
+    meal_ok = bool((meal_total_kcal is not None and meal_total_kcal > 0) or meal_count > 0)
+    meal_label = f"{int(round(meal_total_kcal)):,}kcal" if meal_total_kcal is not None and meal_total_kcal > 0 else None
+
+    # ── バイタル（BP, SpO2, Resting HR）
+    bp_linked = bool(bp_linked_row and bp_linked_row["c"] > 0)
+    bp_current_sys: float | None = None
+    bp_current_dia: float | None = None
+    bp_by_day: dict[str, tuple[float, float]] = {}
+    for row in bp_rows:
+        local_day = _to_local_day(row["time"])
+        if local_day is None or local_day > date:
+            continue
+        sys, dia = _extract_bp(row["payload_json"])
+        if sys is None or dia is None:
+            continue
+        if bp_current_sys is None and bp_current_dia is None:
+            bp_current_sys, bp_current_dia = sys, dia
+        if local_day not in bp_by_day:
+            bp_by_day[local_day] = (sys, dia)
+
+    bp_ok = bp_current_sys is not None and bp_current_dia is not None
+    bp_label = f"{int(round(bp_current_sys))}/{int(round(bp_current_dia))}" if bp_ok else None
+    bp_warning = bool(bp_ok and (bp_current_sys >= 130 or bp_current_dia >= 85))
+
+    spo2_current: float | None = None
+    for row in spo2_rows:
+        local_day = _to_local_day(row["time"])
+        if local_day is None or local_day > date:
+            continue
+        pct = _extract_spo2_pct(row["payload_json"])
+        if pct is None:
+            continue
+        spo2_current = pct
         break
 
-    # ── 食事充足フラグ
-    meal_ok = bool(meal_row and meal_row["c"] > 0)
+    hr_current: float | None = None
+    hr_values: list[float] = []
+    for row in hr_rows:
+        local_day = _to_local_day(row["time"])
+        if local_day is None or local_day > date:
+            continue
+        bpm = _extract_bpm(row["payload_json"])
+        if bpm is None or bpm <= 0:
+            continue
+        if hr_current is None:
+            hr_current = bpm
+        hr_values.append(bpm)
 
-    # ── 根拠データリスト（データがあるものだけ）
+    # ── 新UI: 充足ステータス（固定順）
+    status_items: list[dict[str, Any]] = [
+        {
+            "key": "sleep",
+            "label": "睡眠",
+            "value": sleep_label,
+            "ok": sleep_ok,
+            "tab": "health",
+            "innerTab": "sleep",
+            "tone": "normal",
+        },
+        {
+            "key": "steps",
+            "label": "歩数",
+            "value": steps_label,
+            "ok": steps_ok,
+            "tab": "exercise",
+            "tone": "normal",
+        },
+        {
+            "key": "meal",
+            "label": "食事",
+            "value": meal_label,
+            "ok": meal_ok,
+            "tab": "meal",
+            "tone": "normal",
+        },
+        {
+            "key": "weight",
+            "label": "体重",
+            "value": weight_label,
+            "ok": weight_ok,
+            "tab": "health",
+            "innerTab": "composition",
+            "tone": "normal",
+        },
+    ]
+    if bp_linked:
+        status_items.append(
+            {
+                "key": "bp",
+                "label": "BP",
+                "value": bp_label,
+                "ok": bp_ok,
+                "tab": "health",
+                "innerTab": "vital",
+                "tone": "warning" if bp_warning else "normal",
+            }
+        )
+
+    # ── 新UI: 注目ポイント（ルールベース）
+    points_by_source: dict[str, dict[str, Any]] = {}
+
+    def _add_point(
+        *,
+        rule_id: str,
+        icon: str,
+        message: str,
+        severity: str,
+        category: str,
+        tab: str,
+        subtab: str | None,
+        data_source: str,
+    ) -> None:
+        point = {
+            "id": f"{rule_id}-{date}",
+            "icon": icon,
+            "message": message[:60],
+            "severity": severity,
+            "category": category,
+            "navigateTo": {"tab": tab, **({"subTab": subtab} if subtab else {})},
+            "dataSource": data_source,
+        }
+        prev = points_by_source.get(data_source)
+        if prev is None:
+            points_by_source[data_source] = point
+            return
+        prev_score = (severity_rank[prev["severity"]], -category_rank[prev["category"]])
+        new_score = (severity_rank[severity], -category_rank[category])
+        if new_score > prev_score:
+            points_by_source[data_source] = point
+
+    if bp_ok and bp_current_sys is not None and bp_current_dia is not None:
+        if bp_current_sys >= 140 or bp_current_dia >= 90:
+            _add_point(
+                rule_id="bp-critical",
+                icon="🔴",
+                message=f"血圧が高めです（{int(round(bp_current_sys))}/{int(round(bp_current_dia))}）",
+                severity="critical",
+                category="threshold",
+                tab="health",
+                subtab="vital",
+                data_source="blood_pressure",
+            )
+        elif bp_current_sys >= 130 or bp_current_dia >= 85:
+            _add_point(
+                rule_id="bp-warning",
+                icon="⚠️",
+                message=f"血圧がやや高めです（{int(round(bp_current_sys))}/{int(round(bp_current_dia))}）",
+                severity="warning",
+                category="threshold",
+                tab="health",
+                subtab="vital",
+                data_source="blood_pressure",
+            )
+
+    if spo2_current is not None:
+        if spo2_current < 90:
+            _add_point(
+                rule_id="spo2-critical-low",
+                icon="🔴",
+                message=f"酸素飽和度が著しく低下しています（{round(spo2_current, 1)}%）",
+                severity="critical",
+                category="threshold",
+                tab="health",
+                subtab="vital",
+                data_source="spo2",
+            )
+        elif spo2_current < 95:
+            _add_point(
+                rule_id="spo2-warning-low",
+                icon="⚠️",
+                message=f"酸素飽和度が低めです（{round(spo2_current, 1)}%）",
+                severity="warning",
+                category="threshold",
+                tab="health",
+                subtab="vital",
+                data_source="spo2",
+            )
+
+    if hr_current is not None and hr_values:
+        hr_avg_30 = _series_avg(hr_values)
+        if hr_avg_30 is not None and hr_avg_30 > 0:
+            deviation = abs(hr_current - hr_avg_30) / hr_avg_30
+            if deviation >= 0.20:
+                _add_point(
+                    rule_id="rhr-deviation",
+                    icon="⚠️",
+                    message=f"安静時心拍が通常と異なります（{int(round(hr_current))}bpm）",
+                    severity="warning",
+                    category="threshold",
+                    tab="health",
+                    subtab="vital",
+                    data_source="resting_hr",
+                )
+
+    last7_days = _last_n_days(7)
+    sleep_last7 = [sleep_by_day.get(day) for day in last7_days]
+    sleep_target_deficit = int(SLEEP_TARGET_MIN * SLEEP_DEFICIT_PCT)
+    sleep_target_weekly = int(SLEEP_TARGET_MIN * SLEEP_WEEKLY_PCT)
+    sleep_last3 = sleep_last7[-3:]
+    if len([v for v in sleep_last3 if v is not None]) == 3 and all(
+        (v or 0) < sleep_target_deficit for v in sleep_last3
+    ):
+        _add_point(
+            rule_id="sleep-deficit-3d",
+            icon="⚠️",
+            message="睡眠不足が3日連続しています",
+            severity="warning",
+            category="trend",
+            tab="health",
+            subtab="sleep",
+            data_source="sleep",
+        )
+
+    sleep_recorded = [v for v in sleep_last7 if v is not None]
+    if len(sleep_recorded) >= 4:
+        sleep_avg_7 = _series_avg(sleep_recorded)
+        if sleep_avg_7 is not None and sleep_avg_7 < sleep_target_weekly:
+            _add_point(
+                rule_id="sleep-weekly-low",
+                icon="📉",
+                message=f"今週の平均睡眠が短めです（平均{_fmt_sleep(int(round(sleep_avg_7)))})",
+                severity="info",
+                category="trend",
+                tab="health",
+                subtab="sleep",
+                data_source="sleep",
+            )
+
+    steps_last7 = [steps_by_day.get(day) for day in last7_days]
+    steps_recorded = [v for v in steps_last7 if v is not None]
+    steps_avg_7 = _series_avg(steps_recorded)
+    if steps_avg_7 is not None and steps_avg_7 > 0:
+        low_threshold = steps_avg_7 * 0.5
+        last2 = steps_last7[-2:]
+        if len([v for v in last2 if v is not None]) == 2 and all((v or 0) < low_threshold for v in last2):
+            _add_point(
+                rule_id="steps-low-2d",
+                icon="📉",
+                message="活動量が低下しています。軽い運動を心がけましょう",
+                severity="info",
+                category="trend",
+                tab="exercise",
+                subtab=None,
+                data_source="steps",
+            )
+
+    # 歩数達成ストリーク（最新日から連続）
+    streak = 0
+    for day in reversed(last7_days):
+        v = steps_by_day.get(day)
+        if v is not None and v >= STEPS_TARGET:
+            streak += 1
+        else:
+            break
+    if streak >= 3:
+        _add_point(
+            rule_id="steps-achievement",
+            icon="✅",
+            message=f"歩数目標を{streak}日連続達成中",
+            severity="positive",
+            category="achievement",
+            tab="exercise",
+            subtab=None,
+            data_source="steps",
+        )
+
+    # 睡眠達成率
+    if sleep_recorded:
+        sleep_goal_days = sum(1 for v in sleep_recorded if v >= SLEEP_TARGET_MIN)
+        sleep_goal_rate = sleep_goal_days / len(sleep_recorded)
+        if len(sleep_recorded) >= 5 and sleep_goal_rate >= 0.80:
+            _add_point(
+                rule_id="sleep-achievement",
+                icon="✅",
+                message=f"今週の睡眠目標達成率{int(round(sleep_goal_rate * 100))}%",
+                severity="positive",
+                category="achievement",
+                tab="health",
+                subtab="sleep",
+                data_source="sleep",
+            )
+
+    # 体重トレンド（7日平均 vs 前週7日平均）
+    week_days = _last_n_days(14)
+    prev_week = week_days[:7]
+    this_week = week_days[7:]
+    prev_vals = [weight_by_day.get(day) for day in prev_week if weight_by_day.get(day) is not None]
+    this_vals = [weight_by_day.get(day) for day in this_week if weight_by_day.get(day) is not None]
+    prev_avg = _series_avg(prev_vals)
+    this_avg = _series_avg(this_vals)
+    goal_weight = float(profile_row["goal_weight_kg"]) if profile_row and profile_row["goal_weight_kg"] is not None else None
+    if prev_avg is not None and this_avg is not None:
+        diff = round(this_avg - prev_avg, 1)
+        if abs(diff) >= 0.2:
+            if goal_weight is not None and latest_weight_kg is not None and goal_weight < latest_weight_kg:
+                if diff < 0:
+                    _add_point(
+                        rule_id="weight-trend-positive",
+                        icon="📉",
+                        message=f"体重が先週比{diff}kg、減量ペース維持中",
+                        severity="positive",
+                        category="trend",
+                        tab="health",
+                        subtab="composition",
+                        data_source="weight",
+                    )
+                else:
+                    _add_point(
+                        rule_id="weight-trend-up",
+                        icon="📈",
+                        message=f"体重が先週比+{diff}kg。食事と活動量を確認しましょう",
+                        severity="info",
+                        category="trend",
+                        tab="health",
+                        subtab="composition",
+                        data_source="weight",
+                    )
+            elif diff < 0:
+                _add_point(
+                    rule_id="weight-trend-down",
+                    icon="📉",
+                    message=f"体重が先週比{diff}kg、良い傾向です",
+                    severity="positive",
+                    category="trend",
+                    tab="health",
+                    subtab="composition",
+                    data_source="weight",
+                )
+
+    # 血圧の週次高め判定
+    if bp_by_day:
+        recent_bp_days = [bp_by_day.get(day) for day in last7_days]
+        high_days = 0
+        for row in recent_bp_days:
+            if row is None:
+                continue
+            sys, dia = row
+            if sys >= 130 or dia >= 85:
+                high_days += 1
+        if high_days >= 3:
+            _add_point(
+                rule_id="bp-high-week",
+                icon="⚠️",
+                message=f"今週、血圧が高めの日が{high_days}日あります",
+                severity="warning",
+                category="trend",
+                tab="health",
+                subtab="vital",
+                data_source="blood_pressure",
+            )
+
+    attention_points = sorted(
+        points_by_source.values(),
+        key=lambda p: (-severity_rank[p["severity"]], category_rank[p["category"]], p["id"]),
+    )
+
+    # ── 互換用: 根拠データリスト（データがあるものだけ）
     evidences = []
     if sleep_ok and sleep_label:
         evidences.append(
@@ -1489,7 +1948,7 @@ def home_summary(
             {
                 "type": "steps",
                 "label": "歩数",
-                "value": steps_label,
+                "value": f"{steps_label}歩" if steps_label else "",
                 "tab": "exercise",
             }
         )
@@ -1508,7 +1967,7 @@ def home_summary(
             {
                 "type": "meal",
                 "label": "食事",
-                "value": f"{meal_row['c']}件",
+                "value": meal_label if meal_label else f"{meal_count}件",
                 "tab": "meal",
             }
         )
@@ -1525,6 +1984,17 @@ def home_summary(
             "steps": steps_ok,
             "weight": weight_ok,
             "meal": meal_ok,
+            "bp": bp_ok if bp_linked else False,
         },
+        "statusItems": status_items,
+        "attentionPoints": attention_points,
+        "previousReport": (
+            {
+                "date": previous_report_row["report_date"],
+                "created_at": previous_report_row["created_at"],
+            }
+            if previous_report_row
+            else None
+        ),
         "evidences": evidences,
     }

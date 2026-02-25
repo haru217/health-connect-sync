@@ -21,6 +21,10 @@ type CompositionRange = 14 | 30 | 90
 type CirculationRange = 14 | 30
 const FIXED_BMR_KCAL_PER_DAY = 1680
 
+type HealthScreenProps = {
+  initialTab?: HealthTab
+}
+
 interface HealthData {
   summary: SummaryResponse
   profile: ProfileResponse
@@ -289,8 +293,8 @@ function restingStatus(value: number | null): { tone: 'good' | 'warning' | 'dang
   return { tone: 'good', message: '標準範囲（60-100）' }
 }
 
-export default function HealthScreen() {
-  const [tab, setTab] = useState<HealthTab>('composition')
+export default function HealthScreen({ initialTab = 'composition' }: HealthScreenProps) {
+  const [tab, setTab] = useState<HealthTab>(initialTab)
   const [compositionRange, setCompositionRange] = useState<CompositionRange>(14)
   const [circulationRange, setCirculationRange] = useState<CirculationRange>(14)
   const [state, setState] = useState<RequestState<HealthData>>({ status: 'loading' })
@@ -321,6 +325,10 @@ export default function HealthScreen() {
       alive = false
     }
   }, [])
+
+  useEffect(() => {
+    setTab(initialTab)
+  }, [initialTab])
 
   if (state.status === 'loading') {
     return (

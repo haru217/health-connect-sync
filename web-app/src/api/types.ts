@@ -1,4 +1,4 @@
-export interface InsightItem {
+﻿export interface InsightItem {
   level: string
   message: string
 }
@@ -201,13 +201,6 @@ export type RequestState<T> =
   | { status: 'success'; data: T }
   | { status: 'error'; error: string }
 
-export interface HomeSufficiency {
-  sleep: boolean
-  steps: boolean
-  weight: boolean
-  meal: boolean
-}
-
 export interface HomeEvidence {
   type: string
   label: string
@@ -216,9 +209,54 @@ export interface HomeEvidence {
   innerTab?: string
 }
 
+export type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
+export type HomeStatusTone = 'normal' | 'warning'
+
+export interface HomeStatusItem {
+  key: HomeStatusKey
+  label: string
+  value: string | null
+  ok: boolean
+  tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+  innerTab?: 'composition' | 'vital' | 'sleep'
+  tone?: HomeStatusTone
+}
+
+export type AttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
+export type AttentionCategory = 'threshold' | 'trend' | 'achievement'
+
+export interface AttentionPoint {
+  id: string
+  icon: '⚠️' | '📉' | '📈' | '✅' | '🔴'
+  message: string
+  severity: AttentionSeverity
+  category: AttentionCategory
+  navigateTo: {
+    tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
+    subTab?: 'composition' | 'vital' | 'sleep'
+  }
+  dataSource: string
+}
+
+export interface PreviousReportLink {
+  date: string
+  created_at: string
+}
+
+export interface HomeSufficiency {
+  sleep: boolean
+  steps: boolean
+  weight: boolean
+  meal: boolean
+  bp?: boolean
+}
+
 export interface HomeSummaryResponse {
   date: string
   report: { content: string; created_at: string } | null
   sufficiency: HomeSufficiency
-  evidences: HomeEvidence[]
+  evidences?: HomeEvidence[]
+  statusItems?: HomeStatusItem[]
+  attentionPoints?: AttentionPoint[]
+  previousReport?: PreviousReportLink | null
 }

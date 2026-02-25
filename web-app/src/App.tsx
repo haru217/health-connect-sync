@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/HomeScreen'
+import type { HomeNavigateTarget } from './screens/HomeScreen'
 import MealScreen from './screens/MealScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 import HealthScreen from './screens/HealthScreen'
@@ -18,10 +19,22 @@ type BeforeInstallPromptEvent = Event & {
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home')
+  const [healthInitialTab, setHealthInitialTab] = useState<'composition' | 'circulation' | 'sleep'>('composition')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showInstallHint, setShowInstallHint] = useState(false)
   const [showIosHelp, setShowIosHelp] = useState(false)
+
+  const onHomeNavigate = (target: HomeNavigateTarget) => {
+    if (target.tab === 'health' && target.innerTab) {
+      if (target.innerTab === 'vital') {
+        setHealthInitialTab('circulation')
+      } else {
+        setHealthInitialTab(target.innerTab)
+      }
+    }
+    setCurrentScreen(target.tab)
+  }
 
   useEffect(() => {
     const media = window.matchMedia('(display-mode: standalone)')
@@ -63,17 +76,17 @@ function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen onNavigate={setCurrentScreen} />
+        return <HomeScreen onNavigate={onHomeNavigate} />
       case 'meal':
         return <MealScreen />
       case 'exercise':
         return <ExerciseScreen />
       case 'health':
-        return <HealthScreen />
+        return <HealthScreen initialTab={healthInitialTab} />
       case 'my':
         return <MyScreen />
       default:
-        return <HomeScreen onNavigate={setCurrentScreen} />
+        return <HomeScreen onNavigate={onHomeNavigate} />
     }
   }
 
