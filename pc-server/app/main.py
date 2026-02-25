@@ -739,8 +739,10 @@ def body_data(
                 (start_date, end_date),
             ).fetchall()
 
-        # Goal weight from profile
-        profile_row = conn.execute("SELECT goal_weight_kg FROM user_profile LIMIT 1").fetchone()
+        # Profile（height, goal_weight）
+        profile_row = conn.execute(
+            "SELECT height_cm, goal_weight_kg FROM user_profile LIMIT 1"
+        ).fetchone()
         goal_weight = profile_row["goal_weight_kg"] if profile_row else None
 
     # Parse current values
@@ -786,13 +788,10 @@ def body_data(
 
     # BMI from weight + profile height
     bmi = None
-    if cur_weight:
+    if cur_weight and profile_row and profile_row["height_cm"]:
         try:
-            with db() as conn2:
-                p_row = conn2.execute("SELECT height_cm FROM user_profile LIMIT 1").fetchone()
-            if p_row and p_row["height_cm"]:
-                h_m = float(p_row["height_cm"]) / 100.0
-                bmi = round(cur_weight / (h_m * h_m), 1)
+            h_m = float(profile_row["height_cm"]) / 100.0
+            bmi = round(cur_weight / (h_m * h_m), 1)
         except Exception:
             pass
 
