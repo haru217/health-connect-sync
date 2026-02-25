@@ -855,6 +855,18 @@ def body_data(
         for dk in date_keys
     ]
 
+    valid_weights = [float(v) for v in weight_by_date.values() if isinstance(v, (int, float))]
+    valid_fat = [float(v) for v in bf_by_date.values() if isinstance(v, (int, float))]
+    avg_weight = round(sum(valid_weights) / len(valid_weights), 2) if valid_weights else None
+    avg_body_fat = round(sum(valid_fat) / len(valid_fat), 1) if valid_fat else None
+    avg_bmi = None
+    if avg_weight is not None and profile_row and profile_row["height_cm"]:
+        try:
+            h_m = float(profile_row["height_cm"]) / 100.0
+            avg_bmi = round(avg_weight / (h_m * h_m), 1)
+        except Exception:
+            avg_bmi = None
+
     return {
         "baseDate": base_date,
         "period": period,
@@ -866,6 +878,12 @@ def body_data(
         },
         "goalWeight": round(goal_weight, 1) if goal_weight else None,
         "series": series,
+        "periodSummary": {
+            "avg_weight_kg": avg_weight,
+            "avg_body_fat_pct": avg_body_fat,
+            "avg_bmi": avg_bmi,
+            "points": len(date_keys),
+        },
     }
 
 
@@ -1171,6 +1189,10 @@ def sleep_data(
     all_mins = [v["sleep_minutes"] for v in day_totals.values() if v["sleep_minutes"] > 0]
     avg_sleep = round(sum(all_mins) / len(all_mins)) if all_mins else None
     goal_days = sum(1 for m in all_mins if m >= 420)  # 7 hours
+    spo2_avg_vals = [float(r["avg_spo2"]) for r in spo2_rows if r["avg_spo2"] is not None]
+    spo2_min_vals = [float(r["min_spo2"]) for r in spo2_rows if r["min_spo2"] is not None]
+    period_avg_spo2 = round(sum(spo2_avg_vals) / len(spo2_avg_vals), 1) if spo2_avg_vals else None
+    period_min_spo2 = round(min(spo2_min_vals), 1) if spo2_min_vals else None
 
     return {
         "baseDate": base_date,
@@ -1181,6 +1203,8 @@ def sleep_data(
         "periodSummary": {
             "avg_sleep_min": avg_sleep,
             "goal_days": goal_days,
+            "avg_spo2": period_avg_spo2,
+            "min_spo2": period_min_spo2,
         },
     }
 
@@ -1289,6 +1313,21 @@ def vitals_data(
         for dk in date_keys
     ]
 
+    valid_sys = [float(s["systolic"]) for s in series if s["systolic"] is not None]
+    valid_dia = [float(s["diastolic"]) for s in series if s["diastolic"] is not None]
+    valid_hr = [float(s["resting_hr"]) for s in series if s["resting_hr"] is not None]
+    avg_sys = round(sum(valid_sys) / len(valid_sys)) if valid_sys else None
+    avg_dia = round(sum(valid_dia) / len(valid_dia)) if valid_dia else None
+    avg_rhr = round(sum(valid_hr) / len(valid_hr)) if valid_hr else None
+    high_bp_points = sum(
+        1
+        for s in series
+        if (
+            (s["systolic"] is not None and s["systolic"] >= 130)
+            or (s["diastolic"] is not None and s["diastolic"] >= 85)
+        )
+    )
+
     return {
         "baseDate": base_date,
         "period": period,
@@ -1298,6 +1337,12 @@ def vitals_data(
             "resting_hr": round(float(today_hr["bpm"])) if today_hr and today_hr["bpm"] else None,
         },
         "series": series,
+        "periodSummary": {
+            "avg_systolic": avg_sys,
+            "avg_diastolic": avg_dia,
+            "avg_resting_hr": avg_rhr,
+            "high_bp_points": high_bp_points,
+        },
     }
 
 

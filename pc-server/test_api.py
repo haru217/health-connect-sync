@@ -353,3 +353,30 @@ class TestProfileGoals:
         assert res.status_code == 200
         points = res.json().get("attentionPoints", [])
         assert any(str(p.get("id", "")).startswith("steps-achievement-") for p in points)
+
+
+class TestHealthPeriodSummary:
+    def test_body_data_has_period_summary(self, client: TestClient) -> None:
+        res = client.get("/api/body-data?date=2026-02-25&period=week", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert "periodSummary" in body
+        ps = body["periodSummary"]
+        assert set(ps.keys()) == {"avg_weight_kg", "avg_body_fat_pct", "avg_bmi", "points"}
+
+    def test_vitals_data_has_period_summary(self, client: TestClient) -> None:
+        res = client.get("/api/vitals-data?date=2026-02-25&period=week", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert "periodSummary" in body
+        ps = body["periodSummary"]
+        assert set(ps.keys()) == {"avg_systolic", "avg_diastolic", "avg_resting_hr", "high_bp_points"}
+
+    def test_sleep_data_has_spo2_period_summary(self, client: TestClient) -> None:
+        res = client.get("/api/sleep-data?date=2026-02-25&period=week", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert "periodSummary" in body
+        ps = body["periodSummary"]
+        assert "avg_spo2" in ps
+        assert "min_spo2" in ps
