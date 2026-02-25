@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -34,7 +35,15 @@ from .profile import get_profile, upsert_profile
 from .reports import save_report, list_reports, get_report, delete_report
 from .prompt_gen import build_prompt, calc_nutrient_targets
 
-app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0")
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    init_db()
+    start_discovery_thread()
+    yield
+
+
+app = FastAPI(title="Health Connect Sync Bridge (Local PC)", version="0.1.0", lifespan=_lifespan)
 _CF_ACCESS_EMAIL = os.getenv("CF_ACCESS_EMAIL", "").strip().lower()
 
 app.add_middleware(
@@ -43,13 +52,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
-    start_discovery_thread()
-
 
 @app.middleware("http")
 async def _enforce_cf_access_email(request, call_next):

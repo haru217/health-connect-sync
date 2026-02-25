@@ -213,3 +213,73 @@ class TestNutritionDay:
         res = client.get("/api/nutrition/day?date=2026-02-25", headers=auth())
         assert res.status_code == 200
         assert res.json()["ai_comment"] == "栄養士コメントです"
+
+    def test_fallback_to_report_head_when_no_nutritionist_tag(self, client: TestClient) -> None:
+        """タグがない場合はレポート本文先頭200文字を返すこと"""
+        import app.db as db_mod
+
+        raw = "A" * 260
+        with db_mod.db() as conn:
+            conn.execute(
+                """
+                INSERT INTO ai_reports (report_date, report_type, prompt_used, content, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                ("2026-02-26", "daily", "test", raw, "2026-02-26T08:00:00+09:00"),
+            )
+
+        res = client.get("/api/nutrition/day?date=2026-02-26", headers=auth())
+        assert res.status_code == 200
+        assert res.json()["ai_comment"] == raw[:200]
+
+
+class TestConnectionStatus:
+    def test_structure_and_types(self, client: TestClient) -> None:
+        """connection-status が期待キーと型を返すこと"""
+        res = client.get("/api/connection-status", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert set(body.keys()) == {
+            "last_sync_at",
+            "total_records",
+            "has_weight_data",
+            "has_sleep_data",
+            "has_activity_data",
+            "has_vitals_data",
+        }
+        assert body["last_sync_at"] is None or isinstance(body["last_sync_at"], str)
+        assert isinstance(body["total_records"], int)
+        assert isinstance(body["has_weight_data"], bool)
+        assert isinstance(body["has_sleep_data"], bool)
+        assert isinstance(body["has_activity_data"], bool)
+        assert isinstance(body["has_vitals_data"], bool)
+
+    def test_last_sync_at_is_populated_when_sync_runs_exist(self, client: TestClient) -> None:
+        """sync_runs がある場合に last_sync_at が返ること"""
+        import app.db as db_mod
+
+        with db_mod.db() as conn:
+            conn.execute(
+                """
+                INSERT INTO sync_runs (
+                  sync_id, device_id, synced_at, range_start, range_end,
+                  received_at, record_count, upserted_count, skipped_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "sync-test-1",
+                    "test-device",
+                    "2026-02-25T08:10:00+09:00",
+                    "2026-02-24T00:00:00+09:00",
+                    "2026-02-25T00:00:00+09:00",
+                    "2026-02-25T08:11:00+09:00",
+                    10,
+                    10,
+                    0,
+                ),
+            )
+
+        res = client.get("/api/connection-status", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert body["last_sync_at"] == "2026-02-25T08:11:00+09:00"
