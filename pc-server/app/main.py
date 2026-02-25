@@ -707,7 +707,15 @@ def body_data(
             # Monthly averages
             weight_rows = conn.execute(
                 """SELECT strftime('%Y-%m', time) AS month,
-                          AVG(CAST(json_extract(payload_json,'$.inKilograms') AS REAL)) AS weight_kg
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.inKilograms') AS REAL),
+                              CAST(json_extract(payload_json,'$.kilograms') AS REAL),
+                              CAST(json_extract(payload_json,'$.kg') AS REAL),
+                              CAST(json_extract(payload_json,'$.weight') AS REAL),
+                              CAST(json_extract(payload_json,'$.value') AS REAL)
+                            )
+                          ) AS weight_kg
                    FROM health_records
                    WHERE type='WeightRecord' AND date(time) BETWEEN ? AND ?
                    GROUP BY month ORDER BY month""",
@@ -724,7 +732,15 @@ def body_data(
         else:
             weight_rows = conn.execute(
                 """SELECT date(time) AS d,
-                          AVG(CAST(json_extract(payload_json,'$.inKilograms') AS REAL)) AS weight_kg
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.inKilograms') AS REAL),
+                              CAST(json_extract(payload_json,'$.kilograms') AS REAL),
+                              CAST(json_extract(payload_json,'$.kg') AS REAL),
+                              CAST(json_extract(payload_json,'$.weight') AS REAL),
+                              CAST(json_extract(payload_json,'$.value') AS REAL)
+                            )
+                          ) AS weight_kg
                    FROM health_records
                    WHERE type='WeightRecord' AND date(time) BETWEEN ? AND ?
                    GROUP BY d ORDER BY d""",
@@ -1138,8 +1154,18 @@ def vitals_data(
         if period == "year":
             bp_rows = conn.execute(
                 """SELECT strftime('%Y-%m', time) AS d,
-                          AVG(CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL)) AS systolic,
-                          AVG(CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL)) AS diastolic
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL),
+                              CAST(json_extract(payload_json,'$.systolic') AS REAL)
+                            )
+                          ) AS systolic,
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL),
+                              CAST(json_extract(payload_json,'$.diastolic') AS REAL)
+                            )
+                          ) AS diastolic
                    FROM health_records WHERE type='BloodPressureRecord' AND date(time) BETWEEN ? AND ?
                    GROUP BY d ORDER BY d""",
                 (start_date, end_date),
@@ -1147,8 +1173,18 @@ def vitals_data(
         else:
             bp_rows = conn.execute(
                 """SELECT date(time) AS d,
-                          AVG(CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL)) AS systolic,
-                          AVG(CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL)) AS diastolic
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS REAL),
+                              CAST(json_extract(payload_json,'$.systolic') AS REAL)
+                            )
+                          ) AS systolic,
+                          AVG(
+                            COALESCE(
+                              CAST(json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS REAL),
+                              CAST(json_extract(payload_json,'$.diastolic') AS REAL)
+                            )
+                          ) AS diastolic
                    FROM health_records WHERE type='BloodPressureRecord' AND date(time) BETWEEN ? AND ?
                    GROUP BY d ORDER BY d""",
                 (start_date, end_date),
@@ -1174,9 +1210,15 @@ def vitals_data(
 
         # Today's values
         today_bp = conn.execute(
-            """SELECT json_extract(payload_json,'$.systolic.inMillimetersOfMercury') AS sys,
-                      json_extract(payload_json,'$.diastolic.inMillimetersOfMercury') AS dia
-               FROM health_records WHERE type='BloodPressureRecord' AND date(time) = ?
+            """SELECT COALESCE(
+                        json_extract(payload_json,'$.systolic.inMillimetersOfMercury'),
+                        json_extract(payload_json,'$.systolic')
+                      ) AS sys,
+                      COALESCE(
+                        json_extract(payload_json,'$.diastolic.inMillimetersOfMercury'),
+                        json_extract(payload_json,'$.diastolic')
+                      ) AS dia
+               FROM health_records WHERE type='BloodPressureRecord' AND date(time) <= ?
                ORDER BY time DESC LIMIT 1""",
             (base_date,),
         ).fetchone()
