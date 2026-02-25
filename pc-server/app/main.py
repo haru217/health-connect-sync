@@ -183,8 +183,35 @@ def report_yesterday(_: None = Depends(require_api_key)) -> dict[str, Any]:
 @app.get("/api/nutrition/day")
 def nutrition_day(date: str, _: None = Depends(require_api_key)) -> dict[str, Any]:
     from .nutrition import get_day_events, get_day_totals
+    import re as _re
 
-    return {"date": date, "events": get_day_events(date), "totals": get_day_totals(date)}
+    events = get_day_events(date)
+    totals = get_day_totals(date)
+
+    ai_comment = None
+    with db() as conn:
+        report_row = conn.execute(
+            """SELECT content FROM ai_reports
+               WHERE report_date = ? AND report_type = 'daily'
+               ORDER BY created_at DESC LIMIT 1""",
+            (date,),
+        ).fetchone()
+
+    if report_row:
+        content = str(report_row["content"] or "")
+        m = _re.search(r"<!--NUTRITIONIST-->([\s\S]*?)<!--/NUTRITIONIST-->", content, _re.IGNORECASE)
+        if m:
+            ai_comment = m.group(1).strip() or None
+        else:
+            fallback = content.strip()
+            ai_comment = fallback[:200] if fallback else None
+
+    return {
+        "date": date,
+        "events": events,
+        "totals": totals,
+        "ai_comment": ai_comment,
+    }
 
 
 @app.post("/api/nutrition/log")
@@ -1997,4 +2024,36 @@ def home_summary(
             else None
         ),
         "evidences": evidences,
+    }
+
+
+@app.get("/api/connection-status")
+def connection_status(_: None = Depends(require_api_key)) -> dict[str, Any]:
+    """Health Connect 連携状況を返す。マイ画面用。"""
+    with db() as conn:
+        last_sync_row = conn.execute(
+            "SELECT received_at FROM sync_runs ORDER BY received_at DESC LIMIT 1"
+        ).fetchone()
+        total_row = conn.execute("SELECT COUNT(*) AS c FROM health_records").fetchone()
+        weight_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM health_records WHERE type='WeightRecord' LIMIT 1"
+        ).fetchone()
+        sleep_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM health_records WHERE type='SleepSessionRecord' LIMIT 1"
+        ).fetchone()
+        activity_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM health_records WHERE type='StepsRecord' LIMIT 1"
+        ).fetchone()
+        vitals_row = conn.execute(
+            """SELECT COUNT(*) AS c FROM health_records
+               WHERE type IN ('BloodPressureRecord', 'RestingHeartRateRecord') LIMIT 1"""
+        ).fetchone()
+
+    return {
+        "last_sync_at": last_sync_row["received_at"] if last_sync_row else None,
+        "total_records": int(total_row["c"]) if total_row else 0,
+        "has_weight_data": bool(weight_row and weight_row["c"] > 0),
+        "has_sleep_data": bool(sleep_row and sleep_row["c"] > 0),
+        "has_activity_data": bool(activity_row and activity_row["c"] > 0),
+        "has_vitals_data": bool(vitals_row and vitals_row["c"] > 0),
     }
