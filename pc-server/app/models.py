@@ -66,6 +66,8 @@ class ProfileUpdateRequest(BaseModel):
     birth_year: Optional[int] = Field(default=None, ge=1900, le=2020)
     sex: Optional[Literal["male", "female", "other"]] = None
     goal_weight_kg: Optional[float] = Field(default=None, ge=20, le=300)
+    sleep_goal_minutes: Optional[int] = Field(default=None, ge=120, le=720)
+    steps_goal: Optional[int] = Field(default=None, ge=1000, le=50000)
 
 
 class ReportSaveRequest(BaseModel):

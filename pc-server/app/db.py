@@ -167,10 +167,21 @@ def init_db() -> None:
               birth_year INTEGER,
               sex TEXT,
               goal_weight_kg REAL,
+              sleep_goal_minutes INTEGER,
+              steps_goal INTEGER,
               updated_at TEXT NOT NULL
             );
             """
         )
+        # Lightweight migration for older DBs
+        for ddl in (
+            "ALTER TABLE user_profile ADD COLUMN sleep_goal_minutes INTEGER;",
+            "ALTER TABLE user_profile ADD COLUMN steps_goal INTEGER;",
+        ):
+            try:
+                conn.execute(ddl)
+            except sqlite3.OperationalError:
+                pass
 
         conn.execute(
             """

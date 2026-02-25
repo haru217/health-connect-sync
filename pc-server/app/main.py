@@ -1101,8 +1101,8 @@ def sleep_data(
             total_min = int((e_dt - s_dt).total_seconds() / 60)
             if total_min <= 0:
                 return None
-            # If no stages, put all in light
-            if deep_min + light_min + rem_min == 0:
+            # If no effective sleep stages, put all in light
+            if deep_min + light_min + rem_min <= 0:
                 light_min = total_min
 
             from .db import LOCAL_TZ
@@ -1313,10 +1313,10 @@ def home_summary(
     import datetime as _dt3
     from .db import LOCAL_TZ
 
-    SLEEP_TARGET_MIN = 420
+    DEFAULT_SLEEP_TARGET_MIN = 420
     SLEEP_DEFICIT_PCT = 0.70
     SLEEP_WEEKLY_PCT = 0.80
-    STEPS_TARGET = 8000
+    DEFAULT_STEPS_TARGET = 8000
 
     severity_rank = {"critical": 4, "warning": 3, "info": 2, "positive": 1}
     category_rank = {"threshold": 1, "trend": 2, "achievement": 3}
@@ -1535,7 +1535,7 @@ def home_summary(
         ).fetchall()
 
         profile_row = conn.execute(
-            "SELECT goal_weight_kg FROM user_profile LIMIT 1"
+            "SELECT goal_weight_kg, sleep_goal_minutes, steps_goal FROM user_profile LIMIT 1"
         ).fetchone()
 
     # ── 睡眠集計（起床日のローカル日付で当日判定）
@@ -1651,6 +1651,24 @@ def home_summary(
         if hr_current is None:
             hr_current = bpm
         hr_values.append(bpm)
+
+    sleep_target_min = DEFAULT_SLEEP_TARGET_MIN
+    steps_target = DEFAULT_STEPS_TARGET
+    if profile_row:
+        if profile_row["sleep_goal_minutes"] is not None:
+            try:
+                val = int(profile_row["sleep_goal_minutes"])
+                if 120 <= val <= 720:
+                    sleep_target_min = val
+            except (TypeError, ValueError):
+                pass
+        if profile_row["steps_goal"] is not None:
+            try:
+                val = int(profile_row["steps_goal"])
+                if 1000 <= val <= 50000:
+                    steps_target = val
+            except (TypeError, ValueError):
+                pass
 
     # ── 新UI: 充足ステータス（固定順）
     status_items: list[dict[str, Any]] = [
@@ -1800,8 +1818,8 @@ def home_summary(
 
     last7_days = _last_n_days(7)
     sleep_last7 = [sleep_by_day.get(day) for day in last7_days]
-    sleep_target_deficit = int(SLEEP_TARGET_MIN * SLEEP_DEFICIT_PCT)
-    sleep_target_weekly = int(SLEEP_TARGET_MIN * SLEEP_WEEKLY_PCT)
+    sleep_target_deficit = int(sleep_target_min * SLEEP_DEFICIT_PCT)
+    sleep_target_weekly = int(sleep_target_min * SLEEP_WEEKLY_PCT)
     sleep_last3 = sleep_last7[-3:]
     if len([v for v in sleep_last3 if v is not None]) == 3 and all(
         (v or 0) < sleep_target_deficit for v in sleep_last3
@@ -1854,7 +1872,7 @@ def home_summary(
     streak = 0
     for day in reversed(last7_days):
         v = steps_by_day.get(day)
-        if v is not None and v >= STEPS_TARGET:
+        if v is not None and v >= steps_target:
             streak += 1
         else:
             break
@@ -1872,7 +1890,7 @@ def home_summary(
 
     # 睡眠達成率
     if sleep_recorded:
-        sleep_goal_days = sum(1 for v in sleep_recorded if v >= SLEEP_TARGET_MIN)
+        sleep_goal_days = sum(1 for v in sleep_recorded if v >= sleep_target_min)
         sleep_goal_rate = sleep_goal_days / len(sleep_recorded)
         if len(sleep_recorded) >= 5 and sleep_goal_rate >= 0.80:
             _add_point(

@@ -283,3 +283,73 @@ class TestConnectionStatus:
         assert res.status_code == 200
         body = res.json()
         assert body["last_sync_at"] == "2026-02-25T08:11:00+09:00"
+
+
+class TestSleepData:
+    def test_stages_fallback_to_light_when_missing(self, client: TestClient) -> None:
+        """stages が無いセッションでも light_min に total が入ること"""
+        res = client.get("/api/sleep-data?date=2026-02-24&period=week", headers=auth())
+        assert res.status_code == 200
+        body = res.json()
+        assert body["current"]["sleep_minutes"] == 420
+        assert body["stages"]["deep_min"] == 0
+        assert body["stages"]["rem_min"] == 0
+        assert body["stages"]["light_min"] == 420
+
+
+class TestProfileGoals:
+    def test_profile_accepts_goal_columns(self, client: TestClient) -> None:
+        """profile PUT/GET で sleep_goal_minutes / steps_goal が保持されること"""
+        put = client.put(
+            "/api/profile",
+            headers=auth(),
+            json={
+                "sleep_goal_minutes": 450,
+                "steps_goal": 9500,
+            },
+        )
+        assert put.status_code == 200
+
+        get = client.get("/api/profile", headers=auth())
+        assert get.status_code == 200
+        body = get.json()
+        assert body["sleep_goal_minutes"] == 450
+        assert body["steps_goal"] == 9500
+
+    def test_home_summary_uses_steps_goal_for_achievement(self, client: TestClient) -> None:
+        """steps_goal を下げると達成判定がその値を使うこと"""
+        import app.db as db_mod
+
+        with db_mod.db() as conn:
+            # goal steps を 3000 に設定
+            conn.execute(
+                """
+                INSERT INTO user_profile(id, steps_goal, updated_at)
+                VALUES(1, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  steps_goal=excluded.steps_goal,
+                  updated_at=excluded.updated_at
+                """,
+                (3000, "2026-02-25T09:00:00+09:00"),
+            )
+
+            # 2日分追加して 3日連続達成を作る（2/23, 2/24, 2/25）
+            _insert_health_record(
+                conn,
+                rec_type="StepsRecord",
+                payload={"count": 3500},
+                start_time="2026-02-23T10:00:00+09:00",
+                end_time="2026-02-23T10:30:00+09:00",
+            )
+            _insert_health_record(
+                conn,
+                rec_type="StepsRecord",
+                payload={"count": 3600},
+                start_time="2026-02-24T10:00:00+09:00",
+                end_time="2026-02-24T10:30:00+09:00",
+            )
+
+        res = client.get("/api/home-summary?date=2026-02-25", headers=auth())
+        assert res.status_code == 200
+        points = res.json().get("attentionPoints", [])
+        assert any(str(p.get("id", "")).startswith("steps-achievement-") for p in points)
