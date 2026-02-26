@@ -167,16 +167,16 @@ def init_db() -> None:
               birth_year INTEGER,
               sex TEXT,
               goal_weight_kg REAL,
-              sleep_goal_minutes INTEGER,
-              steps_goal INTEGER,
+              sleep_goal_minutes INTEGER DEFAULT 420,
+              steps_goal INTEGER DEFAULT 8000,
               updated_at TEXT NOT NULL
             );
             """
         )
         # Lightweight migration for older DBs
         for ddl in (
-            "ALTER TABLE user_profile ADD COLUMN sleep_goal_minutes INTEGER;",
-            "ALTER TABLE user_profile ADD COLUMN steps_goal INTEGER;",
+            "ALTER TABLE user_profile ADD COLUMN sleep_goal_minutes INTEGER DEFAULT 420;",
+            "ALTER TABLE user_profile ADD COLUMN steps_goal INTEGER DEFAULT 8000;",
         ):
             try:
                 conn.execute(ddl)

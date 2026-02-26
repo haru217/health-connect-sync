@@ -528,8 +528,7 @@ def export_csv(type: str | None = None, _: None = Depends(require_api_key)) -> R
 
 @app.get("/api/profile")
 def profile_get(_: None = Depends(require_api_key)) -> dict:
-    data = get_profile()
-    return data if data is not None else {}
+    return get_profile()
 
 
 @app.put("/api/profile")
@@ -537,7 +536,7 @@ def profile_put(
     req: ProfileUpdateRequest,
     _: None = Depends(require_api_key),
 ) -> dict:
-    return upsert_profile(**req.model_dump(exclude_none=True))
+    return upsert_profile(**req.model_dump())
 
 
 # ── サプリカタログ ────────────────────────────────────────────
