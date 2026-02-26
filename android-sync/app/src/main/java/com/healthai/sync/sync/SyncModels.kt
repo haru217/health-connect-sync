@@ -18,6 +18,8 @@ data class SyncRequestPayload(
     val rangeStart: String,
     val rangeEnd: String,
     val records: List<SyncRecordEnvelope>,
+    val requiredPermissions: List<String> = emptyList(),
+    val grantedPermissions: List<String> = emptyList(),
 )
 
 data class SyncResponsePayload(

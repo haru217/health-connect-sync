@@ -63,6 +63,12 @@ class SyncApiClient(
             recordsArray.put(obj)
         }
         root.put("records", recordsArray)
+        if (requiredPermissions.isNotEmpty()) {
+            root.put("requiredPermissions", JSONArray(requiredPermissions))
+        }
+        if (grantedPermissions.isNotEmpty()) {
+            root.put("grantedPermissions", JSONArray(grantedPermissions))
+        }
         return root
     }
 

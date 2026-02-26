@@ -116,6 +116,7 @@ class HealthSyncRunner(
                     start = start,
                     end = end,
                     records = chunk,
+                    grantedPermissions = granted,
                 )
                 upsertedTotal += response.upsertedCount
                 skippedTotal += response.skippedCount
@@ -147,6 +148,7 @@ class HealthSyncRunner(
         start: Instant,
         end: Instant,
         records: List<SyncRecordEnvelope>,
+        grantedPermissions: Set<String>,
         attempt: Int = 0,
     ): SyncResponsePayload {
         if (records.isEmpty()) {
@@ -160,6 +162,8 @@ class HealthSyncRunner(
             rangeStart = start.toString(),
             rangeEnd = end.toString(),
             records = records,
+            requiredPermissions = requiredPermissions.toList().sorted(),
+            grantedPermissions = grantedPermissions.toList().sorted(),
         )
 
         try {
@@ -177,6 +181,7 @@ class HealthSyncRunner(
                     start = start,
                     end = end,
                     records = records.subList(0, mid).toList(),
+                    grantedPermissions = grantedPermissions,
                 )
                 val right = postChunkWithRepair(
                     apiKey = apiKey,
@@ -184,6 +189,7 @@ class HealthSyncRunner(
                     start = start,
                     end = end,
                     records = records.subList(mid, records.size).toList(),
+                    grantedPermissions = grantedPermissions,
                 )
                 return SyncResponsePayload(
                     accepted = left.accepted && right.accepted,
@@ -211,6 +217,7 @@ class HealthSyncRunner(
                 start = start,
                 end = end,
                 records = records,
+                grantedPermissions = grantedPermissions,
                 attempt = attempt + 1,
             )
         }

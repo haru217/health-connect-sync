@@ -264,6 +264,27 @@ export interface HomeSummaryResponse {
   previousReport?: PreviousReportLink | null
 }
 
+export interface HealthConnectPermissionStatus {
+  source: string
+  required: string[]
+  granted: string[]
+  missing: string[]
+  required_count: number
+  granted_count: number
+  is_fully_granted: boolean
+  updated_at: string | null
+}
+
+export interface ConnectionStatusResponse {
+  last_sync_at: string | null
+  total_records: number
+  has_weight_data: boolean
+  has_sleep_data: boolean
+  has_activity_data: boolean
+  has_vitals_data: boolean
+  health_connect_permissions?: HealthConnectPermissionStatus
+}
+
 // ── /api/body-data ──
 export interface BodyDataPoint {
   date: string
@@ -319,6 +340,14 @@ export interface SleepDataResponse {
   periodSummary: {
     avg_sleep_min: number | null
     goal_days: number
+    measured_days?: number
+    goal_rate?: number | null
+    avg_deep_min?: number | null
+    avg_light_min?: number | null
+    avg_rem_min?: number | null
+    deep_ratio?: number | null
+    light_ratio?: number | null
+    rem_ratio?: number | null
     avg_spo2?: number | null
     min_spo2?: number | null
   }
