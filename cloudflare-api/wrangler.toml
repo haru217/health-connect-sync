@@ -7,4 +7,5 @@ workers_dev = true
 binding = "DB"
 database_name = "health_connect_sync"
 database_id = "4f34f044-357e-4d00-bca6-85365ae2210b"
+remote = false
 migrations_dir = "migrations"

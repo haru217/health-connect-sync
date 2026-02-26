@@ -386,8 +386,8 @@ export default function ExerciseScreen() {
               >
                 <BarChart data={rangePoints}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
                   <Bar
                     dataKey="steps"
                     radius={[6, 6, 0, 0]}
@@ -433,8 +433,8 @@ export default function ExerciseScreen() {
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
                   <Line
                     type="monotone"
                     dataKey="totalKcal"
@@ -491,8 +491,8 @@ export default function ExerciseScreen() {
               >
                 <BarChart data={rangePoints}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F2ED" />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#8FA39A' }} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#5A7367' }} />
                   <Bar
                     dataKey="distanceKm"
                     radius={[6, 6, 0, 0]}

@@ -93,6 +93,12 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   const displayWeight = useAverageCard ? (data.periodSummary.avg_weight_kg ?? current.weight_kg) : current.weight_kg
   const displayBodyFat = useAverageCard ? (data.periodSummary.avg_body_fat_pct ?? current.body_fat_pct) : current.body_fat_pct
   const displayBmi = useAverageCard ? (data.periodSummary.avg_bmi ?? current.bmi) : current.bmi
+  const avgBmr = data.series
+    .map((item) => item.bmr_kcal)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  const displayBmr = useAverageCard
+    ? (avgBmr.length > 0 ? avgBmr.reduce((sum, value) => sum + value, 0) / avgBmr.length : current.bmr_kcal)
+    : current.bmr_kcal
 
   // 週次変化の計算 (for week segment)
   const isWeek = segment === 'week'
@@ -127,31 +133,41 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
           <span className="health-metric-label">目標体重</span>
           <span className="health-metric-value">{data.goalWeight?.toFixed(1) ?? '-'} kg</span>
         </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均基礎代謝' : '基礎代謝'}</span>
+          <span className="health-metric-value">{displayBmr != null ? Math.round(displayBmr) : '-'} kcal/日</span>
+        </div>
       </div>
 
       <div className="health-chart-container">
         <div className="health-chart-title">体重と体脂肪の推移</div>
         <div className="health-chart-wrapper">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={1}
+            minHeight={220}
+            initialDimension={{ width: 300, height: 220 }}
+          >
             {segment === 'year' ? (
               <LineChart data={data.series}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
-                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 {data.goalWeight != null && <ReferenceLine y={data.goalWeight} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '目標', position: 'insideTopLeft', fill: '#f59e0b', fontSize: 12 }} />}
-                <Line type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
               </LineChart>
             ) : (
               <LineChart data={data.series}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
-                <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} hide />
+                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
+                <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} hide />
                 <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 {data.goalWeight != null && <ReferenceLine yAxisId="left" y={data.goalWeight} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '目標', position: 'insideTopLeft', fill: '#f59e0b', fontSize: 12 }} />}
-                <Line yAxisId="right" type="monotone" dataKey="body_fat_pct" name="体脂肪 (%)" stroke="#FFCC80" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
-                <Line yAxisId="left" type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+                <Line yAxisId="right" type="monotone" dataKey="body_fat_pct" name="体脂肪 (%)" stroke="#FFCC80" strokeWidth={2} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
+                <Line yAxisId="left" type="monotone" dataKey="weight_kg" name="体重 (kg)" stroke="var(--accent-color)" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
               </LineChart>
             )}
           </ResponsiveContainer>
@@ -219,21 +235,32 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
             {displayRestingHr ?? '-'} bpm
           </span>
         </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{segment === 'week' ? '今週の高血圧判定日' : '期間内の高血圧判定日'}</span>
+          <span className="health-metric-value">{data.periodSummary.high_bp_points} 日</span>
+        </div>
       </div>
 
       <div className="health-chart-container">
         <div className="health-chart-title">血圧の推移</div>
         <div className="health-chart-wrapper">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={1}
+            minHeight={220}
+            initialDimension={{ width: 300, height: 220 }}
+          >
             <LineChart data={data.series}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
-              <YAxis domain={['dataMin - 10', 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+              <YAxis domain={['dataMin - 10', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
               <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <ReferenceLine y={130} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '130', position: 'right', fontSize: 10 }} />
               <ReferenceLine y={85} stroke="#3b82f6" strokeDasharray="3 3" label={{ value: '85', position: 'right', fontSize: 10 }} />
-              <Line type="monotone" dataKey="systolic" name="収縮期" stroke="#EF9A9A" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
-              <Line type="monotone" dataKey="diastolic" name="拡張期" stroke="#90CAF9" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="systolic" name="収縮期" stroke="#EF9A9A" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
+              <Line type="monotone" dataKey="diastolic" name="拡張期" stroke="#90CAF9" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
+              <Line type="monotone" dataKey="resting_hr" name="安静時心拍" stroke="#7AA89C" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={true} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -279,6 +306,15 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
     if (displaySleepMinutes >= 420) { sleepStatus = '良好'; sleepClass = 'good' }
     else if (displaySleepMinutes >= 360) { sleepStatus = 'やや短め'; sleepClass = 'warning' }
   }
+  const deepRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.deep_min != null
+    ? Math.round((stages.deep_min / displaySleepMinutes) * 100)
+    : null
+  const lightRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.light_min != null
+    ? Math.round((stages.light_min / displaySleepMinutes) * 100)
+    : null
+  const remRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.rem_min != null
+    ? Math.round((stages.rem_min / displaySleepMinutes) * 100)
+    : null
 
   // Convert minutes to hours for display
   const chartData = data.series.map(d => ({
@@ -308,7 +344,7 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
         <div className="health-metric-row">
           <span className="health-metric-label">ステージ</span>
           <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
-            深い: {stages.deep_min ?? '-'}分  浅い: {stages.light_min ?? '-'}分  レム睡眠: {stages.rem_min ?? '-'}分
+            深い: {stages.deep_min ?? '-'}分{deepRatio != null ? ` (${deepRatio}%)` : ''}  浅い: {stages.light_min ?? '-'}分{lightRatio != null ? ` (${lightRatio}%)` : ''}  レム睡眠: {stages.rem_min ?? '-'}分{remRatio != null ? ` (${remRatio}%)` : ''}
           </span>
         </div>
         <div className="health-metric-row">
@@ -322,13 +358,19 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
       <div className="health-chart-container">
         <div className="health-chart-title">睡眠時間の推移</div>
         <div className="health-chart-wrapper">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={1}
+            minHeight={220}
+            initialDimension={{ width: 300, height: 220 }}
+          >
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 'auto']} tick={{ fontSize: 12, fill: '#8FA39A' }} axisLine={false} tickLine={false} width={40} />
+              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
               <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} cursor={{ fill: 'rgba(136, 212, 180, 0.1)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <ReferenceLine y={7} stroke="#8FA39A" strokeDasharray="4 4" label={{ value: '目標7h', position: 'insideTopRight', fill: '#8FA39A', fontSize: 10 }} />
+              <ReferenceLine y={7} stroke="#5A7367" strokeDasharray="4 4" label={{ value: '目標7h', position: 'insideTopRight', fill: '#5A7367', fontSize: 10 }} />
               <Bar dataKey="deep_h" name="深睡眠" stackId="a" fill="#6BCB9F" radius={segment === 'week' ? [0, 0, 0, 0] : [0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
               <Bar dataKey="light_h" name="浅睡眠" stackId="a" fill="#A5D6A7" radius={[0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
               <Bar dataKey="rem_h" name="レム睡眠" stackId="a" fill="#FFCC80" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
@@ -344,7 +386,12 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
         </div>
         <div className="health-list-item">
           <span className="health-list-item-label">目標達成日</span>
-          <span className="health-list-item-value">{data.periodSummary.goal_days} 日</span>
+          <span className="health-list-item-value">
+            {data.periodSummary.goal_days}
+            {data.periodSummary.measured_days != null ? ` / ${data.periodSummary.measured_days}` : ''}
+            {' '}日
+            {data.periodSummary.goal_rate != null ? ` (${Math.round(data.periodSummary.goal_rate * 100)}%)` : ''}
+          </span>
         </div>
       </div>
     </div>

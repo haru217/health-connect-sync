@@ -82,6 +82,7 @@
   border: 1px solid rgba(136, 212, 180, 0.2);
   box-shadow: 0 4px 12px rgba(136, 212, 180, 0.05);
   overflow: hidden;
+  min-width: 0;
 }
 
 .health-chart-title {
@@ -95,6 +96,12 @@
 .health-chart-wrapper {
   width: 100%;
   height: 220px;
+  min-width: 0;
+}
+
+/* Rechartsの要素がフォーカスされた際のアウトライン（黒い枠）を消去 */
+.health-chart-wrapper :focus {
+  outline: none;
 }
 
 /* リスト領域 */

@@ -49,6 +49,8 @@ interface ProfileRow {
   birth_year: number | null
   sex: SexType | null
   goal_weight_kg: number | null
+  sleep_goal_minutes?: number | null
+  steps_goal?: number | null
   updated_at: string
 }
 
@@ -96,6 +98,8 @@ interface SyncRequestInput {
   rangeStart: string
   rangeEnd: string
   records: SyncRecordInput[]
+  requiredPermissions?: string[]
+  grantedPermissions?: string[]
 }
 
 interface CatalogItem {
@@ -114,6 +118,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const CURSOR_REPAIR_SAFETY_MS = 5 * 60 * 1000
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000
 const DETAILED_RETENTION_DAYS = 14
+const MIN_VALID_BMR_KCAL_PER_DAY = 600
+const MAX_VALID_BMR_KCAL_PER_DAY = 4500
 const PRUNABLE_RECORD_TYPES = [
   'StepsRecord',
   'DistanceRecord',
@@ -122,6 +128,44 @@ const PRUNABLE_RECORD_TYPES = [
   'ActiveCaloriesBurnedRecord',
   'TotalCaloriesBurnedRecord',
 ] as const
+const HEALTH_CONNECT_REQUIRED_PERMISSIONS = [
+  'android.permission.health.READ_STEPS',
+  'android.permission.health.READ_WEIGHT',
+  'android.permission.health.READ_SLEEP',
+  'android.permission.health.READ_HEART_RATE',
+  'android.permission.health.READ_EXERCISE',
+  'android.permission.health.READ_ACTIVE_CALORIES_BURNED',
+  'android.permission.health.READ_DISTANCE',
+  'android.permission.health.READ_TOTAL_CALORIES_BURNED',
+  'android.permission.health.READ_SPEED',
+  'android.permission.health.READ_RESTING_HEART_RATE',
+  'android.permission.health.READ_BLOOD_PRESSURE',
+  'android.permission.health.READ_OXYGEN_SATURATION',
+  'android.permission.health.READ_BODY_TEMPERATURE',
+  'android.permission.health.READ_BASAL_BODY_TEMPERATURE',
+  'android.permission.health.READ_BASAL_METABOLIC_RATE',
+  'android.permission.health.READ_HEIGHT',
+  'android.permission.health.READ_BODY_FAT',
+] as const
+const RECORD_PERMISSION_MAP: Readonly<Record<string, (typeof HEALTH_CONNECT_REQUIRED_PERMISSIONS)[number]>> = {
+  StepsRecord: 'android.permission.health.READ_STEPS',
+  WeightRecord: 'android.permission.health.READ_WEIGHT',
+  SleepSessionRecord: 'android.permission.health.READ_SLEEP',
+  HeartRateRecord: 'android.permission.health.READ_HEART_RATE',
+  ExerciseSessionRecord: 'android.permission.health.READ_EXERCISE',
+  ActiveCaloriesBurnedRecord: 'android.permission.health.READ_ACTIVE_CALORIES_BURNED',
+  DistanceRecord: 'android.permission.health.READ_DISTANCE',
+  TotalCaloriesBurnedRecord: 'android.permission.health.READ_TOTAL_CALORIES_BURNED',
+  SpeedRecord: 'android.permission.health.READ_SPEED',
+  RestingHeartRateRecord: 'android.permission.health.READ_RESTING_HEART_RATE',
+  BloodPressureRecord: 'android.permission.health.READ_BLOOD_PRESSURE',
+  OxygenSaturationRecord: 'android.permission.health.READ_OXYGEN_SATURATION',
+  BodyTemperatureRecord: 'android.permission.health.READ_BODY_TEMPERATURE',
+  BasalBodyTemperatureRecord: 'android.permission.health.READ_BASAL_BODY_TEMPERATURE',
+  BasalMetabolicRateRecord: 'android.permission.health.READ_BASAL_METABOLIC_RATE',
+  HeightRecord: 'android.permission.health.READ_HEIGHT',
+  BodyFatRecord: 'android.permission.health.READ_BODY_FAT',
+}
 const RECORD_TYPE_META_PREFIX = '__meta__'
 const LAST_AGGREGATED_AT_MS_KEY = `${RECORD_TYPE_META_PREFIX}last_aggregated_at_ms`
 const CORS_HEADERS: Readonly<Record<string, string>> = {
@@ -247,8 +291,63 @@ function toPositiveCount(value: unknown, fallback = 1): number {
   return Math.max(1, Math.round(parsed))
 }
 
+function normalizeStringArray(value: unknown, maxLength = 128): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const out = new Set<string>()
+  for (const raw of value) {
+    if (typeof raw !== 'string') {
+      continue
+    }
+    const trimmed = raw.trim()
+    if (!trimmed) {
+      continue
+    }
+    out.add(trimmed)
+    if (out.size >= maxLength) {
+      break
+    }
+  }
+  return Array.from(out).sort((a, b) => a.localeCompare(b))
+}
+
 function isValidDate(value: unknown): value is string {
   return typeof value === 'string' && DATE_RE.test(value)
+}
+
+type MetricPeriod = 'week' | 'month' | 'year'
+
+function parseMetricPeriod(value: unknown): MetricPeriod | null {
+  if (value === 'week' || value === 'month' || value === 'year') {
+    return value
+  }
+  return null
+}
+
+function utcDateFromIsoDate(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`)
+}
+
+function shiftIsoDateByDays(value: string, deltaDays: number): string {
+  const base = utcDateFromIsoDate(value)
+  base.setUTCDate(base.getUTCDate() + deltaDays)
+  return base.toISOString().slice(0, 10)
+}
+
+function toYearMonth(value: string): string {
+  return value.slice(0, 7)
+}
+
+function shiftYearMonth(value: string, deltaMonths: number): string {
+  const parts = value.split('-')
+  const year = Number.parseInt(parts[0] ?? '', 10)
+  const month = Number.parseInt(parts[1] ?? '', 10)
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return value
+  }
+  const d = new Date(Date.UTC(year, month - 1 + deltaMonths, 1))
+  return d.toISOString().slice(0, 7)
 }
 
 function toIsoDate(date: Date): string {
@@ -492,6 +591,19 @@ function toStageInt(value: unknown): number | null {
   return null
 }
 
+interface SleepStageInterval {
+  stage: number
+  start: number
+  end: number
+}
+
+interface SleepStageBreakdown {
+  total_minutes: number
+  deep_min: number
+  light_min: number
+  rem_min: number
+}
+
 function mergedIntervalMinutes(intervals: Array<[number, number]>): number {
   if (intervals.length === 0) {
     return 0
@@ -514,21 +626,19 @@ function mergedIntervalMinutes(intervals: Array<[number, number]>): number {
   return totalMs / 60000
 }
 
-function extractSleepMinutes(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): number {
-  const startMs = parseIsoToMillis(startIso)
-  const endMs = parseIsoToMillis(endIso)
-  if (startMs == null || endMs == null || endMs <= startMs) {
-    return 0
-  }
-
-  const stageValueSet = new Set<number>([2, 4, 5, 6])
-  const detailedSet = new Set<number>([4, 5, 6])
+function parseSleepStageIntervals(payload: Record<string, unknown>): {
+  intervals: SleepStageInterval[]
+  has_valid_intervals: boolean
+} {
   const stagesRaw = payload.stages
   if (!Array.isArray(stagesRaw)) {
-    return (endMs - startMs) / 60000
+    return {
+      intervals: [],
+      has_valid_intervals: false,
+    }
   }
 
-  const parsed: Array<{ stage: number; start: number; end: number }> = []
+  const intervals: SleepStageInterval[] = []
   let hasValidIntervals = false
   for (const stage of stagesRaw) {
     if (!stage || typeof stage !== 'object' || Array.isArray(stage)) {
@@ -542,15 +652,37 @@ function extractSleepMinutes(startIso: string | null, endIso: string | null, pay
     }
     hasValidIntervals = true
     const stageInt = toStageInt(obj.stage)
-    if (stageInt == null || !stageValueSet.has(stageInt)) {
+    if (stageInt == null) {
       continue
     }
-    parsed.push({ stage: stageInt, start: st, end: et })
+    intervals.push({
+      stage: stageInt,
+      start: st,
+      end: et,
+    })
   }
 
-  if (!hasValidIntervals) {
+  return {
+    intervals,
+    has_valid_intervals: hasValidIntervals,
+  }
+}
+
+function extractSleepMinutes(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): number {
+  const startMs = parseIsoToMillis(startIso)
+  const endMs = parseIsoToMillis(endIso)
+  if (startMs == null || endMs == null || endMs <= startMs) {
+    return 0
+  }
+
+  const stageValueSet = new Set<number>([2, 4, 5, 6])
+  const detailedSet = new Set<number>([4, 5, 6])
+  const parsedResult = parseSleepStageIntervals(payload)
+  if (!parsedResult.has_valid_intervals) {
     return (endMs - startMs) / 60000
   }
+
+  const parsed = parsedResult.intervals.filter((item) => stageValueSet.has(item.stage))
 
   const hasDetailed = parsed.some((item) => detailedSet.has(item.stage))
   const effective = parsed
@@ -560,6 +692,124 @@ function extractSleepMinutes(startIso: string | null, endIso: string | null, pay
     return 0
   }
   return mergedIntervalMinutes(effective)
+}
+
+function extractSleepStageBreakdown(
+  startIso: string | null,
+  endIso: string | null,
+  payload: Record<string, unknown>,
+): SleepStageBreakdown {
+  const startMs = parseIsoToMillis(startIso)
+  const endMs = parseIsoToMillis(endIso)
+  if (startMs == null || endMs == null || endMs <= startMs) {
+    return {
+      total_minutes: 0,
+      deep_min: 0,
+      light_min: 0,
+      rem_min: 0,
+    }
+  }
+
+  const parsedResult = parseSleepStageIntervals(payload)
+  const roughDurationMin = (endMs - startMs) / 60000
+  if (!parsedResult.has_valid_intervals) {
+    return {
+      total_minutes: roughDurationMin,
+      deep_min: 0,
+      light_min: roughDurationMin,
+      rem_min: 0,
+    }
+  }
+
+  const stageValueSet = new Set<number>([2, 4, 5, 6])
+  const detailedSet = new Set<number>([4, 5, 6])
+  const parsed = parsedResult.intervals.filter((item) => stageValueSet.has(item.stage))
+  const hasDetailed = parsed.some((item) => detailedSet.has(item.stage))
+  const effective = parsed
+    .filter((item) => (hasDetailed ? detailedSet.has(item.stage) : stageValueSet.has(item.stage)))
+    .map((item) => [item.start, item.end] as [number, number])
+
+  const deepIntervals = parsed
+    .filter((item) => item.stage === 5)
+    .map((item) => [item.start, item.end] as [number, number])
+  const lightIntervals = parsed
+    .filter((item) => item.stage === 4)
+    .map((item) => [item.start, item.end] as [number, number])
+  const remIntervals = parsed
+    .filter((item) => item.stage === 6)
+    .map((item) => [item.start, item.end] as [number, number])
+
+  const totalMinutes = effective.length > 0 ? mergedIntervalMinutes(effective) : 0
+  const deepMin = mergedIntervalMinutes(deepIntervals)
+  let lightMin = mergedIntervalMinutes(lightIntervals)
+  const remMin = mergedIntervalMinutes(remIntervals)
+
+  // Some payloads only provide "sleep/awake" stages without deep/light/rem detail.
+  if (!hasDetailed && totalMinutes > 0 && deepMin === 0 && lightMin === 0 && remMin === 0) {
+    lightMin = totalMinutes
+  }
+
+  return {
+    total_minutes: totalMinutes,
+    deep_min: deepMin,
+    light_min: lightMin,
+    rem_min: remMin,
+  }
+}
+
+function extractIsoClockHHmm(value: string | null | undefined): string | null {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  const matched = value.match(/T(\d{2}):(\d{2})/)
+  if (!matched) {
+    return null
+  }
+  return `${matched[1] ?? '00'}:${matched[2] ?? '00'}`
+}
+
+function parseClockMinutes(value: string | null | undefined): number | null {
+  if (!value) {
+    return null
+  }
+  const matched = value.match(/^(\d{2}):(\d{2})$/)
+  if (!matched) {
+    return null
+  }
+  const hours = Number.parseInt(matched[1] ?? '', 10)
+  const mins = Number.parseInt(matched[2] ?? '', 10)
+  if (!Number.isFinite(hours) || !Number.isFinite(mins) || hours < 0 || hours > 23 || mins < 0 || mins > 59) {
+    return null
+  }
+  return hours * 60 + mins
+}
+
+function formatClockMinutes(value: number): string {
+  const normalized = ((Math.round(value) % 1440) + 1440) % 1440
+  const hours = Math.floor(normalized / 60)
+  const mins = normalized % 60
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+function averageClockMinutes(values: number[]): number | null {
+  if (values.length === 0) {
+    return null
+  }
+  let x = 0
+  let y = 0
+  for (const value of values) {
+    const radians = (value / 1440) * Math.PI * 2
+    x += Math.cos(radians)
+    y += Math.sin(radians)
+  }
+  if (x === 0 && y === 0) {
+    return null
+  }
+  let angle = Math.atan2(y, x)
+  if (angle < 0) {
+    angle += Math.PI * 2
+  }
+  return (angle / (Math.PI * 2)) * 1440
 }
 
 function stableStringify(value: unknown): string {
@@ -664,6 +914,16 @@ function extractBmrKcal(payload: Record<string, unknown>): number | null {
     return (watts * 86400) / 4184
   }
   return null
+}
+
+function normalizeBmrKcal(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+  if (value < MIN_VALID_BMR_KCAL_PER_DAY || value > MAX_VALID_BMR_KCAL_PER_DAY) {
+    return null
+  }
+  return value
 }
 
 function extractBloodPressure(payload: Record<string, unknown>): { systolic: number; diastolic: number } | null {
@@ -858,7 +1118,7 @@ async function rebuildAggregatesFromHealthRecords(db: D1Database): Promise<void>
         }
       } else if (row.type === 'BasalMetabolicRateRecord') {
         const day = defaultDay
-        const kcalPerDay = extractBmrKcal(payload)
+        const kcalPerDay = normalizeBmrKcal(extractBmrKcal(payload))
         if (day && kcalPerDay != null) {
           setLatestValue(bmrByDay, day, tsMs, kcalPerDay)
         }
@@ -1145,10 +1405,11 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     if (row.spo2_pct != null) {
       oxygenSaturationPctByDate.push({ date: row.date, pct: row.spo2_pct })
     }
-    if (row.bmr_kcal != null) {
+    const validBmr = normalizeBmrKcal(row.bmr_kcal)
+    if (validBmr != null) {
       basalMetabolicRateKcalByDate.push({
         date: row.date,
-        kcalPerDay: row.bmr_kcal,
+        kcalPerDay: validBmr,
         measured: true,
       })
     }
@@ -1225,6 +1486,378 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     exerciseSessions: [],
     diet,
     insights,
+  }
+}
+
+type HomeStatusTab = 'home' | 'health' | 'exercise' | 'meal' | 'my'
+type HomeInnerTab = 'composition' | 'vital' | 'sleep'
+type HomeStatusTone = 'normal' | 'warning' | 'critical'
+type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
+type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
+type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
+type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
+
+interface HomeStatusItemPayload {
+  key: HomeStatusKey
+  label: string
+  value: string | null
+  ok: boolean
+  tab: HomeStatusTab
+  innerTab?: HomeInnerTab
+  tone?: HomeStatusTone
+  progress?: number
+}
+
+interface HomeAttentionPointPayload {
+  id: string
+  icon: HomeAttentionIcon
+  message: string
+  severity: HomeAttentionSeverity
+  category: HomeAttentionCategory
+  navigateTo: {
+    tab: HomeStatusTab
+    subTab?: HomeInnerTab
+  }
+  dataSource: string
+}
+
+function clampPercent(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value)) {
+    return 0
+  }
+  return Math.min(100, Math.max(0, Math.round(value)))
+}
+
+function progressByTarget(actual: number | null | undefined, target: number): number {
+  if (actual == null || !Number.isFinite(actual) || target <= 0) {
+    return 0
+  }
+  return clampPercent((actual / target) * 100)
+}
+
+function formatSleepLabel(sleepMinutes: number | null): string | null {
+  if (sleepMinutes == null || sleepMinutes <= 0) {
+    return null
+  }
+  const hours = Math.floor(sleepMinutes / 60)
+  const minutes = sleepMinutes % 60
+  return `${hours}h${String(minutes).padStart(2, '0')}m`
+}
+
+function formatRoundedWithUnit(value: number | null, unit: string): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+  return `${Math.round(value).toLocaleString('ja-JP')}${unit}`
+}
+
+async function buildHomeSummary(db: D1Database, date: string): Promise<Record<string, unknown>> {
+  const [
+    dayRow,
+    latestWeight,
+    latestBp,
+    mealRow,
+    profileRow,
+    reportRow,
+    previousReportRow,
+  ] = await Promise.all([
+    queryFirst<{
+      steps: number | null
+      sleep_hours: number | null
+      intake_kcal: number | null
+    }>(
+      db,
+      `
+      SELECT steps, sleep_hours, intake_kcal
+      FROM daily_metrics
+      WHERE date = ?
+      LIMIT 1
+      `,
+      [date],
+    ),
+    queryFirst<{ weight_kg: number | null }>(
+      db,
+      `
+      SELECT weight_kg
+      FROM daily_metrics
+      WHERE date <= ?
+        AND weight_kg IS NOT NULL
+      ORDER BY date DESC
+      LIMIT 1
+      `,
+      [date],
+    ),
+    queryFirst<{ systolic: number | null; diastolic: number | null }>(
+      db,
+      `
+      SELECT
+        blood_systolic AS systolic,
+        blood_diastolic AS diastolic
+      FROM daily_metrics
+      WHERE date <= ?
+        AND blood_systolic IS NOT NULL
+        AND blood_diastolic IS NOT NULL
+      ORDER BY date DESC
+      LIMIT 1
+      `,
+      [date],
+    ),
+    queryFirst<{ event_count: number; total_kcal: number | null }>(
+      db,
+      `
+      SELECT
+        COUNT(*) AS event_count,
+        SUM(COALESCE(kcal, 0) * COALESCE(count, 1)) AS total_kcal
+      FROM nutrition_events
+      WHERE local_date = ?
+      `,
+      [date],
+    ),
+    queryFirst<{ sleep_goal_minutes: number | null; steps_goal: number | null }>(
+      db,
+      `
+      SELECT sleep_goal_minutes, steps_goal
+      FROM user_profile
+      WHERE id = 1
+      LIMIT 1
+      `,
+    ),
+    queryFirst<{ content: string; created_at: string }>(
+      db,
+      `
+      SELECT content, created_at
+      FROM ai_reports
+      WHERE report_date = ?
+        AND report_type = 'daily'
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [date],
+    ),
+    queryFirst<{ report_date: string; created_at: string }>(
+      db,
+      `
+      SELECT report_date, created_at
+      FROM ai_reports
+      WHERE report_type = 'daily'
+        AND report_date < ?
+      ORDER BY report_date DESC, created_at DESC
+      LIMIT 1
+      `,
+      [date],
+    ),
+  ])
+
+  const steps = dayRow?.steps ?? null
+  const sleepHours = dayRow?.sleep_hours ?? null
+  const sleepMinutes = sleepHours == null ? null : Math.round(sleepHours * 60)
+  const weight = latestWeight?.weight_kg ?? null
+  const intakeKcal = dayRow?.intake_kcal ?? mealRow?.total_kcal ?? null
+  const mealEventCount = mealRow?.event_count ?? 0
+  const bpSystolic = latestBp?.systolic ?? null
+  const bpDiastolic = latestBp?.diastolic ?? null
+  const hasBp = bpSystolic != null && bpDiastolic != null
+
+  const sleepGoalMinutes =
+    profileRow?.sleep_goal_minutes != null && profileRow.sleep_goal_minutes > 0
+      ? profileRow.sleep_goal_minutes
+      : 420
+  const stepsGoal =
+    profileRow?.steps_goal != null && profileRow.steps_goal > 0
+      ? profileRow.steps_goal
+      : 8000
+
+  const sufficiency = {
+    sleep: sleepMinutes != null && sleepMinutes > 0,
+    steps: steps != null && steps >= 1000,
+    weight: weight != null && Number.isFinite(weight),
+    meal: (intakeKcal != null && intakeKcal > 0) || mealEventCount > 0,
+    bp: hasBp,
+  }
+
+  let bpTone: HomeStatusTone = 'normal'
+  if (hasBp && bpSystolic != null && bpDiastolic != null) {
+    if (bpSystolic >= 140 || bpDiastolic >= 90) {
+      bpTone = 'critical'
+    } else if (bpSystolic >= 130 || bpDiastolic >= 85) {
+      bpTone = 'warning'
+    }
+  }
+
+  const statusItems: HomeStatusItemPayload[] = [
+    {
+      key: 'sleep',
+      label: '\u7761\u7720',
+      value: formatSleepLabel(sleepMinutes),
+      ok: sufficiency.sleep,
+      tab: 'health',
+      innerTab: 'sleep',
+      tone: sleepMinutes != null && sleepMinutes < sleepGoalMinutes * 0.7 ? 'warning' : 'normal',
+      progress: progressByTarget(sleepMinutes, sleepGoalMinutes),
+    },
+    {
+      key: 'steps',
+      label: '\u6b69\u6570',
+      value: formatRoundedWithUnit(steps, ''),
+      ok: sufficiency.steps,
+      tab: 'exercise',
+      tone: steps != null && steps < stepsGoal * 0.5 ? 'warning' : 'normal',
+      progress: progressByTarget(steps, stepsGoal),
+    },
+    {
+      key: 'meal',
+      label: '\u98df\u4e8b',
+      value: formatRoundedWithUnit(intakeKcal, 'kcal'),
+      ok: sufficiency.meal,
+      tab: 'meal',
+      tone: 'normal',
+      progress: sufficiency.meal ? 100 : 0,
+    },
+    {
+      key: 'weight',
+      label: '\u4f53\u91cd',
+      value: weight == null ? null : `${weight.toFixed(1)}kg`,
+      ok: sufficiency.weight,
+      tab: 'health',
+      innerTab: 'composition',
+      tone: 'normal',
+      progress: sufficiency.weight ? 100 : 0,
+    },
+  ]
+
+  if (hasBp && bpSystolic != null && bpDiastolic != null) {
+    statusItems.push({
+      key: 'bp',
+      label: 'BP',
+      value: `${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}`,
+      ok: bpTone === 'normal',
+      tab: 'health',
+      innerTab: 'vital',
+      tone: bpTone,
+      progress: clampPercent(100 - Math.max(0, bpSystolic - 120) * 2),
+    })
+  }
+
+  const attentionPoints: HomeAttentionPointPayload[] = []
+  if (hasBp && bpSystolic != null && bpDiastolic != null) {
+    if (bpTone === 'critical') {
+      attentionPoints.push({
+        id: `bp-critical-${date}`,
+        icon: 'alert',
+        message: `\u8840\u5727\u304c\u9ad8\u3081\u3067\u3059\uff08${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}\uff09`,
+        severity: 'critical',
+        category: 'threshold',
+        navigateTo: { tab: 'health', subTab: 'vital' },
+        dataSource: 'blood_pressure',
+      })
+    } else if (bpTone === 'warning') {
+      attentionPoints.push({
+        id: `bp-warning-${date}`,
+        icon: 'warning',
+        message: `\u8840\u5727\u304c\u3084\u3084\u9ad8\u3081\u3067\u3059\uff08${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}\uff09`,
+        severity: 'warning',
+        category: 'threshold',
+        navigateTo: { tab: 'health', subTab: 'vital' },
+        dataSource: 'blood_pressure',
+      })
+    }
+  }
+
+  if (sleepMinutes != null && sleepMinutes > 0 && sleepMinutes < sleepGoalMinutes * 0.7) {
+    attentionPoints.push({
+      id: `sleep-low-${date}`,
+      icon: 'down',
+      message: `\u7761\u7720\u6642\u9593\u304c\u77ed\u3081\u3067\u3059\uff08${formatSleepLabel(sleepMinutes)}\uff09`,
+      severity: 'warning',
+      category: 'trend',
+      navigateTo: { tab: 'health', subTab: 'sleep' },
+      dataSource: 'sleep',
+    })
+  } else if (sleepMinutes != null && sleepMinutes >= sleepGoalMinutes) {
+    attentionPoints.push({
+      id: `sleep-good-${date}`,
+      icon: 'check',
+      message: '\u7761\u7720\u76ee\u6a19\u3092\u9054\u6210\u3067\u304d\u3066\u3044\u307e\u3059',
+      severity: 'positive',
+      category: 'achievement',
+      navigateTo: { tab: 'health', subTab: 'sleep' },
+      dataSource: 'sleep',
+    })
+  }
+
+  if (steps != null && steps > 0 && steps < stepsGoal * 0.5) {
+    attentionPoints.push({
+      id: `steps-low-${date}`,
+      icon: 'down',
+      message: '\u6d3b\u52d5\u91cf\u304c\u4f4e\u3044\u65e5\u3067\u3059\u3002\u8efd\u3044\u904b\u52d5\u3092\u304a\u3059\u3059\u3081\u3057\u307e\u3059',
+      severity: 'info',
+      category: 'trend',
+      navigateTo: { tab: 'exercise' },
+      dataSource: 'steps',
+    })
+  } else if (steps != null && steps >= stepsGoal) {
+    attentionPoints.push({
+      id: `steps-good-${date}`,
+      icon: 'check',
+      message: '\u6b69\u6570\u76ee\u6a19\u3092\u9054\u6210\u3067\u304d\u3066\u3044\u307e\u3059',
+      severity: 'positive',
+      category: 'achievement',
+      navigateTo: { tab: 'exercise' },
+      dataSource: 'steps',
+    })
+  }
+
+  const severityWeight: Record<HomeAttentionSeverity, number> = {
+    critical: 4,
+    warning: 3,
+    info: 2,
+    positive: 1,
+  }
+  const categoryWeight: Record<HomeAttentionCategory, number> = {
+    threshold: 1,
+    trend: 2,
+    achievement: 3,
+  }
+  attentionPoints.sort((a, b) => {
+    const severityDiff = severityWeight[b.severity] - severityWeight[a.severity]
+    if (severityDiff !== 0) {
+      return severityDiff
+    }
+    const categoryDiff = categoryWeight[a.category] - categoryWeight[b.category]
+    if (categoryDiff !== 0) {
+      return categoryDiff
+    }
+    return a.id.localeCompare(b.id)
+  })
+
+  const evidences = statusItems
+    .filter((item) => item.value != null && item.ok)
+    .map((item) => ({
+      type: item.key,
+      label: item.label,
+      value: item.value as string,
+      tab: item.tab,
+      ...(item.innerTab ? { innerTab: item.innerTab } : {}),
+    }))
+
+  return {
+    date,
+    report: reportRow
+      ? {
+          content: reportRow.content,
+          created_at: reportRow.created_at,
+        }
+      : null,
+    sufficiency,
+    evidences,
+    statusItems,
+    attentionPoints,
+    previousReport: previousReportRow
+      ? {
+          date: previousReportRow.report_date,
+          created_at: previousReportRow.created_at,
+        }
+      : null,
   }
 }
 
@@ -1326,6 +1959,8 @@ async function upsertProfile(db: D1Database, payload: Record<string, unknown>): 
   const nextHeight = toNumberOrNull(payload.height_cm) ?? current?.height_cm ?? null
   const nextBirthYear = toNumberOrNull(payload.birth_year) ?? current?.birth_year ?? null
   const nextGoalWeight = toNumberOrNull(payload.goal_weight_kg) ?? current?.goal_weight_kg ?? null
+  const nextSleepGoal = toNumberOrNull(payload.sleep_goal_minutes) ?? current?.sleep_goal_minutes ?? 420
+  const nextStepsGoal = toNumberOrNull(payload.steps_goal) ?? current?.steps_goal ?? 8000
 
   const sexRaw = payload.sex
   const sexCandidates: SexType[] = ['male', 'female', 'other']
@@ -1336,17 +1971,21 @@ async function upsertProfile(db: D1Database, payload: Record<string, unknown>): 
   await execute(
     db,
     `
-    INSERT INTO user_profile(id, name, height_cm, birth_year, sex, goal_weight_kg, updated_at)
-    VALUES(1, ?, ?, ?, ?, ?, ?)
+    INSERT INTO user_profile(
+      id, name, height_cm, birth_year, sex, goal_weight_kg, sleep_goal_minutes, steps_goal, updated_at
+    )
+    VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       height_cm = excluded.height_cm,
       birth_year = excluded.birth_year,
       sex = excluded.sex,
       goal_weight_kg = excluded.goal_weight_kg,
+      sleep_goal_minutes = excluded.sleep_goal_minutes,
+      steps_goal = excluded.steps_goal,
       updated_at = excluded.updated_at
     `,
-    [nextName, nextHeight, nextBirthYear, nextSex, nextGoalWeight, nowIso()],
+    [nextName, nextHeight, nextBirthYear, nextSex, nextGoalWeight, nextSleepGoal, nextStepsGoal, nowIso()],
   )
 
   const updated = await queryFirst<ProfileRow>(db, 'SELECT * FROM user_profile WHERE id = 1')
@@ -1359,6 +1998,714 @@ async function upsertProfile(db: D1Database, payload: Record<string, unknown>): 
     birth_year: updated.birth_year ?? undefined,
     sex: updated.sex ?? undefined,
     goal_weight_kg: updated.goal_weight_kg ?? undefined,
+    sleep_goal_minutes: updated.sleep_goal_minutes ?? 420,
+    steps_goal: updated.steps_goal ?? 8000,
+  }
+}
+
+function average(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (valid.length === 0) {
+    return null
+  }
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length
+}
+
+function minimum(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (valid.length === 0) {
+    return null
+  }
+  return Math.min(...valid)
+}
+
+function estimateBmrKcal(
+  weightKg: number | null | undefined,
+  heightCm: number | null | undefined,
+  birthYear: number | null | undefined,
+  sex: SexType | null | undefined,
+): number | null {
+  if (weightKg == null || !Number.isFinite(weightKg) || weightKg <= 0) {
+    return null
+  }
+
+  const currentYear = new Date().getUTCFullYear()
+  const safeHeight = heightCm != null && Number.isFinite(heightCm) && heightCm > 0 ? heightCm : 172
+  const safeBirthYear =
+    birthYear != null && Number.isInteger(birthYear) && birthYear >= 1900 && birthYear <= currentYear
+      ? birthYear
+      : 1985
+  const age = Math.max(15, Math.min(90, currentYear - safeBirthYear))
+  const safeSex: SexType = sex === 'female' || sex === 'other' || sex === 'male' ? sex : 'male'
+
+  const bmr =
+    safeSex === 'female'
+      ? 447.593 + 9.247 * weightKg + 3.098 * safeHeight - 4.33 * age
+      : 88.362 + 13.397 * weightKg + 4.799 * safeHeight - 5.677 * age
+
+  return Number.isFinite(bmr) ? bmr : null
+}
+
+function roundOrNull(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+  return Math.round(value)
+}
+
+function metricLabels(baseDate: string, period: MetricPeriod): string[] {
+  if (period === 'year') {
+    const baseYm = toYearMonth(baseDate)
+    const startYm = shiftYearMonth(baseYm, -11)
+    return Array.from({ length: 12 }, (_, index) => shiftYearMonth(startYm, index))
+  }
+
+  const days = period === 'week' ? 7 : 30
+  const startDate = shiftIsoDateByDays(baseDate, -(days - 1))
+  return Array.from({ length: days }, (_, index) => shiftIsoDateByDays(startDate, index))
+}
+
+function latestDateOf<T extends { date: string }>(items: T[], predicate: (item: T) => boolean): string | null {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i]
+    if (predicate(item)) {
+      return item.date
+    }
+  }
+  return null
+}
+
+async function getBodyData(db: D1Database, baseDate: string, period: MetricPeriod): Promise<Record<string, unknown>> {
+  const labels = metricLabels(baseDate, period)
+  const startDate = period === 'year' ? `${labels[0]}-01` : labels[0]
+
+  const rows = period === 'year'
+    ? await queryAll<{
+        bucket: string
+        weight_kg: number | null
+        body_fat_pct: number | null
+        bmr_kcal: number | null
+      }>(
+        db,
+        `
+        SELECT
+          substr(date, 1, 7) AS bucket,
+          AVG(weight_kg) AS weight_kg,
+          AVG(body_fat_pct) AS body_fat_pct,
+          AVG(bmr_kcal) AS bmr_kcal
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [startDate, baseDate],
+      )
+    : await queryAll<{
+        bucket: string
+        weight_kg: number | null
+        body_fat_pct: number | null
+        bmr_kcal: number | null
+      }>(
+        db,
+        `
+        SELECT
+          date AS bucket,
+          weight_kg,
+          body_fat_pct,
+          bmr_kcal
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date ASC
+        `,
+        [startDate, baseDate],
+      )
+
+  const latestWeight = await queryFirst<{
+    weight_kg: number | null
+  }>(
+    db,
+    `
+    SELECT weight_kg
+    FROM daily_metrics
+    WHERE date <= ?
+      AND weight_kg IS NOT NULL
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+  const latestBodyFat = await queryFirst<{
+    body_fat_pct: number | null
+  }>(
+    db,
+    `
+    SELECT body_fat_pct
+    FROM daily_metrics
+    WHERE date <= ?
+      AND body_fat_pct IS NOT NULL
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+  const latestBmr = await queryFirst<{
+    bmr_kcal: number | null
+  }>(
+    db,
+    `
+    SELECT bmr_kcal
+    FROM daily_metrics
+    WHERE date <= ?
+      AND bmr_kcal IS NOT NULL
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+
+  const profile = await queryFirst<{
+    goal_weight_kg: number | null
+    height_cm: number | null
+    birth_year: number | null
+    sex: SexType | null
+  }>(db, 'SELECT goal_weight_kg, height_cm, birth_year, sex FROM user_profile WHERE id = 1')
+
+  const currentWeight = latestWeight?.weight_kg ?? null
+  const currentBodyFat = latestBodyFat?.body_fat_pct ?? null
+  const fallbackWeight = currentWeight ?? profile?.goal_weight_kg ?? null
+  const byBucket = new Map(rows.map((row) => [row.bucket, row]))
+  const series = labels.map((label) => {
+    const row = byBucket.get(label)
+    const rowWeight = row?.weight_kg ?? null
+    return {
+      date: label,
+      weight_kg: rowWeight,
+      body_fat_pct: row?.body_fat_pct ?? null,
+      bmr_kcal:
+        normalizeBmrKcal(row?.bmr_kcal) ??
+        estimateBmrKcal(
+          rowWeight ?? fallbackWeight,
+          profile?.height_cm ?? null,
+          profile?.birth_year ?? null,
+          profile?.sex ?? null,
+        ),
+    }
+  })
+
+  const currentBmr =
+    normalizeBmrKcal(latestBmr?.bmr_kcal) ??
+    estimateBmrKcal(
+      currentWeight ?? profile?.goal_weight_kg ?? null,
+      profile?.height_cm ?? null,
+      profile?.birth_year ?? null,
+      profile?.sex ?? null,
+    )
+  const heightM = profile?.height_cm != null && profile.height_cm > 0 ? profile.height_cm / 100 : null
+  const currentBmi = heightM != null && currentWeight != null ? currentWeight / (heightM * heightM) : null
+  const avgWeight = average(series.map((item) => item.weight_kg))
+  const avgBodyFat = average(series.map((item) => item.body_fat_pct))
+  const avgBmi = heightM != null && avgWeight != null ? avgWeight / (heightM * heightM) : null
+
+  return {
+    baseDate,
+    period,
+    current: {
+      weight_kg: currentWeight,
+      body_fat_pct: currentBodyFat,
+      bmi: currentBmi,
+      bmr_kcal: currentBmr,
+    },
+    goalWeight: profile?.goal_weight_kg ?? null,
+    series,
+    periodSummary: {
+      avg_weight_kg: avgWeight,
+      avg_body_fat_pct: avgBodyFat,
+      avg_bmi: avgBmi,
+      points: series.filter((item) => item.weight_kg != null).length,
+    },
+  }
+}
+
+interface SleepRecordDailyStats {
+  sleep_minutes: number
+  deep_min: number
+  light_min: number
+  rem_min: number
+  bedtime: string | null
+  wake_time: string | null
+  latest_end_ms: number
+}
+
+async function collectSleepRecordStatsByDay(
+  db: D1Database,
+  startDate: string,
+  endDate: string,
+): Promise<{
+  by_day: Map<string, SleepRecordDailyStats>
+  avg_bedtime: string | null
+  avg_wake_time: string | null
+}> {
+  const queryStart = shiftIsoDateByDays(startDate, -2)
+  const queryEnd = shiftIsoDateByDays(endDate, 2)
+  const rows = await queryAll<{
+    start_time: string | null
+    end_time: string | null
+    payload_json: string
+  }>(
+    db,
+    `
+    SELECT start_time, end_time, payload_json
+    FROM health_records
+    WHERE type = 'SleepSessionRecord'
+      AND (
+        (start_time IS NOT NULL AND substr(start_time, 1, 10) BETWEEN ? AND ?)
+        OR (end_time IS NOT NULL AND substr(end_time, 1, 10) BETWEEN ? AND ?)
+      )
+    ORDER BY COALESCE(end_time, start_time) ASC
+    `,
+    [queryStart, queryEnd, queryStart, queryEnd],
+  )
+
+  const byDay = new Map<string, SleepRecordDailyStats>()
+  const bedtimeMinutes: number[] = []
+  const wakeMinutes: number[] = []
+
+  for (const row of rows) {
+    const payload = parseJsonObject(row.payload_json)
+    const day = sleepBucketDay(row.start_time, row.end_time, payload)
+    if (!day || day < startDate || day > endDate) {
+      continue
+    }
+
+    const breakdown = extractSleepStageBreakdown(row.start_time, row.end_time, payload)
+    const fallbackSleepMinutes = extractSleepMinutes(row.start_time, row.end_time, payload)
+    const totalSleepMinutes = breakdown.total_minutes > 0 ? breakdown.total_minutes : fallbackSleepMinutes
+
+    const bed = extractIsoClockHHmm(row.start_time)
+    const wake = extractIsoClockHHmm(row.end_time)
+    const bedMin = parseClockMinutes(bed)
+    const wakeMin = parseClockMinutes(wake)
+    if (bedMin != null) {
+      bedtimeMinutes.push(bedMin)
+    }
+    if (wakeMin != null) {
+      wakeMinutes.push(wakeMin)
+    }
+
+    const endMs = parseIsoToMillis(row.end_time) ?? parseIsoToMillis(row.start_time) ?? 0
+    const existing = byDay.get(day)
+    if (!existing) {
+      byDay.set(day, {
+        sleep_minutes: totalSleepMinutes,
+        deep_min: breakdown.deep_min,
+        light_min: breakdown.light_min,
+        rem_min: breakdown.rem_min,
+        bedtime: bed,
+        wake_time: wake,
+        latest_end_ms: endMs,
+      })
+      continue
+    }
+
+    existing.sleep_minutes += totalSleepMinutes
+    existing.deep_min += breakdown.deep_min
+    existing.light_min += breakdown.light_min
+    existing.rem_min += breakdown.rem_min
+    if (endMs >= existing.latest_end_ms) {
+      existing.latest_end_ms = endMs
+      existing.bedtime = bed
+      existing.wake_time = wake
+    }
+  }
+
+  const avgBedtimeMin = averageClockMinutes(bedtimeMinutes)
+  const avgWakeMin = averageClockMinutes(wakeMinutes)
+  return {
+    by_day: byDay,
+    avg_bedtime: avgBedtimeMin == null ? null : formatClockMinutes(avgBedtimeMin),
+    avg_wake_time: avgWakeMin == null ? null : formatClockMinutes(avgWakeMin),
+  }
+}
+
+async function getSleepData(db: D1Database, baseDate: string, period: MetricPeriod): Promise<Record<string, unknown>> {
+  const labels = metricLabels(baseDate, period)
+  const startDate = period === 'year' ? `${labels[0]}-01` : labels[0]
+
+  const rows = period === 'year'
+    ? await queryAll<{
+        bucket: string
+        sleep_hours: number | null
+        spo2_pct: number | null
+      }>(
+        db,
+        `
+        SELECT
+          substr(date, 1, 7) AS bucket,
+          AVG(sleep_hours) AS sleep_hours,
+          AVG(spo2_pct) AS spo2_pct
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [startDate, baseDate],
+      )
+    : await queryAll<{
+        bucket: string
+        sleep_hours: number | null
+        spo2_pct: number | null
+      }>(
+        db,
+        `
+        SELECT
+          date AS bucket,
+          sleep_hours,
+          spo2_pct
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date ASC
+        `,
+        [startDate, baseDate],
+      )
+
+  const byBucket = new Map(rows.map((row) => [row.bucket, row]))
+  const sleepRecordStats = await collectSleepRecordStatsByDay(db, startDate, baseDate)
+  const sleepStatsByBucket = new Map<string, SleepRecordDailyStats>()
+  if (period === 'year') {
+    for (const [day, stats] of sleepRecordStats.by_day.entries()) {
+      const bucket = toYearMonth(day)
+      const existing = sleepStatsByBucket.get(bucket)
+      if (!existing) {
+        sleepStatsByBucket.set(bucket, { ...stats })
+        continue
+      }
+      existing.sleep_minutes += stats.sleep_minutes
+      existing.deep_min += stats.deep_min
+      existing.light_min += stats.light_min
+      existing.rem_min += stats.rem_min
+      if (stats.latest_end_ms >= existing.latest_end_ms) {
+        existing.latest_end_ms = stats.latest_end_ms
+        existing.bedtime = stats.bedtime
+        existing.wake_time = stats.wake_time
+      }
+    }
+  } else {
+    for (const [day, stats] of sleepRecordStats.by_day.entries()) {
+      sleepStatsByBucket.set(day, { ...stats })
+    }
+  }
+
+  const series = labels.map((label) => {
+    const row = byBucket.get(label)
+    const recordStats = sleepStatsByBucket.get(label)
+    const sleepMinutes =
+      recordStats != null
+        ? roundOrNull(recordStats.sleep_minutes)
+        : row?.sleep_hours != null
+          ? Math.round(row.sleep_hours * 60)
+          : null
+    return {
+      date: label,
+      sleep_minutes: sleepMinutes,
+      deep_min: recordStats != null ? roundOrNull(recordStats.deep_min) : null,
+      light_min: recordStats != null ? roundOrNull(recordStats.light_min) : null,
+      rem_min: recordStats != null ? roundOrNull(recordStats.rem_min) : null,
+      spo2_pct: row?.spo2_pct ?? null,
+    }
+  })
+
+  const current = await queryFirst<{
+    date: string
+    sleep_hours: number | null
+    spo2_pct: number | null
+  }>(
+    db,
+    `
+    SELECT date, sleep_hours, spo2_pct
+    FROM daily_metrics
+    WHERE date <= ?
+      AND (sleep_hours IS NOT NULL OR spo2_pct IS NOT NULL)
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+
+  const profile = await queryFirst<{ sleep_goal_minutes: number | null }>(
+    db,
+    'SELECT sleep_goal_minutes FROM user_profile WHERE id = 1',
+  )
+  const goalMinutes = profile?.sleep_goal_minutes ?? 420
+  const latestSleepDate = latestDateOf(series, (item) => item.sleep_minutes != null)
+  const latestSleepPoint = latestSleepDate == null ? null : series.find((item) => item.date === latestSleepDate) ?? null
+  const latestSleepRecord = latestSleepDate == null ? null : sleepStatsByBucket.get(latestSleepDate) ?? null
+  const dayLevelStats = Array.from(sleepRecordStats.by_day.values())
+  const sleepMinutesSeries =
+    period === 'year' && dayLevelStats.length > 0
+      ? dayLevelStats.map((item) => roundOrNull(item.sleep_minutes))
+      : series.map((item) => item.sleep_minutes)
+  const avgSleepMinutes = average(sleepMinutesSeries)
+  const avgDeepMin =
+    period === 'year' && dayLevelStats.length > 0
+      ? average(dayLevelStats.map((item) => roundOrNull(item.deep_min)))
+      : average(series.map((item) => item.deep_min))
+  const avgLightMin =
+    period === 'year' && dayLevelStats.length > 0
+      ? average(dayLevelStats.map((item) => roundOrNull(item.light_min)))
+      : average(series.map((item) => item.light_min))
+  const avgRemMin =
+    period === 'year' && dayLevelStats.length > 0
+      ? average(dayLevelStats.map((item) => roundOrNull(item.rem_min)))
+      : average(series.map((item) => item.rem_min))
+  const avgSpo2 = average(series.map((item) => item.spo2_pct))
+  const minSpo2 = minimum(series.map((item) => item.spo2_pct))
+  const goalDays = sleepMinutesSeries.filter((value) => value != null && value >= goalMinutes).length
+  const measuredDays = sleepMinutesSeries.filter((value) => value != null).length
+  const deepRatio = avgSleepMinutes != null && avgSleepMinutes > 0 && avgDeepMin != null ? avgDeepMin / avgSleepMinutes : null
+  const lightRatio =
+    avgSleepMinutes != null && avgSleepMinutes > 0 && avgLightMin != null ? avgLightMin / avgSleepMinutes : null
+  const remRatio = avgSleepMinutes != null && avgSleepMinutes > 0 && avgRemMin != null ? avgRemMin / avgSleepMinutes : null
+  const stageSummaryForCard =
+    period === 'week' && latestSleepPoint != null
+      ? {
+          deep_min: latestSleepPoint.deep_min ?? roundOrNull(avgDeepMin),
+          light_min: latestSleepPoint.light_min ?? roundOrNull(avgLightMin),
+          rem_min: latestSleepPoint.rem_min ?? roundOrNull(avgRemMin),
+        }
+      : {
+          deep_min: roundOrNull(avgDeepMin),
+          light_min: roundOrNull(avgLightMin),
+          rem_min: roundOrNull(avgRemMin),
+        }
+
+  return {
+    baseDate,
+    period,
+    current: {
+      sleep_minutes:
+        latestSleepPoint?.sleep_minutes ?? (current?.sleep_hours != null ? Math.round(current.sleep_hours * 60) : null),
+      bedtime: latestSleepRecord?.bedtime ?? sleepRecordStats.avg_bedtime ?? null,
+      wake_time: latestSleepRecord?.wake_time ?? sleepRecordStats.avg_wake_time ?? null,
+      avg_spo2: current?.spo2_pct ?? avgSpo2 ?? null,
+      min_spo2: current?.spo2_pct ?? minSpo2 ?? null,
+    },
+    stages: stageSummaryForCard,
+    series: series.map((item) => ({
+      date: item.date,
+      sleep_minutes: item.sleep_minutes,
+      deep_min: item.deep_min,
+      light_min: item.light_min,
+      rem_min: item.rem_min,
+    })),
+    periodSummary: {
+      avg_sleep_min: avgSleepMinutes,
+      goal_days: goalDays,
+      measured_days: measuredDays,
+      goal_rate: measuredDays > 0 ? goalDays / measuredDays : null,
+      avg_deep_min: avgDeepMin,
+      avg_light_min: avgLightMin,
+      avg_rem_min: avgRemMin,
+      deep_ratio: deepRatio,
+      light_ratio: lightRatio,
+      rem_ratio: remRatio,
+      avg_spo2: avgSpo2,
+      min_spo2: minSpo2,
+    },
+    latestSleepDate,
+  }
+}
+
+async function getVitalsData(db: D1Database, baseDate: string, period: MetricPeriod): Promise<Record<string, unknown>> {
+  const labels = metricLabels(baseDate, period)
+  const startDate = period === 'year' ? `${labels[0]}-01` : labels[0]
+
+  const rows = period === 'year'
+    ? await queryAll<{
+        bucket: string
+        systolic: number | null
+        diastolic: number | null
+        resting_hr: number | null
+        heart_hr: number | null
+      }>(
+        db,
+        `
+        SELECT
+          substr(date, 1, 7) AS bucket,
+          AVG(blood_systolic) AS systolic,
+          AVG(blood_diastolic) AS diastolic,
+          AVG(resting_bpm) AS resting_hr,
+          AVG(heart_bpm) AS heart_hr
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [startDate, baseDate],
+      )
+    : await queryAll<{
+        bucket: string
+        systolic: number | null
+        diastolic: number | null
+        resting_hr: number | null
+        heart_hr: number | null
+      }>(
+        db,
+        `
+        SELECT
+          date AS bucket,
+          blood_systolic AS systolic,
+          blood_diastolic AS diastolic,
+          resting_bpm AS resting_hr,
+          heart_bpm AS heart_hr
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date ASC
+        `,
+        [startDate, baseDate],
+      )
+
+  const byBucket = new Map(rows.map((row) => [row.bucket, row]))
+  const series = labels.map((label) => {
+    const row = byBucket.get(label)
+    return {
+      date: label,
+      systolic: row?.systolic ?? null,
+      diastolic: row?.diastolic ?? null,
+      resting_hr: row?.resting_hr ?? row?.heart_hr ?? null,
+    }
+  })
+
+  const latestBp = await queryFirst<{
+    systolic: number | null
+    diastolic: number | null
+  }>(
+    db,
+    `
+    SELECT
+      blood_systolic AS systolic,
+      blood_diastolic AS diastolic
+    FROM daily_metrics
+    WHERE date <= ?
+      AND blood_systolic IS NOT NULL
+      AND blood_diastolic IS NOT NULL
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+  const latestResting = await queryFirst<{
+    resting_hr: number | null
+    heart_hr: number | null
+  }>(
+    db,
+    `
+    SELECT
+      resting_bpm AS resting_hr,
+      heart_bpm AS heart_hr
+    FROM daily_metrics
+    WHERE date <= ?
+      AND (resting_bpm IS NOT NULL OR heart_bpm IS NOT NULL)
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+
+  return {
+    baseDate,
+    period,
+    current: {
+      systolic: latestBp?.systolic ?? null,
+      diastolic: latestBp?.diastolic ?? null,
+      resting_hr: latestResting?.resting_hr ?? latestResting?.heart_hr ?? null,
+    },
+    series,
+    periodSummary: {
+      avg_systolic: average(series.map((item) => item.systolic)),
+      avg_diastolic: average(series.map((item) => item.diastolic)),
+      avg_resting_hr: average(series.map((item) => item.resting_hr)),
+      high_bp_points: series.filter((item) => {
+        if (item.systolic == null || item.diastolic == null) {
+          return false
+        }
+        return item.systolic >= 130 || item.diastolic >= 85
+      }).length,
+    },
+  }
+}
+
+function parsePermissionsJson(value: string | null | undefined): string[] {
+  if (!value) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(value)
+    return normalizeStringArray(parsed)
+  } catch {
+    return []
+  }
+}
+
+async function getHealthConnectPermissionStatus(db: D1Database): Promise<Record<string, unknown>> {
+  const snapshot = await queryFirst<{
+    required_permissions_json: string | null
+    granted_permissions_json: string | null
+    received_at: string | null
+  }>(
+    db,
+    `
+    SELECT required_permissions_json, granted_permissions_json, received_at
+    FROM sync_permission_snapshots
+    WHERE lower(device_id) NOT LIKE '%smoke%'
+    ORDER BY received_at DESC
+    LIMIT 1
+    `,
+  )
+
+  const snapshotRequired = parsePermissionsJson(snapshot?.required_permissions_json)
+  const snapshotGranted = parsePermissionsJson(snapshot?.granted_permissions_json)
+  const required = snapshotRequired.length > 0 ? snapshotRequired : [...HEALTH_CONNECT_REQUIRED_PERMISSIONS]
+
+  let granted: string[]
+  let source: string
+  if (snapshotGranted.length > 0) {
+    granted = snapshotGranted
+    source = 'sync_payload'
+  } else {
+    const typeRows = await queryAll<{ type: string; c: number }>(
+      db,
+      `
+      SELECT type, COUNT(*) AS c
+      FROM health_records
+      GROUP BY type
+      `,
+    )
+    const grantedSet = new Set<string>()
+    for (const row of typeRows) {
+      if ((row.c ?? 0) <= 0) {
+        continue
+      }
+      const permission = RECORD_PERMISSION_MAP[row.type]
+      if (permission) {
+        grantedSet.add(permission)
+      }
+    }
+    granted = Array.from(grantedSet).sort((a, b) => a.localeCompare(b))
+    source = 'inferred_from_records'
+  }
+
+  const grantedSet = new Set(granted)
+  const missing = required.filter((permission) => !grantedSet.has(permission))
+
+  return {
+    source,
+    required,
+    granted,
+    missing,
+    required_count: required.length,
+    granted_count: granted.length,
+    is_fully_granted: missing.length === 0,
+    updated_at: snapshot?.received_at ?? null,
   }
 }
 
@@ -1776,6 +3123,8 @@ function parseSyncRequestPayload(payload: Record<string, unknown>): SyncRequestI
   const rangeStart = typeof payload.rangeStart === 'string' ? payload.rangeStart.trim() : ''
   const rangeEnd = typeof payload.rangeEnd === 'string' ? payload.rangeEnd.trim() : ''
   const rawRecords = payload.records
+  const requiredPermissions = normalizeStringArray(payload.requiredPermissions)
+  const grantedPermissions = normalizeStringArray(payload.grantedPermissions)
 
   if (!deviceId || !syncId || !syncedAt || !rangeStart || !rangeEnd) {
     throw new Error('deviceId, syncId, syncedAt, rangeStart, rangeEnd are required')
@@ -1814,6 +3163,8 @@ function parseSyncRequestPayload(payload: Record<string, unknown>): SyncRequestI
     rangeStart,
     rangeEnd,
     records,
+    requiredPermissions,
+    grantedPermissions,
   }
 }
 
@@ -1821,6 +3172,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const payload = parseSyncRequestPayload(await readJsonBody(request))
   let upserted = 0
   let skipped = 0
+  const receivedAt = nowIso()
 
   await execute(
     env.DB,
@@ -1835,10 +3187,40 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       payload.syncedAt,
       payload.rangeStart,
       payload.rangeEnd,
-      nowIso(),
+      receivedAt,
       payload.records.length,
     ],
   )
+
+  const requiredPermissions =
+    payload.requiredPermissions && payload.requiredPermissions.length > 0
+      ? payload.requiredPermissions
+      : [...HEALTH_CONNECT_REQUIRED_PERMISSIONS]
+  const grantedPermissions = payload.grantedPermissions ?? []
+  if (requiredPermissions.length > 0 || grantedPermissions.length > 0) {
+    await execute(
+      env.DB,
+      `
+      INSERT INTO sync_permission_snapshots(
+        sync_id, device_id, synced_at, received_at, required_permissions_json, granted_permissions_json
+      ) VALUES(?, ?, ?, ?, ?, ?)
+      ON CONFLICT(sync_id) DO UPDATE SET
+        device_id = excluded.device_id,
+        synced_at = excluded.synced_at,
+        received_at = excluded.received_at,
+        required_permissions_json = excluded.required_permissions_json,
+        granted_permissions_json = excluded.granted_permissions_json
+      `,
+      [
+        payload.syncId,
+        payload.deviceId,
+        payload.syncedAt,
+        receivedAt,
+        JSON.stringify(requiredPermissions),
+        JSON.stringify(grantedPermissions),
+      ],
+    )
+  }
 
   for (const record of payload.records) {
     try {
@@ -1877,7 +3259,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
           record.lastModifiedTime ?? null,
           record.unit ?? null,
           payloadJson,
-          nowIso(),
+          receivedAt,
         ],
       )
       upserted += 1
@@ -2100,6 +3482,15 @@ const worker: ExportedHandler<Env> = {
         return jsonResponse(await buildSummary(env.DB))
       }
 
+      if (pathname === '/api/home-summary' && method === 'GET') {
+        const date = url.searchParams.get('date') ?? toIsoDate(new Date())
+        if (!isValidDate(date)) {
+          return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+        }
+        await ensureAggregatesUpToDate(env.DB)
+        return jsonResponse(await buildHomeSummary(env.DB, date))
+      }
+
       if (pathname === '/api/sync/cursor' && method === 'GET') {
         return handleSyncCursor(url, env)
       }
@@ -2149,10 +3540,52 @@ const worker: ExportedHandler<Env> = {
         return jsonResponse({ ok: true, deleted_id: id })
       }
 
+      if (pathname === '/api/body-data' && method === 'GET') {
+        const date = url.searchParams.get('date')
+        const period = parseMetricPeriod(url.searchParams.get('period'))
+        if (!date || !isValidDate(date)) {
+          return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+        }
+        if (!period) {
+          return jsonResponse({ detail: 'period query must be week | month | year' }, 400)
+        }
+        await ensureAggregatesUpToDate(env.DB)
+        return jsonResponse(await getBodyData(env.DB, date, period))
+      }
+
+      if (pathname === '/api/sleep-data' && method === 'GET') {
+        const date = url.searchParams.get('date')
+        const period = parseMetricPeriod(url.searchParams.get('period'))
+        if (!date || !isValidDate(date)) {
+          return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+        }
+        if (!period) {
+          return jsonResponse({ detail: 'period query must be week | month | year' }, 400)
+        }
+        await ensureAggregatesUpToDate(env.DB)
+        return jsonResponse(await getSleepData(env.DB, date, period))
+      }
+
+      if (pathname === '/api/vitals-data' && method === 'GET') {
+        const date = url.searchParams.get('date')
+        const period = parseMetricPeriod(url.searchParams.get('period'))
+        if (!date || !isValidDate(date)) {
+          return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+        }
+        if (!period) {
+          return jsonResponse({ detail: 'period query must be week | month | year' }, 400)
+        }
+        await ensureAggregatesUpToDate(env.DB)
+        return jsonResponse(await getVitalsData(env.DB, date, period))
+      }
+
       if (pathname === '/api/profile' && method === 'GET') {
         const row = await queryFirst<ProfileRow>(env.DB, 'SELECT * FROM user_profile WHERE id = 1')
         if (!row) {
-          return jsonResponse({})
+          return jsonResponse({
+            sleep_goal_minutes: 420,
+            steps_goal: 8000,
+          })
         }
         return jsonResponse({
           name: row.name ?? undefined,
@@ -2160,12 +3593,51 @@ const worker: ExportedHandler<Env> = {
           birth_year: row.birth_year ?? undefined,
           sex: row.sex ?? undefined,
           goal_weight_kg: row.goal_weight_kg ?? undefined,
+          sleep_goal_minutes: row.sleep_goal_minutes ?? 420,
+          steps_goal: row.steps_goal ?? 8000,
         })
       }
 
       if (pathname === '/api/profile' && method === 'PUT') {
         const payload = await readJsonBody(request)
         return jsonResponse(await upsertProfile(env.DB, payload))
+      }
+
+      if (pathname === '/api/connection-status' && method === 'GET') {
+        const lastSync = await queryFirst<{ received_at: string }>(
+          env.DB,
+          'SELECT received_at FROM sync_runs ORDER BY received_at DESC LIMIT 1',
+        )
+        const total = await queryFirst<{ c: number }>(
+          env.DB,
+          'SELECT COUNT(*) AS c FROM health_records',
+        )
+        const weight = await queryFirst<{ c: number }>(
+          env.DB,
+          "SELECT COUNT(*) AS c FROM health_records WHERE type='WeightRecord' LIMIT 1",
+        )
+        const sleep = await queryFirst<{ c: number }>(
+          env.DB,
+          "SELECT COUNT(*) AS c FROM health_records WHERE type='SleepSessionRecord' LIMIT 1",
+        )
+        const activity = await queryFirst<{ c: number }>(
+          env.DB,
+          "SELECT COUNT(*) AS c FROM health_records WHERE type='StepsRecord' LIMIT 1",
+        )
+        const vitals = await queryFirst<{ c: number }>(
+          env.DB,
+          "SELECT COUNT(*) AS c FROM health_records WHERE type IN ('BloodPressureRecord','RestingHeartRateRecord') LIMIT 1",
+        )
+        const permissions = await getHealthConnectPermissionStatus(env.DB)
+        return jsonResponse({
+          last_sync_at: lastSync?.received_at ?? null,
+          total_records: total?.c ?? 0,
+          has_weight_data: (weight?.c ?? 0) > 0,
+          has_sleep_data: (sleep?.c ?? 0) > 0,
+          has_activity_data: (activity?.c ?? 0) > 0,
+          has_vitals_data: (vitals?.c ?? 0) > 0,
+          health_connect_permissions: permissions,
+        })
       }
 
       if (pathname === '/api/nutrients/targets' && method === 'GET') {
