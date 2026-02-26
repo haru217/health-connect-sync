@@ -1,0 +1,2 @@
+ALTER TABLE user_profile ADD COLUMN sleep_goal_minutes INTEGER DEFAULT 420;
+ALTER TABLE user_profile ADD COLUMN steps_goal INTEGER DEFAULT 8000;

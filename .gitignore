@@ -26,3 +26,13 @@ node_modules/
 # Local debug artifacts
 job_*.html
 run_*.html
+
+# Logs
+automation/logs/
+
+# Dashboard backups
+ops/CEO_DASHBOARD.before_*.html
+
+# Temp files
+recovered.tsx
+tmp_fix.js
