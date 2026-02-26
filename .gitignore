@@ -36,3 +36,8 @@ ops/CEO_DASHBOARD.before_*.html
 # Temp files
 recovered.tsx
 tmp_fix.js
+
+# Local scratch artifacts
+cloudflare-api/wrangler-dev*.log
+ops/dashboard_dark_theme.png
+ops/new_head_body.html
