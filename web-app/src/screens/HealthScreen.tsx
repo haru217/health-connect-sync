@@ -144,7 +144,7 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
         <div className="health-chart-wrapper">
           <ResponsiveContainer
             width="100%"
-            height="100%"
+            height={220}
             minWidth={1}
             minHeight={220}
             initialDimension={{ width: 300, height: 220 }}
@@ -246,7 +246,7 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
         <div className="health-chart-wrapper">
           <ResponsiveContainer
             width="100%"
-            height="100%"
+            height={220}
             minWidth={1}
             minHeight={220}
             initialDimension={{ width: 300, height: 220 }}
@@ -360,7 +360,7 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
         <div className="health-chart-wrapper">
           <ResponsiveContainer
             width="100%"
-            height="100%"
+            height={220}
             minWidth={1}
             minHeight={220}
             initialDimension={{ width: 300, height: 220 }}

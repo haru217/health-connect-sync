@@ -38,3 +38,10 @@ Legacy note:
 - Result: Removed chart container sizing warning risk by adding `minWidth/minHeight` to all `ResponsiveContainer` in Health tabs and enforcing `min-width: 0` on chart wrappers.
 - Files: `web-app/src/screens/HealthScreen.tsx`, `web-app/src/screens/HealthScreen.css`, `handoff/incoming/20260226-codex-healthscreen-chart-size-warning.md`
 - Risk/Follow-up: Re-check browser console after hot reload to ensure warning is fully gone in `composition`, `circulation`, and `sleep` tabs.
+
+### 2026-02-26
+- Owner: Codex-1
+- Scope: P1-1-5 Web app Cloudflare API connection completion
+- Result: Removed frontend fallback/mock returns in `web-app/src/api/healthApi.ts` for `home-summary/body/sleep/vitals` and made Cloudflare API the single source. Updated HealthScreen chart containers to numeric height to avoid `width(-1)/height(-1)` warning condition. Local smoke run (`wrangler dev`) confirmed all required endpoints return `200`.
+- Files: `web-app/src/api/healthApi.ts`, `web-app/src/screens/HealthScreen.tsx`, `ops/CEO_DASHBOARD.html`, `handoff/incoming/20260226-codex-web-app-cloudflare-connect.md`
+- Risk/Follow-up: `ops/update-ceo-dashboard-task.ps1` is currently broken (mojibake parse error), so dashboard update was applied directly to HTML. Repair script before next status update.
