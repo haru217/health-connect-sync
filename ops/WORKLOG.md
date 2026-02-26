@@ -61,6 +61,13 @@ Legacy note:
 - Risk/Follow-up: `ops/update-ceo-dashboard-task.ps1` is currently broken (mojibake parse error), so dashboard update was applied directly to HTML. Repair script before next status update.
 
 ### 2026-02-26
+- Owner: Codex-1
+- Scope: Home / Condition ローカル最終確認（Cloudflare API 接続）
+- Result: `wrangler dev` + `web-app` 環境で Home/Condition の画面表示・API反映を再確認。Playwrightでスクリーンショットと console/network ログを採取し、決裁用チェックリストと未解決事項を handoff に整理。`P1-1-5` は指示どおり `in_progress` 維持。
+- Files: `handoff/incoming/20260226-codex1-home-condition-final-check.md`, `web-app/qa/20260226-home-condition/*`
+- Risk/Follow-up: Home初期日付とseed日付のズレ時に一部 `-` 表示。専門家セクションのタグ表示（`<!--DOCTOR-->` 等）は別途仕様判断が必要。
+
+### 2026-02-26
 - Owner: Codex2
 - Scope: Home/Condition向け Cloudflare API 契約の確定（レスポンス項目・エラー挙動・サンプル・ギャップ整理）
 - Result: `/api/home-summary`, `/api/body-data`, `/api/sleep-data`, `/api/vitals-data` の契約をコード実装と実レスポンス採取で確定し、`/api/summary` 依存有無を明記。主要エラー（400/404/500、認証条件）とギャップ一覧を handoff に整理。`P1-1-5` は in_progress 維持で、ダッシュボード状態は変更していない。

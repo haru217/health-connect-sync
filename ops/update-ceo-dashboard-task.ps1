@@ -18,35 +18,44 @@ if (-not (Test-Path $DashboardPath)) {
 
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
 $stamp = switch ($Status) {
-  "todo" { "—" }
+  "todo" { "" }
   "done" { "$Actor @ $timestamp" }
   "blocked" { "$Actor (blocked)" }
-  default { "$Actor (進行中)" }
+  default { "$Actor (in_progress)" }
 }
 
-$lines = Get-Content -Path $DashboardPath -Encoding UTF8
-$updated = $false
-
-for ($i = 0; $i -lt $lines.Count; $i++) {
-  if ($lines[$i] -match "data-id=`"$([regex]::Escape($TaskId))`"") {
-    $line = $lines[$i]
-    $line = [regex]::Replace($line, 'data-default="[^"]*"', "data-default=`"$Status`"")
-    if ($line -match 'data-stamp="[^"]*"') {
-      $line = [regex]::Replace($line, 'data-stamp="[^"]*"', "data-stamp=`"$stamp`"")
-    }
-    else {
-      $line = $line -replace 'data-default="[^"]*"', "data-default=`"$Status`" data-stamp=`"$stamp`""
-    }
-    $line = [regex]::Replace($line, '<div class="stamp">[^<]*</div>', "<div class=`"stamp`">$stamp</div>")
-    $lines[$i] = $line
-    $updated = $true
-    break
-  }
+function Escape-JsDoubleQuotedString {
+  param([Parameter(Mandatory = $true)][string]$Value)
+  return ($Value -replace '\\', '\\\\' -replace '"', '\"')
 }
 
-if (-not $updated) {
+$content = Get-Content -Path $DashboardPath -Raw -Encoding UTF8
+$escapedTaskId = [regex]::Escape($TaskId)
+$objectPattern = '\{(?<body>[^{}]*id:\s*"' + $escapedTaskId + '"[^{}]*)\}'
+$match = [regex]::Match($content, $objectPattern)
+
+if (-not $match.Success) {
   throw "TaskId not found: $TaskId"
 }
 
-Set-Content -Path $DashboardPath -Value $lines -Encoding UTF8
+$body = $match.Groups["body"].Value
+$body = [regex]::Replace($body, 'defaultStatus:\s*"[^"]*"', 'defaultStatus: "' + $Status + '"', 1)
+
+if ($Status -eq "todo") {
+  $body = [regex]::Replace($body, ',\s*defaultStamp:\s*"[^"]*"', '', 1)
+}
+else {
+  $stampEscaped = Escape-JsDoubleQuotedString -Value $stamp
+  if ($body -match 'defaultStamp:\s*"[^"]*"') {
+    $body = [regex]::Replace($body, 'defaultStamp:\s*"[^"]*"', 'defaultStamp: "' + $stampEscaped + '"', 1)
+  }
+  else {
+    $body = [regex]::Replace($body, 'defaultStatus:\s*"[^"]*"', '$0, defaultStamp: "' + $stampEscaped + '"', 1)
+  }
+}
+
+$updatedObject = '{' + $body + '}'
+$newContent = $content.Substring(0, $match.Index) + $updatedObject + $content.Substring($match.Index + $match.Length)
+
+Set-Content -Path $DashboardPath -Value $newContent -Encoding UTF8
 Write-Output "Updated $TaskId -> $Status by $Actor"
