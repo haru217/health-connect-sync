@@ -1,0 +1,9 @@
+[GET] http://127.0.0.1:8787/api/home-summary?date=2026-02-27 => [200] OK
+[GET] http://127.0.0.1:8787/api/home-summary?date=2026-02-27 => [200] OK
+[GET] http://127.0.0.1:8787/api/home-summary?date=2026-02-26 => [200] OK
+[GET] http://127.0.0.1:8787/api/body-data?date=2026-02-26&period=week => [200] OK
+[GET] http://127.0.0.1:8787/api/body-data?date=2026-02-26&period=week => [200] OK
+[GET] http://127.0.0.1:8787/api/vitals-data?date=2026-02-26&period=week => [200] OK
+[GET] http://127.0.0.1:8787/api/vitals-data?date=2026-02-26&period=week => [200] OK
+[GET] http://127.0.0.1:8787/api/sleep-data?date=2026-02-26&period=week => [200] OK
+[GET] http://127.0.0.1:8787/api/sleep-data?date=2026-02-26&period=week => [200] OK

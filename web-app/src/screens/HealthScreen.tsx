@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
@@ -190,19 +190,22 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
 
 // CirculationTab Component
 function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
-  const [data, setData] = useState<VitalsDataResponse | null>(null)
+    const [data, setData] = useState<VitalsDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     setLoading(true)
+    setError(null)
     fetchVitalsData(date, segment)
       .then(res => { if (mounted) { setData(res); setLoading(false) } })
-      .catch(() => { if (mounted) { setData(null); setLoading(false) } })
+      .catch(() => { if (mounted) { setData(null); setError("バイタルデータの取得に失敗しました。しばらく経ってから再度お試しください。"); setLoading(false) } })
     return () => { mounted = false }
   }, [date, segment])
 
   if (loading) return <div className="health-empty-state"><span className="health-empty-text">読み込み中...</span></div>
+  if (error) return <div className="health-empty-state health-error-state"><span className="health-empty-text" style={{ color: 'var(--danger-color)' }}>{error}</span></div>
   if (!data || data.series.length === 0) return <div className="health-empty-state"><span className="health-empty-text">データがありません</span></div>
 
   const current = data.current
@@ -271,19 +274,22 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
 
 // SleepTab Component
 function SleepTab({ date, segment }: { date: string, segment: Segment }) {
-  const [data, setData] = useState<SleepDataResponse | null>(null)
+    const [data, setData] = useState<SleepDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     setLoading(true)
+    setError(null)
     fetchSleepData(date, segment)
       .then(res => { if (mounted) { setData(res); setLoading(false) } })
-      .catch(() => { if (mounted) { setData(null); setLoading(false) } })
+      .catch(() => { if (mounted) { setData(null); setError("睡眠データの取得に失敗しました。しばらく経ってから再度お試しください。"); setLoading(false) } })
     return () => { mounted = false }
   }, [date, segment])
 
   if (loading) return <div className="health-empty-state"><span className="health-empty-text">読み込み中...</span></div>
+  if (error) return <div className="health-empty-state health-error-state"><span className="health-empty-text" style={{ color: 'var(--danger-color)' }}>{error}</span></div>
   if (!data || data.series.length === 0) return <div className="health-empty-state"><span className="health-empty-text">データがありません</span></div>
 
   const current = data.current
@@ -414,3 +420,4 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
     </div>
   )
 }
+

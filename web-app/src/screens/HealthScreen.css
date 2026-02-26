@@ -181,3 +181,11 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+.health-error-state {
+  color: var(--danger-color);
+  background-color: rgba(239, 154, 154, 0.05);
+  border: 1px dashed var(--danger-color);
+  border-radius: var(--border-radius-card);
+  margin: 16px;
+}

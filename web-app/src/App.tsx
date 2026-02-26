@@ -132,7 +132,7 @@ function App() {
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
             }
-            label="からだ"
+            label="コンディション"
             isActive={currentScreen === 'health'}
             onClick={() => setCurrentScreen('health')}
           />
@@ -142,7 +142,7 @@ function App() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
               </svg>
             }
-            label="運動"
+            label="アクティビティ"
             isActive={currentScreen === 'exercise'}
             onClick={() => setCurrentScreen('exercise')}
           />
@@ -176,7 +176,7 @@ function App() {
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
             }
-            label="マイ"
+            label="プロフィール"
             isActive={currentScreen === 'my'}
             onClick={() => setCurrentScreen('my')}
           />
