@@ -14,6 +14,20 @@ Legacy note:
 - Risk/Follow-up:
 
 ### 2026-02-26
+- Owner: Codex (CTO代行)
+- Scope: ダッシュボードをAPI連結集中モードへ再更新
+- Result: `P1-2-*` を `todo` に戻し、`in_progress` を `P1-1-5` + `I1` + `I2` のみに限定。優先バッジも Home/Condition 関連のみを最優先表示へ統一。
+- Files: `ops/CEO_DASHBOARD.html`
+- Risk/Follow-up: Home/Condition の最終決裁前に他タスクへ拡散しない運用を継続する。
+
+### 2026-02-26
+- Owner: Codex (CTO代行)
+- Scope: 優先順位の再定義（Cloudflare連結最優先、Home/Condition決裁待ち、Profile後回し）
+- Result: CEO指示に合わせてダッシュボードの順序を更新。`P1-1-5` を in_progress に戻し、`I1/I2` を最優先 in_progress、`I3/I4` を次フェーズ todo、`I5`（プロフィール）を後順位 todo に調整。
+- Files: `ops/CEO_DASHBOARD.html`
+- Risk/Follow-up: Home/Condition の最終決裁後に `I3`（アクティビティ）→`I4`（食事）へ進み、最後に `I5` を再開する。
+
+### 2026-02-26
 - Owner: Claude (PMO)
 - Scope: ホームタブ改修の実装状況調査
 - Result: cloudflare-api に /api/home-summary（注目ポイント・数値付き充足度）が未実装であることを発見。pc-server には実装済み。CEO の認識と実態にギャップあり。Codex 向けタスクとハンドオフを作成した。
@@ -45,3 +59,10 @@ Legacy note:
 - Result: Removed frontend fallback/mock returns in `web-app/src/api/healthApi.ts` for `home-summary/body/sleep/vitals` and made Cloudflare API the single source. Updated HealthScreen chart containers to numeric height to avoid `width(-1)/height(-1)` warning condition. Local smoke run (`wrangler dev`) confirmed all required endpoints return `200`.
 - Files: `web-app/src/api/healthApi.ts`, `web-app/src/screens/HealthScreen.tsx`, `ops/CEO_DASHBOARD.html`, `handoff/incoming/20260226-codex-web-app-cloudflare-connect.md`
 - Risk/Follow-up: `ops/update-ceo-dashboard-task.ps1` is currently broken (mojibake parse error), so dashboard update was applied directly to HTML. Repair script before next status update.
+
+### 2026-02-26
+- Owner: Codex2
+- Scope: Home/Condition向け Cloudflare API 契約の確定（レスポンス項目・エラー挙動・サンプル・ギャップ整理）
+- Result: `/api/home-summary`, `/api/body-data`, `/api/sleep-data`, `/api/vitals-data` の契約をコード実装と実レスポンス採取で確定し、`/api/summary` 依存有無を明記。主要エラー（400/404/500、認証条件）とギャップ一覧を handoff に整理。`P1-1-5` は in_progress 維持で、ダッシュボード状態は変更していない。
+- Files: `handoff/incoming/20260226-codex2-home-condition-api-contract.md`, `ops/WORKLOG.md`
+- Risk/Follow-up: `latestSleepDate` が API 実レスポンスに存在する一方で `web-app/src/api/types.ts` の `SleepDataResponse` に未定義。必要なら型へ追随させる。
