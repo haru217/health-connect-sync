@@ -13,6 +13,76 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-02-27
+- Owner: Claude (CTO)
+- Scope: ローカルAPI廃止後の運用ポリシー CTO決裁（Codex-1依頼への回答）
+- Result: 3点の方針を決裁。①URL設定はC案（本番固定/開発のみ可変）採用。②文言整理はA案（アクティブ文書削除、履歴は維持）採用。③担当はCodex-2（android-app URL制御+APIKey対処+UI文言）、Codex-1（Vercel環境変数確認+docs整理）に分担。`DEFAULT_API_KEY="test12345"` のセキュリティリスクを追加指摘し対処をCodex-2タスクに含めた。
+- Files: `requests/shared/20260227-cto-direction-local-api-retirement.md`, `requests/codex/20260227-cto-local-api-retire-codex2.md`, `requests/codex/20260227-cto-local-api-retire-codex1.md`, `ops/WORKLOG.md`
+- Risk/Follow-up: `DEFAULT_API_KEY` 対処は本番ビルドのセキュリティに直結するため、Codex-2は優先して対応すること。Vercel環境変数の設定漏れがある場合はCEOに確認を仰ぐ。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: `P1-1-5` E2E最終確認（ローカルUI × local Cloudflare API :8787）
+- Result: 主要5画面＋Condition内3タブを自動巡回し、API失敗0・コンソールエラー0を確認。`P1-1-5` を `done` に更新。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`, `handoff/incoming/20260227-codex2-p1-1-5-e2e-complete.md`, `web-app/qa/20260227-p1-1-5/*`
+- Risk/Follow-up: この確認はローカル接続（`.env.local` = `127.0.0.1:8787`）での完了。Vercel本番画面の最終確認は別途実施可能。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: `P1-1-4` 本番Cloudflare API反映（`/api/home-summary`, `/api/sleep-data` 404解消）
+- Result: `cloudflare-api` を本番デプロイし、`/api/summary`, `/api/home-summary`, `/api/sleep-data` の本番200を確認。`P1-1-4` を `done` へ更新。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`, `handoff/incoming/20260227-codex2-p1-1-4-production-reflect.md`
+- Risk/Follow-up: `P1-1-5`（画面最終決裁）は別途継続。Vercel画面の最終確認で完了判断が必要。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: `P1-1-4` 優先度を `mid` から `high` に引き上げ
+- Result: 本番API未反映（`/api/home-summary`, `/api/sleep-data`）を主要ブロッカーとして扱うため、ダッシュボードの `TASK_PRIORITY` を更新。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`
+- Risk/Follow-up: `P1-1-4` と `P1-1-5` がともに `high` となるため、同時並行時は担当分離（Codex-2=API本番反映、Codex-1=画面確認）を維持する。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: `P1-1-4` ステータス見直し（done → in_progress）
+- Result: CEO判断に基づき `ops/update-ceo-dashboard-task.ps1` で `P1-1-4` を `in_progress` へ更新。`defaultStamp` も `Codex2 (in_progress)` に更新されたことを確認。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`
+- Risk/Follow-up: 本番Cloudflare APIで `/api/home-summary` と `/api/sleep-data` が404のため、反映完了まで `P1-1-4` は継続管理が必要。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: CEO_DASHBOARDへ「同一DB/同一API窓口」前提と本番API未反映ギャップ（`/api/home-summary`, `/api/sleep-data` 404）を明記
+- Result: `P1-1-5` の質問・回答に、運用前提（Android→Cloudflare DB、Vercel/ローカル同一API参照）と本番反映優先方針を追記。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`
+- Risk/Follow-up: `P1-1-4` が `done` のままでも本番API未反映なら、状態の見直し（`in_progress` or `blocked`）が必要。
+
+### 2026-02-27
+- Owner: Codex2
+- Scope: CEO決裁のHome/Condition表示ポリシー反映（タグ非表示・3人分離・睡眠詳細の条件表示）
+- Result: Homeの専門家コメントでマーカー形式（`<!--DOCTOR-->` など）の分離ロジックを強化し、タグ表示を抑止。睡眠タブで就寝/起床・ステージは取得時のみ表示し、未取得時は睡眠時間のみ表示に変更。
+- Files: `web-app/src/screens/HomeScreen.tsx`, `web-app/src/screens/HealthScreen.tsx`, `handoff/incoming/20260227-codex2-home-sleep-policy-reflect.md`
+- Risk/Follow-up: `npm run lint` は既存違反で失敗（今回変更外を含む）。必要時は lint 方針に沿って別タスクで一括解消。
+
+### 2026-02-27
+- Owner: Codex-1
+- Scope: ローカルAPI（旧 `pc-server`）資産のアーカイブ移行と Cloudflare API 前提の導線更新
+- Result: `pc-server/`・`openapi-local.yaml`・`TROUBLESHOOT.md` を `_archive/` へ移動。`web-app/src/api/client.ts` のデフォルト接続先を `127.0.0.1:8787` へ切替。`ops/START_HERE.md` / `ops/FILE_MAP.md` / `ops/PROJECT_STATE.md` / `docs/index.md` / `agents/codex/BOOTSTRAP.md` をアーカイブ参照に更新。残存する `pc-server` / `localhost:8765` 文言はダッシュボード運用で順次整理する方針。
+- Files: `_archive/pc-server/**`, `_archive/openapi-local.yaml`, `_archive/TROUBLESHOOT_local_pc_server.md`, `web-app/src/api/client.ts`, `ops/START_HERE.md`, `ops/FILE_MAP.md`, `ops/PROJECT_STATE.md`, `docs/index.md`, `agents/codex/BOOTSTRAP.md`
+- Risk/Follow-up: 履歴系ドキュメント（`docs/v3/*`, `CHANGELOG.md`, `IMPLEMENT.md` など）に旧文言が残存。必要なら別タスクで「履歴を保持したまま注記追加」方針で段階整理する。
+
+### 2026-02-27
+- Owner: Codex-1
+- Scope: ローカルAPI廃止後の最終運用方針を CTO へ確認依頼
+- Result: 方針確認はファイル起票ではなく `ops/CEO_DASHBOARD.html` のスレッドで継続する運用に切り替え。任意URL設定の扱い・旧文言整理方針・担当分担の3点をダッシュボードで確認する。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`
+- Risk/Follow-up: CTO決定が出るまで、`android-app` の任意URL入力可否と旧文言削除は未確定。
+
+### 2026-02-27
+- Owner: Codex-1
+- Scope: AIレポート入力データ拡張（就寝/起床・日中平均心拍・運動セッション）の実装依頼を整理
+- Result: 要求仕様（就寝/起床、日中平均心拍、運動セッション詳細）はダッシュボードの対象スレッドに集約して CTO/Codex-2 と調整する方針に変更。
+- Files: `ops/CEO_DASHBOARD.html`, `ops/WORKLOG.md`
+- Risk/Follow-up: 本件は backendロジック追加が中心のため、CTO判断後に Codex-2 で実装着手が必要。
+
 ### 2026-02-26
 - Owner: Codex (CTO代行)
 - Scope: ダッシュボードをAPI連結集中モードへ再更新

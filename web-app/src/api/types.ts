@@ -359,6 +359,7 @@ export interface VitalsDataPoint {
   systolic: number | null
   diastolic: number | null
   resting_hr: number | null
+  heart_hr: number | null
 }
 
 export interface VitalsDataResponse {
@@ -368,12 +369,14 @@ export interface VitalsDataResponse {
     systolic: number | null
     diastolic: number | null
     resting_hr: number | null
+    heart_hr: number | null
   }
   series: VitalsDataPoint[]
   periodSummary: {
     avg_systolic: number | null
     avg_diastolic: number | null
     avg_resting_hr: number | null
+    avg_heart_hr: number | null
     high_bp_points: number
   }
 }

@@ -80,25 +80,74 @@ const STATUS_META: Record<HomeStatusItem['key'], StatusMeta> = {
   },
 }
 
+type ExpertTag = 'DOCTOR' | 'TRAINER' | 'NUTRITIONIST'
+
+function markerRegex(): RegExp {
+  return /<!--\s*(\/?\s*(?:DOCTOR|TRAINER|NUTRITIONIST)|END)\s*-->/gi
+}
+
 function extractAgentSections(content: string): {
   doctor: string | null
   trainer: string | null
   nutritionist: string | null
 } {
-  const extract = (tag: string) => {
-    const m = content.match(new RegExp(`<!--${tag}-->([\\s\\S]*?)<!--/${tag}-->`, 'i'))
-    return m ? m[1].trim() : null
+  const byTag: Record<ExpertTag, string[]> = {
+    DOCTOR: [],
+    TRAINER: [],
+    NUTRITIONIST: [],
   }
+
+  let currentTag: ExpertTag | null = null
+  let cursor = 0
+  const matcher = markerRegex()
+  let matched = matcher.exec(content)
+
+  while (matched) {
+    const start = matched.index
+    const rawToken = (matched[1] ?? '').replace(/\s+/g, '').toUpperCase()
+    const slice = content.slice(cursor, start).trim()
+    if (currentTag && slice) {
+      byTag[currentTag].push(slice)
+    }
+
+    if (rawToken === 'END') {
+      currentTag = null
+    } else if (rawToken.startsWith('/')) {
+      const closing = rawToken.slice(1) as ExpertTag
+      if (currentTag === closing) {
+        currentTag = null
+      }
+    } else if (rawToken === 'DOCTOR' || rawToken === 'TRAINER' || rawToken === 'NUTRITIONIST') {
+      currentTag = rawToken
+    }
+
+    cursor = matcher.lastIndex
+    matched = matcher.exec(content)
+  }
+
+  const tail = content.slice(cursor).trim()
+  if (currentTag && tail) {
+    byTag[currentTag].push(tail)
+  }
+
+  const normalize = (parts: string[]): string | null => {
+    if (parts.length === 0) {
+      return null
+    }
+    const merged = parts.join('\n').trim()
+    return merged.length > 0 ? merged : null
+  }
+
   return {
-    doctor: extract('DOCTOR'),
-    trainer: extract('TRAINER'),
-    nutritionist: extract('NUTRITIONIST'),
+    doctor: normalize(byTag.DOCTOR),
+    trainer: normalize(byTag.TRAINER),
+    nutritionist: normalize(byTag.NUTRITIONIST),
   }
 }
 
 function stripTags(raw: string): string {
   return raw
-    .replace(/<!--[^]*?-->/g, '')
+    .replace(markerRegex(), '')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -141,7 +190,7 @@ function ExpertSection({ content }: { content: string }) {
     return (
       <section className="ai-advisor-section">
         <div className="home-section-title">3人の専門家から</div>
-        <AiCard title="医師" icon={doctorIcon} content={content} defaultOpen={true} />
+        <AiCard title="医師" icon={doctorIcon} content={stripTags(content)} defaultOpen={true} />
       </section>
     )
   }

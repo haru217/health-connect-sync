@@ -33,12 +33,12 @@ function formatXLabel(dateStr: string, segment: Segment): string {
     if (parts.length >= 2) return `${parseInt(parts[1], 10)}月`
     return dateStr
   }
-  // month: 5日ごとのみ表示
+  // month: 日付表示
   const parts = dateStr.split('-')
   if (parts.length === 3) {
     const m = parseInt(parts[1], 10)
     const d = parseInt(parts[2], 10)
-    return d % 5 === 1 || d === 1 ? `${m}/${d}` : ''
+    return `${m}/${d}`
   }
   return dateStr
 }
@@ -58,6 +58,27 @@ function formatTooltipLabel(dateStr: string, segment: Segment): string {
     if (parts.length >= 2) return `${parseInt(parts[0], 10)}年${parseInt(parts[1], 10)}月`
   }
   return dateStr
+}
+
+function formatRounded(value: number | null | undefined, digits = 0): string {
+  if (value == null || !Number.isFinite(value)) {
+    return '-'
+  }
+  return digits === 0 ? String(Math.round(value)) : value.toFixed(digits)
+}
+
+function weekDayOfIsoDate(dateStr: string): number | null {
+  const parts = dateStr.split('-').map(Number)
+  if (parts.length !== 3) return null
+  const [y, m, d] = parts
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null
+  return new Date(y, m - 1, d).getDay()
+}
+
+function monthTickDates(dates: string[], anchorDate: string): string[] {
+  const anchorDay = weekDayOfIsoDate(anchorDate)
+  if (anchorDay == null) return []
+  return dates.filter((dateStr) => weekDayOfIsoDate(dateStr) === anchorDay)
 }
 
 // InnerTabBar Component
@@ -99,6 +120,7 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   const displayBmr = useAverageCard
     ? (avgBmr.length > 0 ? avgBmr.reduce((sum, value) => sum + value, 0) / avgBmr.length : current.bmr_kcal)
     : current.bmr_kcal
+  const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   // 週次変化の計算 (for week segment)
   const isWeek = segment === 'week'
@@ -161,7 +183,7 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
             ) : (
               <LineChart data={data.series}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" ticks={monthTicks} interval={segment === 'month' ? 0 : undefined} tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
                 <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} hide />
                 <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
@@ -213,6 +235,8 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
   const displaySystolic = useAverageCard ? (data.periodSummary.avg_systolic ?? current.systolic) : current.systolic
   const displayDiastolic = useAverageCard ? (data.periodSummary.avg_diastolic ?? current.diastolic) : current.diastolic
   const displayRestingHr = useAverageCard ? (data.periodSummary.avg_resting_hr ?? current.resting_hr) : current.resting_hr
+  const displayHeartHr = useAverageCard ? (data.periodSummary.avg_heart_hr ?? current.heart_hr) : current.heart_hr
+  const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   let bpStatus = '正常'
   let bpClass = 'good'
@@ -228,14 +252,21 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
           <span className="health-metric-label">{useAverageCard ? '平均血圧' : '血圧'}</span>
           <span className="health-metric-value">
             {displaySystolic != null && <span className={`status-badge ${bpClass}`} style={{ marginRight: 8 }}>{bpStatus}</span>}
-            {displaySystolic ?? '-'}/{displayDiastolic ?? '-'} mmHg
+            {formatRounded(displaySystolic)}/{formatRounded(displayDiastolic)} mmHg
           </span>
         </div>
         <div className="health-metric-row">
           <span className="health-metric-label">{useAverageCard ? '平均安静時心拍' : '安静時心拍'}</span>
           <span className="health-metric-value">
             {displayRestingHr != null && <span className={`status-badge ${displayRestingHr < 80 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayRestingHr < 80 ? '良好' : '高め'}</span>}
-            {displayRestingHr ?? '-'} bpm
+            {formatRounded(displayRestingHr)} bpm
+          </span>
+        </div>
+        <div className="health-metric-row">
+          <span className="health-metric-label">{useAverageCard ? '平均通常心拍' : '通常心拍'}</span>
+          <span className="health-metric-value">
+            {displayHeartHr != null && <span className={`status-badge ${displayHeartHr < 100 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayHeartHr < 100 ? '標準' : '高め'}</span>}
+            {formatRounded(displayHeartHr)} bpm
           </span>
         </div>
         <div className="health-metric-row">
@@ -256,14 +287,35 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
           >
             <LineChart data={data.series}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" ticks={monthTicks} interval={segment === 'month' ? 0 : undefined} tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
               <YAxis domain={['dataMin - 10', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
               <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <ReferenceLine y={130} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '130', position: 'right', fontSize: 10 }} />
               <ReferenceLine y={85} stroke="#3b82f6" strokeDasharray="3 3" label={{ value: '85', position: 'right', fontSize: 10 }} />
               <Line type="monotone" dataKey="systolic" name="収縮期" stroke="#EF9A9A" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
               <Line type="monotone" dataKey="diastolic" name="拡張期" stroke="#90CAF9" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="health-chart-container">
+        <div className="health-chart-title">心拍の推移</div>
+        <div className="health-chart-wrapper">
+          <ResponsiveContainer
+            width="100%"
+            height={220}
+            minWidth={1}
+            minHeight={220}
+            initialDimension={{ width: 300, height: 220 }}
+          >
+            <LineChart data={data.series}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+              <XAxis dataKey="date" ticks={monthTicks} interval={segment === 'month' ? 0 : undefined} tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+              <YAxis domain={['dataMin - 5', 'dataMax + 5']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
+              <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <Line type="monotone" dataKey="resting_hr" name="安静時心拍" stroke="#7AA89C" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={true} />
+              <Line type="monotone" dataKey="heart_hr" name="通常心拍" stroke="#F4A261" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={true} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -298,6 +350,9 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
   const displaySleepMinutes = useAverageCard ? (data.periodSummary.avg_sleep_min ?? current.sleep_minutes) : current.sleep_minutes
   const displayAvgSpo2 = useAverageCard ? (data.periodSummary.avg_spo2 ?? current.avg_spo2) : current.avg_spo2
   const displayMinSpo2 = useAverageCard ? (data.periodSummary.min_spo2 ?? current.min_spo2) : current.min_spo2
+  const hasSleepTiming = !useAverageCard && (current.bedtime != null || current.wake_time != null)
+  const hasSleepStages = stages.deep_min != null || stages.light_min != null || stages.rem_min != null
+  const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   const formatHours = (min: number | null | undefined) => {
     if (min == null) return '-'
@@ -341,22 +396,24 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
             {formatHours(displaySleepMinutes)}
           </span>
         </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">就寝 / 起床</span>
-          <span className="health-metric-value">
-            {useAverageCard ? '- / -' : `${current.bedtime ?? '-'} / ${current.wake_time ?? '-'}`}
-          </span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">ステージ</span>
-          <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
-            深い: {stages.deep_min ?? '-'}分{deepRatio != null ? ` (${deepRatio}%)` : ''}  浅い: {stages.light_min ?? '-'}分{lightRatio != null ? ` (${lightRatio}%)` : ''}  レム睡眠: {stages.rem_min ?? '-'}分{remRatio != null ? ` (${remRatio}%)` : ''}
-          </span>
-        </div>
+        {hasSleepTiming ? (
+          <div className="health-metric-row">
+            <span className="health-metric-label">就寝 / 起床</span>
+            <span className="health-metric-value">{`${current.bedtime ?? '-'} / ${current.wake_time ?? '-'}`}</span>
+          </div>
+        ) : null}
+        {hasSleepStages ? (
+          <div className="health-metric-row">
+            <span className="health-metric-label">ステージ</span>
+            <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
+              深い: {stages.deep_min ?? '-'}分{deepRatio != null ? ` (${deepRatio}%)` : ''}  浅い: {stages.light_min ?? '-'}分{lightRatio != null ? ` (${lightRatio}%)` : ''}  レム睡眠: {stages.rem_min ?? '-'}分{remRatio != null ? ` (${remRatio}%)` : ''}
+            </span>
+          </div>
+        ) : null}
         <div className="health-metric-row">
           <span className="health-metric-label">血中酸素</span>
           <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
-            平均: {displayAvgSpo2 ?? '-'}%  最低: {displayMinSpo2 ?? '-'}%
+            平均: {formatRounded(displayAvgSpo2)}%  最低: {formatRounded(displayMinSpo2)}%
           </span>
         </div>
       </div>
@@ -373,13 +430,19 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
           >
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-              <XAxis dataKey="date" tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" ticks={monthTicks} interval={segment === 'month' ? 0 : undefined} tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
               <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} cursor={{ fill: 'rgba(136, 212, 180, 0.1)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <ReferenceLine y={7} stroke="#5A7367" strokeDasharray="4 4" label={{ value: '目標7h', position: 'insideTopRight', fill: '#5A7367', fontSize: 10 }} />
-              <Bar dataKey="deep_h" name="深睡眠" stackId="a" fill="#6BCB9F" radius={segment === 'week' ? [0, 0, 0, 0] : [0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
-              <Bar dataKey="light_h" name="浅睡眠" stackId="a" fill="#A5D6A7" radius={[0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
-              <Bar dataKey="rem_h" name="レム睡眠" stackId="a" fill="#FFCC80" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+              {hasSleepStages ? (
+                <>
+                  <Bar dataKey="deep_h" name="深睡眠" stackId="a" fill="#6BCB9F" radius={segment === 'week' ? [0, 0, 0, 0] : [0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+                  <Bar dataKey="light_h" name="浅睡眠" stackId="a" fill="#A5D6A7" radius={[0, 0, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+                  <Bar dataKey="rem_h" name="レム睡眠" stackId="a" fill="#FFCC80" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+                </>
+              ) : (
+                <Bar dataKey="total_h" name="睡眠時間" fill="var(--accent-color)" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>

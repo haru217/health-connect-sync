@@ -14,8 +14,7 @@
 - `web-app/`: React frontend
 - `cloudflare-api/`: Worker + D1 backend
 - `android-sync/`: Android sync client
-- `pc-server/`: legacy backend path (non-primary)
+- `_archive/pc-server/`: archived legacy backend path (reference only)
 
 ## Legacy docs (do not use as first source unless needed)
 - `TASK.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, `AGENT_MEMORY.md`, `AGENT_WORKLOG.md`
-

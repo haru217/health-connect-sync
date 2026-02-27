@@ -2053,6 +2053,13 @@ function roundOrNull(value: number | null | undefined): number | null {
   return Math.round(value)
 }
 
+function normalizeBodyFatPct(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value <= 0) {
+    return null
+  }
+  return value
+}
+
 function metricLabels(baseDate: string, period: MetricPeriod): string[] {
   if (period === 'year') {
     const baseYm = toYearMonth(baseDate)
@@ -2091,7 +2098,7 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
         SELECT
           substr(date, 1, 7) AS bucket,
           AVG(weight_kg) AS weight_kg,
-          AVG(body_fat_pct) AS body_fat_pct,
+          AVG(NULLIF(body_fat_pct, 0)) AS body_fat_pct,
           AVG(bmr_kcal) AS bmr_kcal
         FROM daily_metrics
         WHERE date BETWEEN ? AND ?
@@ -2143,6 +2150,7 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
     FROM daily_metrics
     WHERE date <= ?
       AND body_fat_pct IS NOT NULL
+      AND body_fat_pct > 0
     ORDER BY date DESC
     LIMIT 1
     `,
@@ -2171,7 +2179,7 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
   }>(db, 'SELECT goal_weight_kg, height_cm, birth_year, sex FROM user_profile WHERE id = 1')
 
   const currentWeight = latestWeight?.weight_kg ?? null
-  const currentBodyFat = latestBodyFat?.body_fat_pct ?? null
+  const currentBodyFat = normalizeBodyFatPct(latestBodyFat?.body_fat_pct ?? null)
   const fallbackWeight = currentWeight ?? profile?.goal_weight_kg ?? null
   const byBucket = new Map(rows.map((row) => [row.bucket, row]))
   const series = labels.map((label) => {
@@ -2180,7 +2188,7 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
     return {
       date: label,
       weight_kg: rowWeight,
-      body_fat_pct: row?.body_fat_pct ?? null,
+      body_fat_pct: normalizeBodyFatPct(row?.body_fat_pct ?? null),
       bmr_kcal:
         normalizeBmrKcal(row?.bmr_kcal) ??
         estimateBmrKcal(
@@ -2234,6 +2242,10 @@ interface SleepRecordDailyStats {
   bedtime: string | null
   wake_time: string | null
   latest_end_ms: number
+}
+
+interface SleepBucketStats extends SleepRecordDailyStats {
+  day_count: number
 }
 
 async function collectSleepRecordStatsByDay(
@@ -2370,19 +2382,20 @@ async function getSleepData(db: D1Database, baseDate: string, period: MetricPeri
 
   const byBucket = new Map(rows.map((row) => [row.bucket, row]))
   const sleepRecordStats = await collectSleepRecordStatsByDay(db, startDate, baseDate)
-  const sleepStatsByBucket = new Map<string, SleepRecordDailyStats>()
+  const sleepStatsByBucket = new Map<string, SleepBucketStats>()
   if (period === 'year') {
     for (const [day, stats] of sleepRecordStats.by_day.entries()) {
       const bucket = toYearMonth(day)
       const existing = sleepStatsByBucket.get(bucket)
       if (!existing) {
-        sleepStatsByBucket.set(bucket, { ...stats })
+        sleepStatsByBucket.set(bucket, { ...stats, day_count: 1 })
         continue
       }
       existing.sleep_minutes += stats.sleep_minutes
       existing.deep_min += stats.deep_min
       existing.light_min += stats.light_min
       existing.rem_min += stats.rem_min
+      existing.day_count += 1
       if (stats.latest_end_ms >= existing.latest_end_ms) {
         existing.latest_end_ms = stats.latest_end_ms
         existing.bedtime = stats.bedtime
@@ -2391,25 +2404,26 @@ async function getSleepData(db: D1Database, baseDate: string, period: MetricPeri
     }
   } else {
     for (const [day, stats] of sleepRecordStats.by_day.entries()) {
-      sleepStatsByBucket.set(day, { ...stats })
+      sleepStatsByBucket.set(day, { ...stats, day_count: 1 })
     }
   }
 
   const series = labels.map((label) => {
     const row = byBucket.get(label)
     const recordStats = sleepStatsByBucket.get(label)
+    const recordDays = recordStats != null ? Math.max(1, recordStats.day_count) : 1
     const sleepMinutes =
       recordStats != null
-        ? roundOrNull(recordStats.sleep_minutes)
+        ? roundOrNull(period === 'year' ? recordStats.sleep_minutes / recordDays : recordStats.sleep_minutes)
         : row?.sleep_hours != null
           ? Math.round(row.sleep_hours * 60)
           : null
     return {
       date: label,
       sleep_minutes: sleepMinutes,
-      deep_min: recordStats != null ? roundOrNull(recordStats.deep_min) : null,
-      light_min: recordStats != null ? roundOrNull(recordStats.light_min) : null,
-      rem_min: recordStats != null ? roundOrNull(recordStats.rem_min) : null,
+      deep_min: recordStats != null ? roundOrNull(period === 'year' ? recordStats.deep_min / recordDays : recordStats.deep_min) : null,
+      light_min: recordStats != null ? roundOrNull(period === 'year' ? recordStats.light_min / recordDays : recordStats.light_min) : null,
+      rem_min: recordStats != null ? roundOrNull(period === 'year' ? recordStats.rem_min / recordDays : recordStats.rem_min) : null,
       spo2_pct: row?.spo2_pct ?? null,
     }
   })
@@ -2572,6 +2586,7 @@ async function getVitalsData(db: D1Database, baseDate: string, period: MetricPer
       systolic: row?.systolic ?? null,
       diastolic: row?.diastolic ?? null,
       resting_hr: row?.resting_hr ?? row?.heart_hr ?? null,
+      heart_hr: row?.heart_hr ?? null,
     }
   })
 
@@ -2618,12 +2633,14 @@ async function getVitalsData(db: D1Database, baseDate: string, period: MetricPer
       systolic: latestBp?.systolic ?? null,
       diastolic: latestBp?.diastolic ?? null,
       resting_hr: latestResting?.resting_hr ?? latestResting?.heart_hr ?? null,
+      heart_hr: latestResting?.heart_hr ?? null,
     },
     series,
     periodSummary: {
       avg_systolic: average(series.map((item) => item.systolic)),
       avg_diastolic: average(series.map((item) => item.diastolic)),
       avg_resting_hr: average(series.map((item) => item.resting_hr)),
+      avg_heart_hr: average(series.map((item) => item.heart_hr)),
       high_bp_points: series.filter((item) => {
         if (item.systolic == null || item.diastolic == null) {
           return false

@@ -1,11 +1,11 @@
 # Project State (Canonical)
 
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 ## Infra direction
 - Primary backend path: `cloudflare-api/`
 - Android sync target: Cloudflare Workers URL (`android-sync/.../AppConfig.kt`)
-- `pc-server/` remains as legacy/local utility path, not primary production API
+- Legacy backend is archived at `_archive/pc-server/` (non-operational)
 
 ## Role split
 - CEO: 優先順位・プロダクト判断
@@ -16,7 +16,7 @@ Last updated: 2026-02-26
 ## Active integration gaps (current)
 - `MyScreen` still placeholder in `web-app`
 - Worker endpoint `/api/connection-status` exists but frontend integration pending
-- Some in-progress changes exist simultaneously in `cloudflare-api` and `pc-server`
+- Legacy `pc-server` wording remains in historical docs and should be cleaned progressively
 
 ## Immediate objective
 - Keep all new planning and handoff in the new `ops/ + requests/ + handoff/` structure.

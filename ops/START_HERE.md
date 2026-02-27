@@ -1,6 +1,6 @@
 # START HERE (Single Entry Point)
 
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 ## 1) What this project is
 - Product: Health AI Advisor
@@ -10,7 +10,7 @@ Last updated: 2026-02-26
 - Frontend: `web-app/`
 - API: `cloudflare-api/` (Cloudflare Workers + D1)
 - Android sync app: `android-sync/`
-- Legacy backend (reference only): `pc-server/`
+- Archived legacy backend (reference only): `_archive/pc-server/`
 
 ## 3) Agent role split
 - CEO: プロダクト判断・優先順位決定

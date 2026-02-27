@@ -9,7 +9,7 @@ function sanitizeHeaderValue(value: string): string {
 function normalizeBaseUrl(value: string): string {
   const raw = sanitizeConfigValue(value)
   if (!raw) {
-    return 'http://localhost:8765'
+    return 'http://127.0.0.1:8787'
   }
 
   try {
@@ -19,7 +19,7 @@ function normalizeBaseUrl(value: string): string {
   }
 }
 
-const BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL ?? 'http://localhost:8765')
+const BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8787')
 const API_KEY = sanitizeHeaderValue(import.meta.env.VITE_API_KEY ?? '')
 
 type HeaderInitLike = HeadersInit | undefined

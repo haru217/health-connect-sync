@@ -1,0 +1,146 @@
+[
+  {
+    "method": "GET",
+    "url": "http://127.0.0.1:5173/src/api/healthApi.ts?t=1772158126889",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "http://127.0.0.1:5173/src/api/client.ts?t=1772158126889",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/home-summary?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/home-summary?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/body-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/body-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/summary",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/summary",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/supplements",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/supplements",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/nutrition/day?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/nutrition/day?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/nutrients/targets?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/summary",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/nutrients/targets?date=2026-02-27",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/summary",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/connection-status",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/connection-status",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/body-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/body-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/vitals-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/vitals-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/sleep-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "method": "GET",
+    "url": "https://health-connect-sync-api.kokomaru3-healthsync.workers.dev/api/sleep-data?date=2026-02-27&period=week",
+    "status": 200,
+    "ok": true
+  }
+]

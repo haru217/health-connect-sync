@@ -9,29 +9,29 @@
         rel="stylesheet">
     <style>
         :root {
-            --bg: #0f1115;
-            --panel: #171a21;
-            --surface: #1e232b;
-            --line: #2a313d;
-            --line-soft: #222833;
-            --text-main: #e2e8f0;
+            --bg: #090a0f;
+            --panel: rgba(23, 26, 33, 0.6);
+            --surface: rgba(30, 35, 43, 0.8);
+            --line: rgba(255, 255, 255, 0.08);
+            --line-soft: rgba(255, 255, 255, 0.04);
+            --text-main: #f1f5f9;
             --text-muted: #94a3b8;
             --accent: #10b981;
             --accent-hover: #059669;
             --danger: #ef4444;
             --warning: #f59e0b;
             --done-text: #34d399;
-            --done-bg: #064e3b;
+            --done-bg: rgba(6, 78, 59, 0.4);
             --prog-text: #fbbf24;
-            --prog-bg: #78350f;
+            --prog-bg: rgba(120, 53, 15, 0.4);
             --block-text: #fca5a5;
-            --block-bg: #7f1d1d;
+            --block-bg: rgba(127, 29, 29, 0.4);
             --todo-text: #94a3b8;
-            --todo-bg: #1e293b;
-            --hero-a: #111827;
+            --todo-bg: rgba(30, 41, 59, 0.4);
+            --hero-a: #0f172a;
             --hero-b: #1e293b;
-            --radius-lg: 16px;
-            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-md: 16px;
             --radius-sm: 8px;
         }
 
@@ -49,7 +49,6 @@
             display: flex;
         }
 
-        /* 3カラムレイアウト */
         .app-container {
             display: grid;
             grid-template-columns: 260px 1fr 300px;
@@ -59,14 +58,16 @@
             padding: 16px;
         }
 
-        /* 共通パネルスタイル */
         .panel {
             background: var(--panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--line);
             border-radius: var(--radius-lg);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         .panel-header {
@@ -79,7 +80,6 @@
             align-items: center;
         }
 
-        /* 左カラム：ナビゲーション */
         .sidebar-left {
             display: flex;
             flex-direction: column;
@@ -144,7 +144,6 @@
             font-family: monospace;
         }
 
-        /* 中央カラム：メインコンテンツ */
         .main-content {
             overflow-y: auto;
             padding-right: 8px;
@@ -162,15 +161,28 @@
             border-radius: 3px;
         }
 
-        /* 中央上部サマリー */
         .hero {
             background: linear-gradient(135deg, var(--hero-a), var(--hero-b));
             border: 1px solid var(--line);
             border-radius: var(--radius-lg);
-            padding: 24px;
+            padding: 32px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 400px);
+            pointer-events: none;
         }
 
         .hero-h1 {
@@ -212,7 +224,6 @@
             cursor: pointer;
         }
 
-        /* KPIカード群 */
         .cards {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -221,9 +232,19 @@
 
         .card {
             background: var(--panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--line);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
         .card h3 {
@@ -248,7 +269,6 @@
             color: var(--text-muted);
         }
 
-        /* タスクリストエリア */
         .tasks-header {
             display: flex;
             justify-content: space-between;
@@ -261,112 +281,73 @@
             margin: 0;
         }
 
-        .search-bar {
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 8px 16px;
-            color: var(--text-main);
-            width: 300px;
-            font-size: 13px;
-        }
-
-        .search-bar:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        #task-sections {
-            display: flex;
-            flex-direction: column;
+        .task-sections-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 16px;
         }
 
-        /* Leaf (各タスク) 定義 */
-        details {
+        .task-card {
             background: var(--panel);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--line);
             border-radius: var(--radius-md);
-            margin-bottom: 12px;
-            overflow: hidden;
-            transition: border-color 0.2s;
-        }
-
-        details:hover {
-            border-color: var(--line-soft);
-        }
-
-        summary {
-            padding: 16px;
-            cursor: pointer;
-            font-weight: 700;
+            padding: 20px;
             display: flex;
-            align-items: center;
-            gap: 12px;
-            list-style: none;
-            user-select: none;
-            background: var(--surface);
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        summary::-webkit-details-marker {
-            display: none;
+        .task-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         }
 
-        .leaf {
-            padding: 16px;
-            border-top: 1px solid var(--line);
-            background: var(--panel);
-        }
-
-        .leaf-main {
+        .task-card-title {
+            font-size: 14px;
+            font-weight: 800;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 16px;
+            color: var(--text-main);
         }
 
-        .leaf-main div:first-child {
-            flex: 1;
-            font-weight: 500;
-            line-height: 1.5;
-        }
-
-        .leaf-main small {
-            display: block;
-            color: var(--text-muted);
+        .task-card-desc {
             font-size: 12px;
-            margin-top: 6px;
-            font-weight: 400;
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex: 1;
         }
 
-        select.state {
-            padding: 6px 12px;
+        .task-meta {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .select-state {
+            padding: 4px 8px;
             border-radius: 6px;
             border: 1px solid var(--line);
             background: var(--surface);
             color: var(--text-main);
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
             outline: none;
-        }
-
-        .stamp {
-            font-family: monospace;
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 8px;
-            text-align: right;
+            width: 100%;
         }
 
         .chip {
             display: inline-block;
             padding: 2px 8px;
             border-radius: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            margin-right: 8px;
-            margin-bottom: 4px;
+            font-size: 10px;
+            font-weight: 800;
         }
 
         .priority-highest {
@@ -381,52 +362,77 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
-        [data-default="todo"] summary {
-            border-left: 4px solid var(--todo-text);
-        }
-
-        [data-default="in_progress"] summary {
-            border-left: 4px solid var(--prog-text);
-        }
-
-        [data-default="blocked"] summary {
-            border-left: 4px solid var(--danger);
-        }
-
-        [data-default="done"] summary {
-            border-left: 4px solid var(--accent);
-        }
-
-        /* スレッドUI */
-        .threads {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px dashed var(--line);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .msg {
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .msg.q {
+        .thread-details {
+            margin-top: 4px;
             background: var(--surface);
-            border-left: 3px solid var(--muted);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        .thread-summary {
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            background: var(--surface);
+            user-select: none;
+        }
+
+        .thread-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .thread-summary:hover {
+            background: var(--line-soft);
+        }
+
+        .thread-msg {
+            padding: 10px 12px;
+            font-size: 11px;
+            line-height: 1.5;
+            border-top: 1px dashed var(--line);
             color: var(--text-main);
         }
 
-        .msg.a {
-            background: var(--done-bg);
-            border-left: 3px solid var(--accent);
-            color: #a7f3d0;
+        .thread-msg .from {
+            font-weight: 800;
+            display: block;
+            margin-bottom: 2px;
+            color: #cbd5e1;
         }
 
-        /* 右カラム：ダミーダッシュボード */
+        .thread-msg.cto .from {
+            color: var(--accent);
+        }
+
+        .stamp {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .assignee-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 10px;
+            font-family: "Noto Sans JP", sans-serif;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 右カラム */
         .sidebar-right {
             display: flex;
             flex-direction: column;
@@ -463,14 +469,15 @@
         }
 
         .act-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-main);
             margin-bottom: 4px;
+            line-height: 1.4;
         }
 
         .act-time {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
         }
 
@@ -496,25 +503,19 @@
 
 <body>
     <div class="app-container">
-        <!-- 左カラム -->
         <aside class="sidebar-left">
             <div class="logo-area">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
-                業績の管理
+                進捗ボード
             </div>
-            <div class="nav-section">
+            <div class="nav-section" id="nav-big-categories">
                 <div class="nav-title">ビッグカテゴリ</div>
-                <div class="nav-item active">マーケティング <span class="nav-badge">35</span></div>
-                <div class="nav-item">R&D <span class="nav-badge">28</span></div>
-                <div class="nav-item">オペレーション <span class="nav-badge">42</span></div>
-                <div class="nav-item">人事 <span class="nav-badge">15</span></div>
             </div>
         </aside>
 
-        <!-- 中央カラム -->
         <main class="main-content">
             <header class="hero">
                 <h1 class="hero-h1">AIエージェント・マルチタスク・コントロールパネル</h1>
@@ -558,19 +559,13 @@
                 </article>
             </section>
 
-            <section>
-                <div class="tasks-header">
-                    <h2>ミッドカテゴリ (タスクステータス)</h2>
-                    <input type="text" class="search-bar" placeholder="タスク、エージェント、キーワードを検索">
-                </div>
-                <div id="task-sections"></div>
+            <section id="tasks-container">
             </section>
         </main>
 
-        <!-- 右カラム -->
         <aside class="sidebar-right">
             <div class="panel">
-                <div class="panel-header">最新アクティビティフィード</div>
+                <div class="panel-header">AIメンバーの最近の動き</div>
                 <div class="activity-list">
                     <div class="activity-item active">
                         <div class="act-title">エージェントガンマ: 新しいモデルを提案</div>
@@ -587,419 +582,456 @@
                 </div>
             </div>
             <div class="panel">
-                <div class="panel-header">システムヘルス</div>
+                <div class="panel-header">システムの状態</div>
                 <div class="health-status">
-                    <div class="health-dot"></div> 正常稼働中
+                    <div class="health-dot"></div> みんな元気に動いてます
                 </div>
             </div>
         </aside>
     </div>
-  <script>
-    (() => {
-      const actor = document.getElementById("actor");
-      const pct = document.getElementById("pct");
-      const frac = document.getElementById("frac");
-      const blocked = document.getElementById("blocked");
-      const phase = document.getElementById("phase");
-      const taskSections = document.getElementById("task-sections");
-      const STATE_ORDER = ["todo", "in_progress", "blocked", "done"];
-      const STATE_LABELS = { todo: "未着手", in_progress: "進行中", blocked: "要対応", done: "完了" };
 
-      const TASKS = [
-        { id: "I1-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I1-GEMINI", defaultStatus: "in_progress", track: "iter" },
-        { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
-        { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
-        { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
-        { id: "I5-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I5-GEMINI", defaultStatus: "todo", track: "iter" },
+    <script>
+        (() => {
+            const actor = document.getElementById("actor");
+            const pct = document.getElementById("pct");
+            const frac = document.getElementById("frac");
+            const blocked = document.getElementById("blocked");
+            const phase = document.getElementById("phase");
+            const tasksContainer = document.getElementById("tasks-container");
+            const navBigCategories = document.getElementById("nav-big-categories");
 
-        { id: "C-P1-01", defaultStatus: "done", track: "legacy" }, { id: "C-P1-02", defaultStatus: "done", track: "legacy" },
-        { id: "C-P1-03", defaultStatus: "done", track: "legacy" }, { id: "C-P1-04", defaultStatus: "done", track: "legacy" },
-        { id: "C-P1-05", defaultStatus: "done", track: "legacy" }, { id: "C-P1-06", defaultStatus: "done", track: "legacy" },
-        { id: "C-P1-07", defaultStatus: "done", track: "legacy" }, { id: "C-P1-08", defaultStatus: "done", track: "legacy" },
-        { id: "C-P1-09", defaultStatus: "done", track: "legacy" },
-        { id: "C-T01", defaultStatus: "done", track: "legacy" }, { id: "C-T02", defaultStatus: "done", track: "legacy" },
-        { id: "C-T03", defaultStatus: "done", track: "legacy" }, { id: "C-T04", defaultStatus: "done", track: "legacy" },
-        { id: "C-T05", defaultStatus: "done", track: "legacy" }, { id: "C-T06", defaultStatus: "done", track: "legacy" },
-        { id: "C-T07", defaultStatus: "done", track: "legacy" }, { id: "C-T08", defaultStatus: "done", track: "legacy" },
-        { id: "C-T09", defaultStatus: "done", track: "legacy" }, { id: "C-T10", defaultStatus: "done", track: "legacy" },
-        { id: "C-T11", defaultStatus: "done", track: "legacy" }, { id: "C-T12", defaultStatus: "done", track: "legacy" },
-        { id: "C-T13", defaultStatus: "done", track: "legacy" }, { id: "C-T14", defaultStatus: "done", track: "legacy" },
-        { id: "C-T15", defaultStatus: "done", track: "legacy" }, { id: "C-T16", defaultStatus: "done", track: "legacy" },
-        { id: "C-T17", defaultStatus: "done", track: "legacy" }, { id: "C-T18", defaultStatus: "done", track: "legacy" },
-        { id: "C-T19", defaultStatus: "done", track: "legacy" }, { id: "C-T20", defaultStatus: "done", track: "legacy" },
-        { id: "C-T21", defaultStatus: "done", track: "legacy" }, { id: "C-T22", defaultStatus: "done", track: "legacy" },
+            const STATE_ORDER = ["todo", "in_progress", "blocked", "done"];
+            const STATE_LABELS = { todo: "未着手", in_progress: "実行中", blocked: "確認待ち", done: "完了" };
 
-        { id: "P1-1-1", defaultStatus: "done" }, { id: "P1-1-2", defaultStatus: "done" }, { id: "P1-1-3", defaultStatus: "done" }, { id: "P1-1-4", defaultStatus: "done", defaultStamp: "Codex @ 2026-02-26 22:31" },
-        { id: "P1-1-5", defaultStatus: "in_progress" },
-        { id: "P1-2-1", defaultStatus: "todo" }, { id: "P1-2-2", defaultStatus: "todo" }, { id: "P1-2-3", defaultStatus: "todo" },
-        { id: "P2-1-1", defaultStatus: "todo" }, { id: "P2-1-2", defaultStatus: "todo" }, { id: "P2-2-1", defaultStatus: "todo" },
-        { id: "P2-2-2", defaultStatus: "todo" }, { id: "P3-1-1", defaultStatus: "todo" }, { id: "P3-1-2", defaultStatus: "todo" },
-        { id: "P3-1-3", defaultStatus: "todo" }, { id: "P3-2-1", defaultStatus: "todo" }, { id: "P3-2-2", defaultStatus: "todo" },
-        { id: "P3-2-3", defaultStatus: "todo" },
-      ];
+            const TASKS = [
+                { id: "I1-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I1-GEMINI", defaultStatus: "in_progress", track: "iter" },
+                { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
+                { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
+                { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
+                { id: "I5-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I5-GEMINI", defaultStatus: "todo", track: "iter" },
 
-      const TASK_LABELS = {
-        "I1-CODEX": "ホーム画面の要約データを正しく表示できるようにします。",
-        "I1-GEMINI": "ホーム画面を見やすく作り直します。",
-        "I2-CODEX": "コンディション画面に必要な体調データを安定して返せるようにします。",
-        "I2-GEMINI": "コンディションタブの見た目と使い心地を整えます。",
-        "I3-CODEX": "運動データを正しく集計して返せるようにします。",
-        "I3-GEMINI": "運動画面を使いやすく整えます。",
-        "I4-CODEX": "食事データを集計し、AIコメントを返せるようにします。",
-        "I4-GEMINI": "食事画面の表示をわかりやすく整えます。",
-        "I5-CODEX": "接続状況と目標設定をプロフィールで確認できるようにします。",
-        "I5-GEMINI": "プロフィール画面を見やすく整えます。",
-        "P1-1-1": "Androidアプリの同期設定を一つのルールにそろえます。",
-        "P1-1-2": "データの受け口を新しいサーバーに一本化します。",
-        "P1-1-3": "主要画面でデータ取得が止まらない状態にします。",
-        "P1-1-4": "ホームの要約情報を新しいサーバーでも返せるようにします。",
-        "P1-1-5": "【最優先】WebアプリにCloudflare APIのデータを表示します。",
-        "P1-2-1": "プロフィール画面の仮表示を本番表示に置き換えます。",
-        "P1-2-2": "同期状況がひと目でわかる表示を入れます。",
-        "P1-2-3": "旧サーバーを安全に止められる状態にします。",
-        "P2-1-1": "事業の成長を追う指標を3つに絞って定義します。",
-        "P2-1-2": "初回利用の流れを改善する画面仕様を確定します。",
-        "P2-2-1": "異常を早く見つける通知と記録の仕組みを作ります。",
-        "P2-2-2": "トラブルの振り返りを回せる運用ルールを決めます。",
-        "P3-1-1": "リリース鍵の管理ルールを確定します。",
-        "P3-1-2": "本番用ファイルを安定して作れるようにします。",
-        "P3-1-3": "本番用の鍵運用を固定して事故を防ぎます。",
-        "P3-2-1": "Play Store申請に必要な安全性情報をそろえます。",
-        "P3-2-2": "ストア掲載素材を仕上げて公開準備を完了します。",
-        "P3-2-3": "公開の最終判断と公開手順を確定します。",
-      };
+                { id: "C-P1-01", defaultStatus: "done", track: "legacy" }, { id: "C-P1-02", defaultStatus: "done", track: "legacy" },
+                { id: "C-P1-03", defaultStatus: "done", track: "legacy" }, { id: "C-P1-04", defaultStatus: "done", track: "legacy" },
+                { id: "C-P1-05", defaultStatus: "done", track: "legacy" }, { id: "C-P1-06", defaultStatus: "done", track: "legacy" },
+                { id: "C-P1-07", defaultStatus: "done", track: "legacy" }, { id: "C-P1-08", defaultStatus: "done", track: "legacy" },
+                { id: "C-P1-09", defaultStatus: "done", track: "legacy" },
+                { id: "C-T01", defaultStatus: "done", track: "legacy" }, { id: "C-T02", defaultStatus: "done", track: "legacy" },
+                { id: "C-T03", defaultStatus: "done", track: "legacy" }, { id: "C-T04", defaultStatus: "done", track: "legacy" },
+                { id: "C-T05", defaultStatus: "done", track: "legacy" }, { id: "C-T06", defaultStatus: "done", track: "legacy" },
+                { id: "C-T07", defaultStatus: "done", track: "legacy" }, { id: "C-T08", defaultStatus: "done", track: "legacy" },
+                { id: "C-T09", defaultStatus: "done", track: "legacy" }, { id: "C-T10", defaultStatus: "done", track: "legacy" },
+                { id: "C-T11", defaultStatus: "done", track: "legacy" }, { id: "C-T12", defaultStatus: "done", track: "legacy" },
+                { id: "C-T13", defaultStatus: "done", track: "legacy" }, { id: "C-T14", defaultStatus: "done", track: "legacy" },
+                { id: "C-T15", defaultStatus: "done", track: "legacy" }, { id: "C-T16", defaultStatus: "done", track: "legacy" },
+                { id: "C-T17", defaultStatus: "done", track: "legacy" }, { id: "C-T18", defaultStatus: "done", track: "legacy" },
+                { id: "C-T19", defaultStatus: "done", track: "legacy" }, { id: "C-T20", defaultStatus: "done", track: "legacy" },
+                { id: "C-T21", defaultStatus: "done", track: "legacy" }, { id: "C-T22", defaultStatus: "done", track: "legacy" },
 
-      const TASK_META = {
-        "I1-CODEX": "担当はCodexです。詳細は docs/v3/iter1-codex.md と iter1b-codex.md を見ます。",
-        "I1-GEMINI": "担当はGeminiです。詳細は docs/v3/iter1-gemini.md と iter1b-gemini.md を見ます。",
-        "I2-CODEX": "担当はCodexです。詳細は docs/v3/iter2-codex.md を見ます。",
-        "I2-GEMINI": "担当はGeminiです。詳細は docs/v3/iter2-gemini.md を見ます。",
-        "I3-CODEX": "担当はCodexです。詳細は docs/v3/iter3-codex.md を見ます。",
-        "I3-GEMINI": "担当はGeminiです。詳細は docs/v3/iter3-gemini.md を見ます。",
-        "I4-CODEX": "担当はCodexです。詳細は docs/v3/iter4-codex.md を見ます。",
-        "I4-GEMINI": "担当はGeminiです。詳細は docs/v3/iter4-gemini.md を見ます。",
-        "I5-CODEX": "担当はCodexです。詳細は docs/v3/iter5-codex.md を見ます。",
-        "I5-GEMINI": "担当はGeminiです。詳細は docs/v3/iter5-gemini.md を見ます。",
-        "P1-1-1": "担当はCodexです。運用を止めずに設定を統一します。",
-        "P1-1-2": "担当はCodexです。接続先を一つにそろえて混乱を防ぎます。",
-        "P1-1-3": "担当はCodexです。主要画面の安定表示を優先して進めます。",
-        "P1-1-4": "担当はCodexです。依頼は requests/codex/20260226-home-summary-cloudflare-api.md を見ます。",
-        "P1-1-5": "担当はCodex-1です。依頼は requests/codex/20260226-web-app-cloudflare-connect.md を見ます。Home/Conditionの最終決裁完了をもって完了とします。",
-        "P1-2-1": "担当はCodexです。段階的に本番表示へ置き換えます。",
-        "P1-2-2": "担当はCodexです。利用者が迷わない見せ方にします。",
-        "P1-2-3": "担当はCEOとCodexです。停止条件を合意してから進めます。",
-        "P2-1-1": "担当はCEOです。指標を先に決めてから実装します。",
-        "P2-1-2": "担当はGeminiです。体験を優先して仕様を固めます。",
-        "P2-2-1": "担当はCodexです。通知と記録の土台を整えます。",
-        "P2-2-2": "担当はCEOとCodexです。振り返りの運用を先に決めます。",
-        "P3-1-1": "担当はCodexです。鍵管理の事故を防ぐ形で固めます。",
-        "P3-1-2": "担当はCodexです。公開前に自動生成の安定化を完了します。",
-        "P3-1-3": "担当はCodexです。本番運用を固定して変更を抑えます。",
-        "P3-2-1": "担当はCEOとCodexです。申請内容と実運用を一致させます。",
-        "P3-2-2": "担当はGeminiです。公開時の見え方を最終調整します。",
-        "P3-2-3": "担当はCEOです。公開判断の条件を先に明文化します。",
-      };
+                { id: "P1-1-1", defaultStatus: "done" }, { id: "P1-1-2", defaultStatus: "done" }, { id: "P1-1-3", defaultStatus: "done" }, { id: "P1-1-4", defaultStatus: "done", defaultStamp: "Codex2 @ 2026-02-27 10:40" },
+                { id: "P1-1-5", defaultStatus: "done", defaultStamp: "Codex2 @ 2026-02-27 10:49" },
+                { id: "P1-2-1", defaultStatus: "todo" }, { id: "P1-2-2", defaultStatus: "todo" }, { id: "P1-2-3", defaultStatus: "todo" },
+                { id: "P2-1-1", defaultStatus: "todo" }, { id: "P2-1-2", defaultStatus: "todo" }, { id: "P2-2-1", defaultStatus: "todo" },
+                { id: "P2-2-2", defaultStatus: "todo" }, { id: "P3-1-1", defaultStatus: "todo" }, { id: "P3-1-2", defaultStatus: "todo" },
+                { id: "P3-1-3", defaultStatus: "todo" }, { id: "P3-2-1", defaultStatus: "todo" }, { id: "P3-2-2", defaultStatus: "todo" },
+                { id: "P3-2-3", defaultStatus: "todo" },
+            ];
 
-      function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
-      function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
+            const TASK_LABELS = {
+                "I1-CODEX": "ホーム画面の要約データを正しく表示できるようにします。",
+                "I1-GEMINI": "ホーム画面を見やすく作り直します。",
+                "I2-CODEX": "コンディション画面に必要な体調データを安定して返せるようにします。",
+                "I2-GEMINI": "コンディションタブの見た目と使い心地を整えます。",
+                "I3-CODEX": "運動データを正しく集計して返せるようにします。",
+                "I3-GEMINI": "運動画面を使いやすく整えます。",
+                "I4-CODEX": "食事データを集計し、AIコメントを返せるようにします。",
+                "I4-GEMINI": "食事画面の表示をわかりやすく整えます。",
+                "I5-CODEX": "接続状況と目標設定をプロフィールで確認できるようにします。",
+                "I5-GEMINI": "プロフィール画面を見やすく整えます。",
+                "P1-1-1": "Androidアプリの同期設定を一つのルールにそろえます。",
+                "P1-1-2": "データの受け口を新しいサーバーに一本化します。",
+                "P1-1-3": "主要画面でデータ取得が止まらない状態にします。",
+                "P1-1-4": "ホームの要約情報を新しいサーバーでも返せるようにします。",
+                "P1-1-5": "【最優先】WebアプリにCloudflare APIのデータを表示します。",
+                "P1-2-1": "プロフィール画面の仮表示を本番表示に置き換えます。",
+                "P1-2-2": "同期状況がひと目でわかる表示を入れます。",
+                "P1-2-3": "旧サーバーを安全に止められる状態にします。",
+                "P2-1-1": "事業の成長を追う指標を3つに絞って定義します。",
+                "P2-1-2": "初回利用の流れを改善する画面仕様を確定します。",
+                "P2-2-1": "異常を早く見つける通知と記録の仕組みを作ります。",
+                "P2-2-2": "トラブルの振り返りを回せる運用ルールを決めます。",
+                "P3-1-1": "リリース鍵の管理ルールを確定します。",
+                "P3-1-2": "本番用ファイルを安定して作れるようにします。",
+                "P3-1-3": "本番用の鍵運用を固定して事故を防ぎます。",
+                "P3-2-1": "Play Store申請に必要な安全性情報をそろえます。",
+                "P3-2-2": "ストア掲載素材を仕上げて公開準備を完了します。",
+                "P3-2-3": "公開の最終判断と公開手順を確定します。",
+            };
 
-      const TASK_THREADS = {
-        "I2-CODEX": [
-          "Geminiより：healthApi.tsにて、Cloudflare等へのAPI通信エラー発生時、モックのダミーデータを返却して画面表示を続ける仕様（Fallback）になっています。UI修正でデータが消えたわけではなく、バックエンド（DB）のエラーが隠蔽されている状態ですが、このままの仕様で進めますか？",
-        ],
-        "P1-1-4": [
-          "優先度の確認：I5-CODEX（/api/connection-status）が in_progress ですが、P1-1-4 はそれより先に着手してほしいですか？それとも I5 完了後でよいですか？",
-          "「注目ポイント」の定義：充足度が低い項目を自動抽出する仕様と理解していますが、表示する最大件数や優先順位ルール（例：血圧 &gt; 睡眠 &gt; 歩数）は決まっていますか？",
-          "充足度数値のソース：pc-server の /api/summary から計算する設計か、cloudflare-api 側で独自に計算しますか？",
-        ],
-        "P1-2-2": [
-          "表示場所：MyScreen 上部バナー案 vs SettingsScreen のステータスセクション案、どちらが好みですか？",
-          "表示粒度：last_sync_at の日時 + has_XXX_data フラグを全部見せる詳細表示か、「同期済み ✓ / 未同期 ✗」のシンプル2択表示か？",
-          "接続失敗時にユーザーへの再同期アクション（「再同期する」ボタンなど）を表示しますか？",
-        ],
-        "P1-2-3": [
-          "freeze のトリガー条件：主要4画面（Home / Condition / Exercise / Meal）の実データ確認後に freeze でよいですか？それとも別の条件がありますか？",
-          "freeze の定義：コード変更禁止（read-only 運用）か、/api/summary など既存エンドポイントのみ維持してそれ以外は削除か？",
-          "pc-server 停止後、healthApi.ts の catch 節のダミーデータ fallback は残しますか？",
-        ],
-        "P2-1-1": [
-          "追うべき KPI の最優先3つを教えてください（例：DAU・継続率・データ記録率）。",
-          "収集手段：Firebase Analytics 追加か、独自ログエンドポイント（cloudflare-api）か、Phase 2 以降に検討か？",
-          "Play Store の「データの安全性」フォーム（P3-2-1）と収集ポリシーを連動させる予定はありますか？",
-        ],
-        "P2-2-2": [
-          "インシデントの定義：具体的な閾値（例：同期24時間停止、クラッシュ率 X% 超）は CEO が決めますか？",
-          "レビューの頻度：週次 / 月次 / 発生時のみ、どれを想定していますか？",
-          "ポストモーテム管理場所：GitHub Issues・Slack・このリポジトリ内 Markdown、どこにしますか？",
-        ],
-        "P3-2-1": [
-          "Health Connect データ（歩数・睡眠・体重・血圧）を「収集している」と申告しますか？それとも「端末上のみ処理・共有なし」で申告しますか？",
-          "Cloudflare Workers へのデータ送信は「第三者への共有」に該当すると判断しますか？",
-          "保存時の暗号化（D1）についての方針はありますか？",
-        ],
-        "P3-2-3": [
-          "Go / No-Go 基準：クラッシュ率・画面確認など、リリース OK の条件は何ですか？",
-          "ロールアウト率：最初から 100% か、段階的（10% → 50% → 100%）か？",
-          "現状の進捗（Iteration 60% 完了）を踏まえて、いつリリースを目指しますか？",
-        ],
-      };
+            const TASK_META = {
+                "I1-CODEX": "担当はCodex-2です。詳細は docs/v3/iter1-codex.md と iter1b-codex.md を見ます。",
+                "I1-GEMINI": "担当はGeminiです。詳細は docs/v3/iter1-gemini.md と iter1b-gemini.md を見ます。",
+                "I2-CODEX": "担当はCodex-2です。詳細は docs/v3/iter2-codex.md を見ます。",
+                "I2-GEMINI": "担当はGeminiです。詳細は docs/v3/iter2-gemini.md を見ます。",
+                "I3-CODEX": "担当はCodex-2です。詳細は docs/v3/iter3-codex.md を見ます。",
+                "I3-GEMINI": "担当はGeminiです。詳細は docs/v3/iter3-gemini.md を見ます。",
+                "I4-CODEX": "担当はCodex-2です。詳細は docs/v3/iter4-codex.md を見ます。",
+                "I4-GEMINI": "担当はGeminiです。詳細は docs/v3/iter4-gemini.md を見ます。",
+                "I5-CODEX": "担当はCodex-2です。詳細は docs/v3/iter5-codex.md を見ます。",
+                "I5-GEMINI": "担当はGeminiです。詳細は docs/v3/iter5-gemini.md を見ます。",
+                "P1-1-1": "担当はCodex-2です。運用を止めずに設定を統一します。",
+                "P1-1-2": "担当はCodex-2です。接続先を一つにそろえて混乱を防ぎます。",
+                "P1-1-3": "担当はCodex-2です。主要画面の安定表示を優先して進めます。",
+                "P1-1-4": "担当はCodex-2です。依頼は requests/codex/20260226-home-summary-cloudflare-api.md を見ます。",
+                "P1-1-5": "担当はCodex-1です。依頼は requests/codex/20260226-web-app-cloudflare-connect.md を見ます。Home/Conditionの最終決裁完了をもって完了とします。",
+                "P1-2-1": "担当はCodex-1です。段階的に本番表示へ置き換えます。",
+                "P1-2-2": "担当はCodex-1です。利用者が迷わない見せ方にします。",
+                "P1-2-3": "担当はCEOとCodex-2です。停止条件を合意してから進めます。",
+                "P2-1-1": "担当はCEOです。指標を先に決めてから実装します。",
+                "P2-1-2": "担当はGeminiです。体験を優先して仕様を固めます。",
+                "P2-2-1": "担当はCodex-2です。通知と記録の土台を整えます。",
+                "P2-2-2": "担当はCEOです。振り返りの運用を先に決めます。",
+                "P3-1-1": "担当はCodex-2です。鍵管理の事故を防ぐ形で固めます。",
+                "P3-1-2": "担当はCodex-2です。公開前に自動生成の安定化を完了します。",
+                "P3-1-3": "担当はCodex-2です。本番運用を固定して変更を抑えます。",
+                "P3-2-1": "担当はCEOとCodex-2です。申請内容と実運用を一致させます。",
+                "P3-2-2": "担当はGeminiです。公開時の見え方を最終調整します。",
+                "P3-2-3": "担当はCEOです。公開判断の条件を先に明文化します。",
+            };
 
-      const TASK_REPLIES = {
-        "I2-CODEX": [
-          "この仕様は変えます。通信に失敗したときは失敗したことが分かる表示にして、ダミー値で隠さないようにします。",
-        ],
-        "P1-1-4": [
-          "P1-1-4を先に進めます。I5は一時停止して、まずホーム要約の穴を埋めます。",
-          "注目ポイントは最大3件にします。優先順は「安全に関わるもの→変化が大きいもの→未達が続いているもの」で出します。",
-          "充足度の計算はcloudflare-api側で行います。旧サーバーの計算には依存しません。",
-        ],
-        "P1-2-2": [
-          "表示はMy画面の上部に出します。設定画面には詳細を置きます。",
-          "最初は「同期済み / 未同期」のシンプル表示にします。タップ時に日時と内訳を見せます。",
-          "再同期ボタンを表示します。失敗したときにすぐやり直せるようにします。",
-        ],
-        "P1-2-3": [
-          "4画面で実データが確認できて、重大な不具合が0件の状態を24時間維持できたらfreezeします。",
-          "freezeは新機能を止めて不具合修正だけにする運用にします。既存機能の削除はこの段階では行いません。",
-          "pc-server停止後はダミーデータを返しません。失敗したことが分かる表示に切り替えます。",
-        ],
-        "P2-1-1": [
-          "最優先の3指標は「週次アクティブ利用者数」「7日後継続率」「同期成功率」にします。",
-          "Phase 2はFirebase Analyticsを基本にして、不足分だけcloudflare-apiログで補います。",
-          "連動させます。収集項目を増やす前に、データ安全性の記載を先に更新します。",
-        ],
-        "P2-2-2": [
-          "同期成功率が90%未満の状態が2時間続いたらインシデントにします。クラッシュ率が1%を超えた日も対象にします。",
-          "定例は週1回にします。重大障害が出た日は当日中に臨時レビューします。",
-          "一次管理はこのリポジトリのMarkdownに統一します。必要に応じてGitHub Issueをリンクします。",
-        ],
-        "P3-2-1": [
-          "申請は「収集あり」で進めます。端末内だけで完結すると見なさない前提で統一します。",
-          "Cloudflareは委託先として扱い、第三者への販売や提供には当たらない整理で進めます。",
-          "保存データは暗号化前提で運用します。個人を特定しやすい値はマスクして保存します。",
-        ],
-        "P3-2-3": [
-          "公開OKの条件は「重大不具合0件」「主要4画面の実機確認完了」「同期成功率95%以上」にします。",
-          "段階公開で進めます。10%→50%→100%の順に上げます。",
-          "目標公開日は2026-03-20にします。遅れる場合は2026-03-13までに新しい日付を出します。",
-        ],
-      };
+            function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
+            function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
 
-      const TASK_PRIORITY = {
-        "P1-1-5": "highest",
-        "I1-CODEX": "highest",
-        "I1-GEMINI": "highest",
-        "I2-CODEX": "highest",
-        "I2-GEMINI": "highest",
-      };
-      const PRIORITY_LABELS = { highest: "🔴 最優先", high: "🟡 高" };
+            const TASK_THREADS = {
+                "I2-CODEX": [
+                    "Geminiより：healthApi.tsにて、Cloudflare等へのAPI通信エラー発生時、モックのダミーデータを返却して画面表示を続ける仕様（Fallback）になっています。UI修正でデータが消えたわけではなく、バックエンド（DB）のエラーが隠蔽されている状態ですが、このままの仕様で進めますか？",
+                ],
+                "P1-1-4": [
+                    "優先度の確認：I5-CODEX（/api/connection-status）が in_progress ですが、P1-1-4 はそれより先に着手してほしいですか？それとも I5 完了後でよいですか？",
+                    "「注目ポイント」の定義：充足度が低い項目を自動抽出する仕様と理解していますが、表示する最大件数や優先順位ルール（例：血圧 &gt; 睡眠 &gt; 歩数）は決まっていますか？",
+                    "充足度数値のソース：pc-server の /api/summary から計算する設計か、cloudflare-api 側で独自に計算しますか？",
+                ],
+                "P1-1-5": [
+                    "Codex-1より：Cloudflare API接続は通っていますが、Homeの初期日付（ローカル基準）とseed日付（UTC基準）がずれると、睡眠/歩数/食事が `-` 表示になります。この表示を許容しますか？それとも日付基準を統一しますか？",
+                    "Codex-1より：HomeScreenは fetch失敗時に `success + 空データ` を返す実装のため、障害が空表示に見えます。決裁前に『明示エラー表示』へ変更してよいですか？",
+                    "Codex-1より：Homeの専門家セクションで `<!--DOCTOR-->` などタグ文字列がそのまま表示されています。決裁条件として、タグ除去の表示整形を今回スコープに含めますか？",
+                    "Codex-2より：本番Cloudflare APIで `/api/summary` は200ですが、`/api/home-summary` と `/api/sleep-data` は404です。Vercel/ローカルを同一DB・同一API窓口で運用する前提に合わせるため、Cloudflare本番APIへのエンドポイント反映を最優先で進めてよいですか？",
+                    "Codex-1より（AIレポート入力拡張）: 1) 就寝/起床時刻をprompt入力へ追加（データ取得済み） 2) 通常心拍（日中平均）を新規実装 3) 運動セッション詳細（同期済み）を指標化してprompt入力へ追加、の方針で進めてよいですか？",
+                ],
+                "P1-2-2": [
+                    "表示場所：MyScreen 上部バナー案 vs SettingsScreen のステータスセクション案、どちらが好みですか？",
+                    "表示粒度：last_sync_at の日時 + has_XXX_data フラグを全部見せる詳細表示か、「同期済み ✓ / 未同期 ✗」のシンプル2択表示か？",
+                    "接続失敗時にユーザーへの再同期アクション（「再同期する」ボタンなど）を表示しますか？",
+                ],
+                "P1-2-3": [
+                    "freeze のトリガー条件：主要4画面（Home / Condition / Exercise / Meal）の実データ確認後に freeze でよいですか？それとも別の条件がありますか？",
+                    "freeze の定義：コード変更禁止（read-only 運用）か、/api/summary など既存エンドポイントのみ維持してそれ以外は削除か？",
+                    "pc-server 停止後、healthApi.ts の catch 節のダミーデータ fallback は残しますか？",
+                ],
+                "P2-1-1": [
+                    "追うべき KPI の最優先3つを教えてください（例：DAU・継続率・データ記録率）。",
+                    "収集手段：Firebase Analytics 追加か、独自ログエンドポイント（cloudflare-api）か、Phase 2 以降に検討か？",
+                    "Play Store の「データの安全性」フォーム（P3-2-1）と収集ポリシーを連動させる予定はありますか？",
+                ],
+                "P2-2-2": [
+                    "インシデントの定義：具体的な閾値（例：同期24時間停止、クラッシュ率 X% 超）は CEO が決めますか？",
+                    "レビューの頻度：週次 / 月次 / 発生時のみ、どれを想定していますか？",
+                    "ポストモーテム管理場所：GitHub Issues・Slack・このリポジトリ内 Markdown、どこにしますか？",
+                ],
+                "P3-2-1": [
+                    "Health Connect データ（歩数・睡眠・体重・血圧）を「収集している」と申告しますか？それとも「端末上のみ処理・共有なし」で申告しますか？",
+                    "Cloudflare Workers へのデータ送信は「第三者への共有」に該当すると判断しますか？",
+                    "保存時の暗号化（D1）についての方針はありますか？",
+                ],
+                "P3-2-3": [
+                    "Go / No-Go 基準：クラッシュ率・画面確認など、リリース OK の条件は何ですか？",
+                    "ロールアウト率：最初から 100% か、段階的（10% → 50% → 100%）か？",
+                    "現状の進捗（Iteration 60% 完了）を踏まえて、いつリリースを目指しますか？",
+                ],
+            };
 
-      function createLeaf(task) {
-        const leaf = document.createElement("div");
-        leaf.className = "leaf";
-        leaf.dataset.id = task.id;
-        leaf.dataset.default = task.defaultStatus;
-        if (task.defaultStamp) leaf.dataset.stamp = task.defaultStamp;
-        if (task.track) leaf.dataset.track = task.track;
+            const TASK_REPLIES = {
+                "I2-CODEX": [
+                    "この仕様は変えます。通信に失敗したときは失敗したことが分かる表示にして、ダミー値で隠さないようにします。",
+                ],
+                "P1-1-4": [
+                    "P1-1-4を先に進めます。I5は一時停止して、まずホーム要約の穴を埋めます。",
+                    "注目ポイントは最大3件にします。優先順は「安全に関わるもの→変化が大きいもの→未達が続いているもの」で出します。",
+                    "充足度の計算はcloudflare-api側で行います。旧サーバーの計算には依存しません。",
+                ],
+                "P1-2-2": [
+                    "表示はMy画面の上部に出します。設定画面には詳細を置きます。",
+                    "最初は「同期済み / 未同期」のシンプル表示にします。タップ時に日時と内訳を見せます。",
+                    "再同期ボタンを表示します。失敗したときにすぐやり直せるようにします。",
+                ],
+                "P1-2-3": [
+                    "4画面で実データが確認できて、重大な不具合が0件の状態を24時間維持できたらfreezeします。",
+                    "freezeは新機能を止めて不具合修正だけにする運用にします。既存機能の削除はこの段階では行いません。",
+                    "pc-server停止後はダミーデータを返しません。失敗したことが分かる表示に切り替えます。",
+                ],
+                "P2-1-1": [
+                    "最優先の3指標は「週次アクティブ利用者数」「7日後継続率」「同期成功率」にします。",
+                    "Phase 2はFirebase Analyticsを基本にして、不足分だけcloudflare-apiログで補います。",
+                    "連動させます。収集項目を増やす前に、データ安全性の記載を先に更新します。",
+                ],
+                "P2-2-2": [
+                    "同期成功率が90%未満の状態が2時間続いたらインシデントにします。クラッシュ率が1%を超えた日も対象にします。",
+                    "定例は週1回にします。重大障害が出た日は当日中に臨時レビューします。",
+                    "一次管理はこのリポジトリのMarkdownに統一します。必要に応じてGitHub Issueをリンクします。",
+                ],
+                "P3-2-1": [
+                    "申請は「収集あり」で進めます。端末内だけで完結すると見なさない前提で統一します。",
+                    "Cloudflareは委託先として扱い、第三者への販売や提供には当たらない整理で進めます。",
+                    "保存データは暗号化前提で運用します。個人を特定しやすい値はマスクして保存します。",
+                ],
+                "P1-1-5": [
+                    "日付は今日固定で進めます。Homeの専門家コメントはタグを非表示にし、3人（トレーナー・医師・管理栄養士）で分けて表示します。",
+                    "睡眠詳細（就寝/起床、深い/浅い/REM）は取得できる日だけ表示します。未取得日は詳細を出さず、睡眠時間のみ表示します。",
+                    "運用前提は『Android→Cloudflare DB』を単一ソースに統一します。Vercelとローカルは同じCloudflare API窓口を参照し、`/api/home-summary` と `/api/sleep-data` の本番反映を最優先で完了させます。",
+                ],
+                "P3-2-3": [
+                    "公開OKの条件は「重大不具合0件」「主要4画面の実機確認完了」「同期成功率95%以上」にします。",
+                    "段階公開で進めます。10%→50%→100%の順に上げます。",
+                    "目標公開日は2026-03-20にします。遅れる場合は2026-03-13までに新しい日付を出します。",
+                ],
+            };
 
-        const questions = TASK_THREADS[task.id] || [];
-        const replies = TASK_REPLIES[task.id] || [];
-        const pendingCount = Math.max(questions.length - replies.length, 0);
+            const TASK_PRIORITY = {
+                "P1-1-5": "high",
+                "I1-CODEX": "high",
+                "I1-GEMINI": "high",
+                "I2-CODEX": "high",
+                "I2-GEMINI": "high",
+                "P1-1-4": "high",
+                "P1-2-2": "mid",
+                "P1-2-3": "low",
+            };
+            const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
-        // メイン行
-        const main = document.createElement("div");
-        main.className = "leaf-main";
-        const left = document.createElement("div");
-        const prio = TASK_PRIORITY[task.id];
-        const prioHtml = prio ? `<span class="chip priority-${prio}">${PRIORITY_LABELS[prio]}</span><br>` : '';
-        left.innerHTML = `${prioHtml}${getTaskLabel(task.id)}<small>${getTaskMeta(task.id)}</small>`;
-        const select = document.createElement("select");
-        select.className = "state";
-        ["todo", "in_progress", "blocked", "done"].forEach((state) => {
-          const option = document.createElement("option"); option.value = state; option.textContent = STATE_LABELS[state] || state; select.appendChild(option);
-        });
-        const stamp = document.createElement("div");
-        stamp.className = "stamp";
-        stamp.textContent = "スタンプ未設定";
-        const threadBtn = document.createElement("button");
-        threadBtn.type = "button";
-        threadBtn.className = "thread-btn" + (pendingCount > 0 ? " has-q" : "");
-        threadBtn.textContent = pendingCount > 0 ? `💬 ${pendingCount}` : "💬";
-        main.appendChild(left); main.appendChild(select); main.appendChild(stamp); main.appendChild(threadBtn);
-        leaf.appendChild(main);
+            function extractAssignee(metaStr) {
+                const match = metaStr.match(/担当は(.*?)(です|と.*?です)。/);
+                if (match) return match[1];
+                if (metaStr.includes("Codex")) return "Codex";
+                if (metaStr.includes("CEO")) return "CEO";
+                if (metaStr.includes("Gemini")) return "Gemini";
+                return "未定";
+            }
 
-        // スレッドパネル
-        const wrap = document.createElement("div");
-        wrap.className = "thread-wrap";
-        questions.forEach((q) => {
-          const msg = document.createElement("div");
-          msg.className = "thread-msg";
-          const from = document.createElement("span");
-          from.className = "from";
-          from.textContent = "Claude";
-          const bubble = document.createElement("span");
-          bubble.className = "bubble";
-          bubble.textContent = q;
-          msg.appendChild(from);
-          msg.appendChild(bubble);
-          wrap.appendChild(msg);
-        });
-        replies.forEach((r) => {
-          const msg = document.createElement("div");
-          msg.className = "thread-msg cto";
-          const from = document.createElement("span");
-          from.className = "from";
-          from.textContent = "CTO";
-          const bubble = document.createElement("span");
-          bubble.className = "bubble";
-          bubble.textContent = r;
-          msg.appendChild(from);
-          msg.appendChild(bubble);
-          wrap.appendChild(msg);
-        });
-        const replyRow = document.createElement("div");
-        replyRow.className = "thread-reply";
-        const ta = document.createElement("textarea");
-        ta.placeholder = "ここに返答を書いて送信します。";
-        const sendBtn = document.createElement("button");
-        sendBtn.type = "button";
-        sendBtn.textContent = "送信";
-        sendBtn.addEventListener("click", () => {
-          const text = ta.value.trim();
-          if (!text) return;
-          const msg = document.createElement("div");
-          msg.className = "thread-msg cto";
-          const from = document.createElement("span");
-          from.className = "from";
-          from.textContent = "CTO";
-          const bubble = document.createElement("span");
-          bubble.className = "bubble";
-          bubble.textContent = text;
-          msg.appendChild(from);
-          msg.appendChild(bubble);
-          wrap.insertBefore(msg, replyRow);
-          ta.value = "";
-        });
-        replyRow.appendChild(ta); replyRow.appendChild(sendBtn);
-        wrap.appendChild(replyRow);
-        leaf.appendChild(wrap);
+            function cleanMeta(metaStr) {
+                return metaStr.replace(/担当は.*?です。/, "").trim();
+            }
 
-        threadBtn.addEventListener("click", () => {
-          wrap.classList.toggle("open");
-          const open = wrap.classList.contains("open");
-          const count = pendingCount > 0 ? ` ${pendingCount}` : "";
-          threadBtn.textContent = open ? `💬${count} ▲` : `💬${count}`;
-        });
+            function getTaskLabel(id) {
+                if (TASK_LABELS[id]) return TASK_LABELS[id];
+                if (id.startsWith("C-")) return `前の作業の続き（${id}）をやります。`;
+                return `この作業（${id}）を進めますね。`;
+            }
+            function getTaskMeta(id) {
+                if (TASK_META[id]) return TASK_META[id];
+                if (id.startsWith("C-")) return "これCodexがやります。詳しいことは TASK.md に書いてあります。";
+                return "誰がやるか今から決めます。";
+            }
 
-        return leaf;
-      }
+            const BIG_CATEGORIES = [
+                { id: "iter", name: "直近の目標", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("I")) },
+                { id: "p1", name: "フェーズ1", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
+                { id: "p2", name: "フェーズ2", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P2-")) },
+                { id: "p3", name: "フェーズ3", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
+                { id: "legacy", name: "引き継ぎタスク", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C-")) },
+            ];
 
-      function createGroupNode(titleText, tasks, open) {
-        const details = document.createElement("details"); details.className = "node"; if (open) details.open = true;
-        const summary = document.createElement("summary");
-        summary.innerHTML = `<span class="title">${titleText}</span><span class="prog">0 / 0</span><span class="chip todo">${STATE_LABELS.todo}</span>`;
-        const body = document.createElement("div"); body.className = "body";
-        tasks.forEach((item) => body.appendChild(item instanceof Node ? item : createLeaf(item)));
-        details.appendChild(summary); details.appendChild(body); return details;
-      }
+            let activeCategory = "iter";
+            let hideCompleted = false;
 
-      function buildTaskSections() {
-        // 過去引き継ぎ（折りたたみ）
-        taskSections.appendChild(createGroupNode("過去計画から引き継いだ作業です（TASK.md）", TASKS.filter((t) => t.id.startsWith("C-")), false));
+            function stampNow() {
+                const d = new Date(); const p = (n) => String(n).padStart(2, "0");
+                return `${actor.value} @ ${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+            }
 
-        // 大カテゴリー：イテレーション計画
-        const iterLabels = ["ホーム画面", "コンディション画面", "運動画面", "食事画面", "プロフィール画面"];
-        const iterSubs = [1,2,3,4,5].map((i) =>
-          createGroupNode(`Iter${i}：${iterLabels[i-1]}`, TASKS.filter((t) => t.id.startsWith(`I${i}-`)), i >= 4)
-        );
-        taskSections.appendChild(createGroupNode("イテレーション計画（画面改善サイクル）", iterSubs, true));
+            function renderNav() {
+                navBigCategories.innerHTML = '<div class="nav-title">大きく分けると</div>';
+                BIG_CATEGORIES.forEach(cat => {
+                    const div = document.createElement("div");
+                    div.className = `nav-item ${activeCategory === cat.id ? 'active' : ''}`;
+                    const count = cat.tasks.length;
+                    const badgeStr = count > 0 ? (cat.isUrgent ? `<span class="nav-badge" style="background:var(--block-bg);color:var(--block-text)">${count}</span>` : `<span class="nav-badge">${count}</span>`) : `<span class="nav-badge">0</span>`;
+                    div.innerHTML = `${cat.name} ${badgeStr}`;
+                    div.onclick = () => { activeCategory = cat.id; renderNav(); renderTasks(); };
+                    navBigCategories.appendChild(div);
+                });
+            }
 
-        // 大カテゴリー：フェーズ1
-        const p1Subs = [
-          createGroupNode("1-1：Cloudflare API 移行", TASKS.filter((t) => t.id.startsWith("P1-1-")), true),
-          createGroupNode("1-2：UI・画面整備",        TASKS.filter((t) => t.id.startsWith("P1-2-")), true),
-        ];
-        taskSections.appendChild(createGroupNode("フェーズ1：インフラ・基本機能整備", p1Subs, true));
+            function createTaskCard(task) {
+                const card = document.createElement("div");
+                card.className = "task-card leaf";
+                card.dataset.id = task.id;
+                card.dataset.default = task.defaultStatus;
+                if (task.defaultStamp) card.dataset.stamp = task.defaultStamp;
+                if (task.track) card.dataset.track = task.track;
 
-        // 大カテゴリー：フェーズ2
-        const p2Subs = [
-          createGroupNode("2-1：KPI・オンボーディング", TASKS.filter((t) => t.id.startsWith("P2-1-")), false),
-          createGroupNode("2-2：監視・インシデント対応", TASKS.filter((t) => t.id.startsWith("P2-2-")), false),
-        ];
-        taskSections.appendChild(createGroupNode("フェーズ2：品質・成長基盤", p2Subs, false));
+                const questions = TASK_THREADS[task.id] || [];
+                const replies = TASK_REPLIES[task.id] || [];
+                const pendingCount = Math.max(questions.length - replies.length, 0);
 
-        // 大カテゴリー：フェーズ3
-        const p3Subs = [
-          createGroupNode("3-1：ビルド・署名管理",    TASKS.filter((t) => t.id.startsWith("P3-1-")), false),
-          createGroupNode("3-2：ストア申請・公開準備", TASKS.filter((t) => t.id.startsWith("P3-2-")), false),
-        ];
-        taskSections.appendChild(createGroupNode("フェーズ3：リリース準備", p3Subs, false));
-      }
+                const prio = TASK_PRIORITY[task.id];
+                const prioHtml = prio ? `<span class="chip priority-${prio}">${PRIORITY_LABELS[prio]}</span>` : '';
 
-      const stampNow = () => {
-        const d = new Date(); const p = (n) => String(n).padStart(2, "0");
-        return `${actor.value} @ ${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-      };
+                const header = document.createElement("div");
+                header.className = "task-card-title";
 
-      function renderLeafBadge(leaf) {
-        const sel = leaf.querySelector(".state"); if (!sel) return;
-        let badge = leaf.querySelector(".state-badge");
-        if (!badge) {
-          badge = document.createElement("button"); badge.type = "button"; badge.className = "chip state-badge";
-          badge.addEventListener("click", () => { const idx = Math.max(0, STATE_ORDER.indexOf(sel.value)); const next = STATE_ORDER[(idx + 1) % STATE_ORDER.length]; sel.value = next; sel.dispatchEvent(new Event("change", { bubbles: true })); });
-        }
-        (leaf.querySelector(".leaf-main") || leaf).appendChild(badge); badge.textContent = STATE_LABELS[sel.value] || sel.value; badge.className = `chip state-badge ${sel.value}`;
-      }
+                // タスクの具体的内容をタイトルとして併記する
+                let shortTitle = TASK_LABELS[task.id] ? ` ${TASK_LABELS[task.id]}` : "";
 
-      function applyLeafState() {
-        document.querySelectorAll(".leaf").forEach((leaf) => {
-          const sel = leaf.querySelector(".state"); const st = leaf.querySelector(".stamp");
-          sel.value = leaf.dataset.default || "todo"; renderLeafBadge(leaf); st.textContent = leaf.dataset.stamp || "スタンプ未設定";
-        });
-      }
+                // エージェント名（-CODEX, -GEMINI 等）をIDから取り除く
+                const displayId = task.id.replace(/-(CODEX|GEMINI)(-\d+)?/i, "");
 
-      function summarizeNode(node) {
-        const leaves = node.querySelectorAll(".leaf"); let done = 0; let block = 0; let active = 0;
-        leaves.forEach((leaf) => { const v = leaf.querySelector(".state").value; if (v === "done") done++; if (v === "blocked") block++; if (v !== "todo") active++; });
-        const state = block > 0 ? "blocked" : (done === leaves.length ? "done" : (active > 0 ? "in_progress" : "todo"));
-        const prog = node.querySelector(":scope > summary .prog"); const chip = node.querySelector(":scope > summary .chip");
-        prog.textContent = `${done} / ${leaves.length}`; chip.textContent = STATE_LABELS[state] || state; chip.className = `chip ${state}`;
-      }
+                header.innerHTML = `<span>${displayId}${shortTitle}</span> ${prioHtml}`;
 
-      function refresh() {
-        applyLeafState(); document.querySelectorAll("details.node").forEach(summarizeNode);
-        const iterLeaves = [...document.querySelectorAll(".leaf[data-track='iter']")];
-        const releaseLeaves = [...document.querySelectorAll(".leaf:not([data-track='legacy'])")];
-        const targetLeaves = iterLeaves.length > 0 ? iterLeaves : releaseLeaves;
-        const metric = iterLeaves.length > 0 ? "イテレーション" : "リリース全体";
-        const total = targetLeaves.length;
-        const done = targetLeaves.filter((x) => x.querySelector(".state").value === "done").length;
-        const block = targetLeaves.filter((x) => x.querySelector(".state").value === "blocked").length;
-        const percent = total ? Math.round((done / total) * 100) : 0;
-        pct.textContent = String(percent); frac.textContent = `${done} / ${total} 完了（${metric}）`; blocked.textContent = String(block);
-        phase.textContent = percent >= 95 ? "フェーズ3" : percent >= 70 ? "フェーズ2" : "フェーズ1";
-      }
+                const rawMeta = getTaskMeta(task.id);
+                const assignee = extractAssignee(rawMeta);
+                const cleanMetaDesc = cleanMeta(rawMeta);
 
-      function initLeafEvents() {
-        document.querySelectorAll(".leaf .state").forEach((sel) => {
-          sel.addEventListener("change", (e) => {
-            const leaf = e.target.closest(".leaf"); const nextStatus = e.target.value; leaf.dataset.default = nextStatus;
-            if (nextStatus === "done") leaf.dataset.stamp = stampNow();
-            else if (nextStatus === "todo") leaf.dataset.stamp = "";
-            else if (nextStatus === "blocked") leaf.dataset.stamp = `${actor.value}（要対応）`;
-            else leaf.dataset.stamp = `${actor.value}（進行中）`;
-            renderLeafBadge(leaf); refresh();
-          });
-        });
-      }
+                const desc = document.createElement("div");
+                desc.className = "task-card-desc";
+                desc.innerHTML = `${getTaskLabel(task.id)} <div class="task-meta">${cleanMetaDesc}</div>`;
 
-      buildTaskSections();
-      initLeafEvents();
-      refresh();
-    })();
-  </script>
+                const ctrl = document.createElement("div");
+                const select = document.createElement("select");
+                select.className = "select-state state";
+                ["todo", "in_progress", "blocked", "done"].forEach((state) => {
+                    const option = document.createElement("option"); option.value = state; option.textContent = STATE_LABELS[state] || state; select.appendChild(option);
+                });
+
+                const stampStr = task.defaultStamp || "";
+                const stamp = document.createElement("div");
+                stamp.className = "stamp";
+                stamp.innerHTML = `
+                    <div class="assignee-badge">担当: ${assignee}</div>
+                    <div>${stampStr}</div>
+                `;
+
+                ctrl.appendChild(select);
+                ctrl.appendChild(stamp);
+
+                card.appendChild(header);
+                card.appendChild(desc);
+                card.appendChild(ctrl);
+
+                if (questions.length > 0 || replies.length > 0) {
+                    const threadWrap = document.createElement("details");
+                    threadWrap.className = "thread-details";
+
+                    const summary = document.createElement("summary");
+                    summary.className = "thread-summary";
+                    const qCount = pendingCount > 0 ? `<span style="color:var(--warning)">🔔${pendingCount}</span>` : "";
+                    summary.innerHTML = `<span>スレッド (💬${questions.length + replies.length})</span> ${qCount}`;
+                    threadWrap.appendChild(summary);
+
+                    questions.forEach((q) => {
+                        const msg = document.createElement("div"); msg.className = "thread-msg";
+                        msg.innerHTML = `<span class="from">Claude</span>${q}`;
+                        threadWrap.appendChild(msg);
+                    });
+                    replies.forEach((r) => {
+                        const msg = document.createElement("div"); msg.className = "thread-msg cto";
+                        msg.innerHTML = `<span class="from">CTO</span>${r}`;
+                        threadWrap.appendChild(msg);
+                    });
+
+                    card.appendChild(threadWrap);
+                }
+
+                // イベントバインディング
+                select.addEventListener("change", (e) => {
+                    const nextStatus = e.target.value;
+                    card.dataset.default = nextStatus;
+                    task.defaultStatus = nextStatus;
+                    if (nextStatus === "done") card.dataset.stamp = stampNow();
+                    else if (nextStatus === "todo") card.dataset.stamp = "";
+                    else if (nextStatus === "blocked") card.dataset.stamp = `${actor.value}（確認待ち）`;
+                    else card.dataset.stamp = `${actor.value}（実行中）`;
+                    task.defaultStamp = card.dataset.stamp;
+                    stamp.innerHTML = `
+                        <div class="assignee-badge">担当: ${assignee}</div>
+                        <div>${card.dataset.stamp}</div>
+                    `;
+                    refreshMetrics();
+                    if (hideCompleted && nextStatus === "done") {
+                        renderTasks();
+                    }
+                });
+
+                // 初期値
+                select.value = card.dataset.default || "todo";
+
+                return card;
+            }
+
+            function renderTasks() {
+                tasksContainer.innerHTML = "";
+
+                const cat = BIG_CATEGORIES.find(c => c.id === activeCategory);
+                if (!cat || cat.tasks.length === 0) {
+                    const header = document.createElement("div");
+                    header.className = "tasks-header";
+                    header.style.marginTop = "24px";
+                    header.innerHTML = `<h2>タスクがありません</h2>`;
+                    tasksContainer.appendChild(header);
+                } else {
+                    const header = document.createElement("div");
+                    const toggleHtml = `
+                        <label style="font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-muted); background: var(--surface); padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);">
+                            <input type="checkbox" id="toggle-completed" ${hideCompleted ? "checked" : ""}>
+                            <span>完了済みを非表示</span>
+                        </label>
+                    `;
+
+                    header.className = "tasks-header";
+                    header.style.marginTop = "24px";
+                    header.innerHTML = `<h2>${cat.name}</h2>${toggleHtml}`;
+
+                    const grid = document.createElement("div");
+                    grid.className = "task-sections-grid";
+
+                    cat.tasks.forEach(t => {
+                        if (hideCompleted && t.defaultStatus === "done") return;
+                        grid.appendChild(createTaskCard(t));
+                    });
+
+                    tasksContainer.appendChild(header);
+                    tasksContainer.appendChild(grid);
+
+                    document.getElementById("toggle-completed").addEventListener("change", (e) => {
+                        hideCompleted = e.target.checked;
+                        renderTasks();
+                    });
+                }
+
+                refreshMetrics();
+            }
+
+            function refreshMetrics() {
+                let total = 0, done = 0, block = 0;
+                TASKS.forEach(t => {
+                    const card = document.querySelector(`.task-card[data-id="${t.id}"]`);
+                    const state = card ? card.dataset.default : t.defaultStatus;
+                    if (t.track !== "legacy") {
+                        total++;
+                        if (state === "done") done++;
+                        if (state === "blocked") block++;
+                    }
+                });
+                const percent = total ? Math.round((done / total) * 100) : 0;
+                pct.textContent = String(percent);
+                frac.textContent = `${done} / ${total} 完了`;
+                blocked.textContent = String(block);
+                phase.textContent = percent >= 95 ? "フェーズ3" : percent >= 70 ? "フェーズ2" : "フェーズ1";
+            }
+
+            renderNav();
+            renderTasks();
+
+        })();
+    </script>
 </body>
 
 </html>
-
-
