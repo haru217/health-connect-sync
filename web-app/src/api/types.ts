@@ -337,6 +337,7 @@ export interface SleepDataResponse {
     rem_min: number | null
   }
   series: SleepDataPoint[]
+  latestSleepDate: string | null
   periodSummary: {
     avg_sleep_min: number | null
     goal_days: number
