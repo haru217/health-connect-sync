@@ -8,6 +8,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.URLEncoder
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class SyncApiClient(
@@ -39,6 +41,28 @@ class SyncApiClient(
                 upsertedCount = json.optInt("upsertedCount", 0),
                 skippedCount = json.optInt("skippedCount", 0),
             )
+        }
+    }
+
+    fun getSyncCursorEpochMs(apiKey: String, deviceId: String): Long? {
+        val encodedDeviceId = URLEncoder.encode(deviceId, Charsets.UTF_8.name())
+        val request = Request.Builder()
+            .url(baseUrl.trimEnd('/') + "/api/sync/cursor?deviceId=$encodedDeviceId")
+            .header("X-Api-Key", apiKey)
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val responseText = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw RuntimeException("HTTP_${response.code}: $responseText")
+            }
+
+            val rangeEnd = JSONObject(responseText).optString("rangeEnd", "")
+            if (rangeEnd.isBlank()) {
+                return null
+            }
+            return runCatching { Instant.parse(rangeEnd).toEpochMilli() }.getOrNull()
         }
     }
 

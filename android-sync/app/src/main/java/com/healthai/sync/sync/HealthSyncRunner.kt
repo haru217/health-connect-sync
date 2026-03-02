@@ -95,16 +95,25 @@ class HealthSyncRunner(
         }
 
         val end = Instant.now()
-        val lastSyncMs = settings.getLastSyncEpochMs()
-        val start = if (lastSyncMs != null && lastSyncMs > 0L) {
-            Instant.ofEpochMilli(lastSyncMs).minus(Duration.ofMinutes(5))
+        val deviceId = settings.ensureDeviceId()
+        val localLastSyncMs = settings.getLastSyncEpochMs()
+        val serverLastSyncMs = if (localLastSyncMs != null && localLastSyncMs > 0L) {
+            null
+        } else {
+            runCatching { client.getSyncCursorEpochMs(apiKey, deviceId) }.getOrNull()
+        }
+        val effectiveLastSyncMs = localLastSyncMs ?: serverLastSyncMs
+        if (localLastSyncMs == null && serverLastSyncMs != null && serverLastSyncMs > 0L) {
+            settings.saveSyncOutcome(serverLastSyncMs, "Cursor repaired from server")
+        }
+        val start = if (effectiveLastSyncMs != null && effectiveLastSyncMs > 0L) {
+            Instant.ofEpochMilli(effectiveLastSyncMs).minus(Duration.ofMinutes(5))
         } else {
             end.minus(Duration.ofDays(7))
         }
 
         try {
             val records = reader.readRecords(start, end)
-            val deviceId = settings.ensureDeviceId()
             var upsertedTotal = 0
             var skippedTotal = 0
             var sentChunks = 0
@@ -135,6 +144,43 @@ class HealthSyncRunner(
             val retry = isRetryableSyncError(e)
             settings.setLastResult("Sync failed: $msg")
             return@withContext if (retry) {
+                SyncOutcome.RetryableError(msg)
+            } else {
+                SyncOutcome.NonRetryableError(msg)
+            }
+        }
+    }
+
+    suspend fun repairCursorFromServer(): SyncOutcome = withContext(Dispatchers.IO) {
+        settings.ensureDefaults()
+        val apiKey = settings.getApiKey()
+        if (apiKey.isBlank()) {
+            val msg = "API key is not configured"
+            settings.setLastResult(msg)
+            return@withContext SyncOutcome.NonRetryableError(msg)
+        }
+
+        return@withContext try {
+            val deviceId = settings.ensureDeviceId()
+            val repairedMs = client.getSyncCursorEpochMs(apiKey, deviceId)
+            if (repairedMs != null && repairedMs > 0L) {
+                val message = "Cursor repaired: ${Instant.ofEpochMilli(repairedMs)}"
+                settings.saveSyncOutcome(repairedMs, message)
+                SyncOutcome.Success(message)
+            } else {
+                val message = "Server cursor not found (unchanged)"
+                settings.setLastResult(message)
+                SyncOutcome.Success(message)
+            }
+        } catch (io: IOException) {
+            val msg = "Network error: ${io.message ?: io.javaClass.simpleName}"
+            settings.setLastResult(msg)
+            SyncOutcome.RetryableError(msg)
+        } catch (e: Exception) {
+            val msg = e.message ?: e.toString()
+            val retry = isRetryableSyncError(e)
+            settings.setLastResult("Cursor repair failed: $msg")
+            if (retry) {
                 SyncOutcome.RetryableError(msg)
             } else {
                 SyncOutcome.NonRetryableError(msg)
@@ -227,7 +273,11 @@ class HealthSyncRunner(
         val msg = (error.message ?: "").lowercase()
         return msg.startsWith("http_503") ||
             msg.startsWith("http_429") ||
+            msg.startsWith("http_520") ||
+            msg.startsWith("http_522") ||
+            msg.startsWith("http_524") ||
             msg.contains("timeout") ||
+            msg.contains("cloudflare") ||
             msg.contains("temporarily unavailable") ||
             msg.contains("connection reset") ||
             msg.contains("broken pipe")

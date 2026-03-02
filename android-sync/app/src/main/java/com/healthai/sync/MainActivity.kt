@@ -1,11 +1,15 @@
 package com.healthai.sync
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +46,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+private const val ACTION_HEALTH_CONNECT_SETTINGS = "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS"
+private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +78,7 @@ private fun HealthSyncScreen() {
 
     var apiKeyInput by rememberSaveable { mutableStateOf("") }
     var isSyncing by remember { mutableStateOf(false) }
+    var isRepairing by remember { mutableStateOf(false) }
     var transientMessage by remember { mutableStateOf("") }
     var permissionRefreshToken by remember { mutableIntStateOf(0) }
 
@@ -92,7 +100,7 @@ private fun HealthSyncScreen() {
     val sdkStatus = remember(permissionRefreshToken) { runner.sdkStatus() }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = PermissionController.createRequestPermissionResultContract()
+        contract = PermissionController.createRequestPermissionResultContract(),
     ) {
         permissionRefreshToken += 1
     }
@@ -105,13 +113,13 @@ private fun HealthSyncScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("Health Sync", style = MaterialTheme.typography.headlineSmall)
-        Text("サーバー URL: ${AppConfig.SERVER_BASE_URL}", style = MaterialTheme.typography.bodySmall)
+        Text("サーバーURL: ${AppConfig.SERVER_BASE_URL}", style = MaterialTheme.typography.bodySmall)
 
         OutlinedTextField(
             value = apiKeyInput,
             onValueChange = { apiKeyInput = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("API キー") },
+            label = { Text("APIキー") },
             singleLine = true,
         )
 
@@ -123,7 +131,7 @@ private fun HealthSyncScreen() {
                     transientMessage = "APIキーを保存しました"
                 }
             },
-            enabled = !isSyncing,
+            enabled = !isSyncing && !isRepairing,
         ) {
             Text("APIキーを保存")
         }
@@ -135,39 +143,103 @@ private fun HealthSyncScreen() {
         }
         Text(sdkText, style = MaterialTheme.typography.bodyMedium)
         Text(
-            if (allPermissionsGranted) "権限: 付与済み" else "権限: 未付与",
+            if (allPermissionsGranted) "権限: すべて付与済み" else "権限: 未付与あり",
             style = MaterialTheme.typography.bodyMedium,
         )
 
-        Button(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            enabled = sdkStatus == HealthConnectClient.SDK_AVAILABLE && !isSyncing,
-            onClick = { permissionLauncher.launch(requiredPermissions) },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("権限を確認・設定")
+            Button(
+                modifier = Modifier.weight(1f),
+                enabled = sdkStatus == HealthConnectClient.SDK_AVAILABLE && !isSyncing && !isRepairing,
+                onClick = { permissionLauncher.launch(requiredPermissions) },
+            ) {
+                Text("権限を設定")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                enabled = !isSyncing && !isRepairing,
+                onClick = {
+                    transientMessage = openHealthConnectSettings(appContext)
+                    permissionRefreshToken += 1
+                },
+            ) {
+                Text("HC設定を開く")
+            }
         }
 
-        Button(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isSyncing,
-            onClick = {
-                scope.launch {
-                    isSyncing = true
-                    val outcome = runner.syncNow()
-                    transientMessage = outcome.message
-                    isSyncing = false
-                }
-            },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(if (isSyncing) "同期中..." else "今すぐ同期する")
+            Button(
+                modifier = Modifier.weight(1f),
+                enabled = !isSyncing && !isRepairing,
+                onClick = {
+                    scope.launch {
+                        isSyncing = true
+                        val outcome = runner.syncNow()
+                        transientMessage = outcome.message
+                        isSyncing = false
+                    }
+                },
+            ) {
+                Text(if (isSyncing) "同期中..." else "今すぐ同期する")
+            }
+
+            Button(
+                modifier = Modifier.weight(1f),
+                enabled = !isSyncing && !isRepairing,
+                onClick = {
+                    scope.launch {
+                        isRepairing = true
+                        val outcome = runner.repairCursorFromServer()
+                        transientMessage = outcome.message
+                        isRepairing = false
+                    }
+                },
+            ) {
+                Text(if (isRepairing) "修復中..." else "カーソル修復")
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text("最終同期: ${formatSyncTime(lastSyncMs)}", style = MaterialTheme.typography.bodyMedium)
-        Text("同期結果: ${if (lastResult.isBlank()) "未実行" else lastResult}", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            "同期結果: ${if (lastResult.isBlank()) "未実行" else lastResult}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
         if (transientMessage.isNotBlank()) {
             Text("メッセージ: $transientMessage", style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+private fun openHealthConnectSettings(context: Context): String {
+    return try {
+        context.startActivity(
+            Intent(ACTION_HEALTH_CONNECT_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
+        "Health Connect設定を開きました"
+    } catch (_: ActivityNotFoundException) {
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(HEALTH_CONNECT_PACKAGE)
+        if (launchIntent != null) {
+            context.startActivity(
+                launchIntent.apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+            )
+            "Health Connectアプリを開きました"
+        } else {
+            "Health Connectアプリが見つかりません"
+        }
+    } catch (e: Exception) {
+        "Health Connect設定を開けませんでした: ${e.message ?: e.javaClass.simpleName}"
     }
 }
 
