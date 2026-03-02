@@ -1724,9 +1724,28 @@ type HomeInnerTab = 'composition' | 'vital' | 'sleep'
 type HomeStatusTone = 'normal' | 'warning' | 'critical'
 type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
 type ScoreColor = 'green' | 'yellow' | 'red'
+type InsightType = 'positive' | 'attention' | 'threshold'
+type InsightDomain = 'sleep' | 'body' | 'bp' | 'activity'
 type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
 type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
 type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
+
+interface ScoreInsight {
+  type: InsightType
+  domain: InsightDomain
+  text: string
+}
+
+interface ScoresBaseline {
+  sleep: number
+  body: number
+  bp: number
+  activity: number
+}
+
+interface InsightCandidate extends ScoreInsight {
+  priority: number
+}
 
 interface HomeStatusItemPayload {
   key: HomeStatusKey
@@ -3223,6 +3242,178 @@ function trendScore(currentScore: number, baselineScore: number): number {
   return clampScore(100 - Math.abs(currentScore - baselineScore) * 1.2)
 }
 
+function hasInsightMetric(row: DailyMetricRow): boolean {
+  return (
+    (row.sleep_hours != null && Number.isFinite(row.sleep_hours)) ||
+    (row.spo2_pct != null && Number.isFinite(row.spo2_pct)) ||
+    (row.weight_kg != null && Number.isFinite(row.weight_kg)) ||
+    (row.body_fat_pct != null && Number.isFinite(row.body_fat_pct)) ||
+    (row.blood_systolic != null && Number.isFinite(row.blood_systolic)) ||
+    (row.blood_diastolic != null && Number.isFinite(row.blood_diastolic)) ||
+    (row.steps != null && Number.isFinite(row.steps)) ||
+    (row.active_kcal != null && Number.isFinite(row.active_kcal))
+  )
+}
+
+function generateInsights(
+  todayRow: DailyMetricRow | null,
+  rows: DailyMetricRow[],
+  baseline: ScoresBaseline,
+  profile: UserProfileRow,
+): ScoreInsight[] {
+  if (todayRow == null || !hasInsightMetric(todayRow)) {
+    return []
+  }
+
+  const historyRows = rows.filter((row) => row.date !== todayRow.date)
+  const historyMetricDays = historyRows.filter((row) => hasInsightMetric(row)).length
+  if (historyMetricDays < 3) {
+    return []
+  }
+
+  const sleepGoalMinutes = profile.sleep_goal_minutes > 0 ? profile.sleep_goal_minutes : 420
+  const stepsGoal = profile.steps_goal > 0 ? profile.steps_goal : 8000
+
+  const currentDomainScores: Record<InsightDomain, number | null> = {
+    sleep: sleepAbsoluteScore(todayRow, sleepGoalMinutes),
+    body: bodyAbsoluteScore(todayRow, profile),
+    bp: bpAbsoluteScore(todayRow),
+    activity: activityAbsoluteScore(todayRow, stepsGoal),
+  }
+
+  const historyCounts: Record<InsightDomain, number> = {
+    sleep: historyRows.map((row) => sleepAbsoluteScore(row, sleepGoalMinutes)).filter((score) => score != null).length,
+    body: historyRows.map((row) => bodyAbsoluteScore(row, profile)).filter((score) => score != null).length,
+    bp: historyRows.map((row) => bpAbsoluteScore(row)).filter((score) => score != null).length,
+    activity: historyRows.map((row) => activityAbsoluteScore(row, stepsGoal)).filter((score) => score != null).length,
+  }
+
+  const candidates: InsightCandidate[] = []
+  const addCandidate = (candidate: InsightCandidate): void => {
+    const duplicate = candidates.some(
+      (item) => item.type === candidate.type && item.domain === candidate.domain && item.text === candidate.text,
+    )
+    if (!duplicate) {
+      candidates.push({ ...candidate })
+    }
+  }
+
+  const sys = todayRow.blood_systolic
+  const dia = todayRow.blood_diastolic
+  if (sys != null && dia != null && Number.isFinite(sys) && Number.isFinite(dia)) {
+    if (sys > 135 || dia > 85) {
+      const severity = Math.max(0, sys - 135) + Math.max(0, dia - 85)
+      addCandidate({
+        type: 'threshold',
+        domain: 'bp',
+        text: '今日の血圧は高めでした。塩分を控えて、早めに休みましょう。',
+        priority: 120 + severity,
+      })
+    } else if (sys < 130 && dia < 85) {
+      addCandidate({
+        type: 'positive',
+        domain: 'bp',
+        text: '今日の血圧は落ち着いていて、安定した状態を保てています。',
+        priority: 55,
+      })
+    }
+  }
+
+  const positiveMessages: Record<InsightDomain, string> = {
+    sleep: '睡眠の調子がいつもより良く、体をしっかり休められています。',
+    body: '体のコンディションがいつもより良い状態です。',
+    bp: '血圧の調子がいつもより安定しています。',
+    activity: '活動量がいつもよりしっかり確保できています。',
+  }
+  const attentionMessages: Record<InsightDomain, string> = {
+    sleep: '睡眠の調子がいつもより落ちています。今夜は少し早めに休みましょう。',
+    body: '体のコンディションがいつもより下がっています。食事と休息を整えましょう。',
+    bp: '血圧の調子がいつもより不安定です。無理をせず落ち着いて過ごしましょう。',
+    activity: '活動量がいつもより少なめです。短い散歩から戻していきましょう。',
+  }
+
+  ;(['sleep', 'body', 'bp', 'activity'] as InsightDomain[]).forEach((domain) => {
+    const score = currentDomainScores[domain]
+    const historyCount = historyCounts[domain]
+    const domainBaseline = baseline[domain]
+    if (score == null || historyCount < 3 || !Number.isFinite(domainBaseline) || domainBaseline <= 0) {
+      return
+    }
+
+    const deviation = (score - domainBaseline) / domainBaseline
+    const magnitude = Math.abs(deviation)
+    if (magnitude < 0.2) {
+      return
+    }
+
+    if (deviation > 0) {
+      addCandidate({
+        type: 'positive',
+        domain,
+        text: positiveMessages[domain],
+        priority: 70 + magnitude * 40,
+      })
+      return
+    }
+
+    addCandidate({
+      type: 'attention',
+      domain,
+      text: attentionMessages[domain],
+      priority: 90 + magnitude * 40,
+    })
+  })
+
+  const sleepMinutes =
+    todayRow.sleep_hours != null && Number.isFinite(todayRow.sleep_hours) ? Math.round(todayRow.sleep_hours * 60) : null
+  if (sleepMinutes != null && sleepMinutes >= sleepGoalMinutes) {
+    addCandidate({
+      type: 'positive',
+      domain: 'sleep',
+      text: '睡眠目標を達成できました。回復のリズムが整っています。',
+      priority: 65,
+    })
+  }
+
+  if (todayRow.steps != null && Number.isFinite(todayRow.steps) && todayRow.steps >= stepsGoal) {
+    addCandidate({
+      type: 'positive',
+      domain: 'activity',
+      text: '歩数目標を達成できました。よく体を動かせています。',
+      priority: 66,
+    })
+  }
+
+  if (
+    todayRow.weight_kg != null &&
+    Number.isFinite(todayRow.weight_kg) &&
+    profile.goal_weight_kg != null &&
+    Number.isFinite(profile.goal_weight_kg) &&
+    Math.abs(todayRow.weight_kg - profile.goal_weight_kg) <= 1
+  ) {
+    addCandidate({
+      type: 'positive',
+      domain: 'body',
+      text: '体重が目標に近い位置で安定しています。',
+      priority: 64,
+    })
+  }
+
+  if (!candidates.some((item) => item.type === 'positive')) {
+    addCandidate({
+      type: 'positive',
+      domain: 'activity',
+      text: '今日の記録を続けられています。この積み重ねが体調管理につながります。',
+      priority: 40,
+    })
+  }
+
+  return [...candidates]
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 5)
+    .map(({ priority, ...insight }) => ({ ...insight }))
+}
+
 function sleepSummary(row: Pick<DailyMetricRow, 'sleep_hours'> | null, profile: UserProfileRow): string {
   if (!row || row.sleep_hours == null || row.sleep_hours <= 0) {
     return '\u7761\u7720\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'
@@ -3376,16 +3567,20 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
           color: scoreColor(clampScore(overallValue)),
         }
 
+  const baseline: ScoresBaseline = {
+    sleep: baselineSleep,
+    body: baselineBody,
+    bp: baselineBp,
+    activity: baselineActivity,
+  }
+  const insights = generateInsights(current, rows, baseline, profile)
+
   return {
     date,
     overall,
     domains,
-    baseline: {
-      sleep: baselineSleep,
-      body: baselineBody,
-      bp: baselineBp,
-      activity: baselineActivity,
-    },
+    baseline: { ...baseline },
+    insights,
   }
 }
 
