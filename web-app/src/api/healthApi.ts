@@ -5,6 +5,7 @@ import type {
   NutrientTargetsResponse,
   NutritionDayResponse,
   ProfileResponse,
+  ProfileUpdateRequest,
   PromptResponse,
   ReportDetailResponse,
   ReportType,
@@ -54,6 +55,13 @@ export async function fetchNutrientTargets(date: string): Promise<NutrientTarget
 
 export async function fetchProfile(): Promise<ProfileResponse> {
   return apiFetch<ProfileResponse>('/api/profile')
+}
+
+export async function saveProfile(payload: ProfileUpdateRequest): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>('/api/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
 }
 
 export async function fetchReports(reportType: ReportType): Promise<ReportsListResponse> {

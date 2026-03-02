@@ -130,6 +130,17 @@
   min-width: 0;
 }
 
+.setup-loading-card {
+  margin: 12px auto 0;
+  width: min(100%, 560px);
+  border: 1px solid rgba(136, 212, 180, 0.3);
+  border-radius: 14px;
+  background: var(--surface-color);
+  color: var(--text-muted);
+  padding: 18px 16px;
+  text-align: center;
+}
+
 /* Bottom Nav */
 .bottom-nav {
   position: fixed;

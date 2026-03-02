@@ -154,13 +154,42 @@ export interface NutrientTargetsResponse {
 }
 
 export interface ProfileResponse {
+  user_id?: string
+  age?: number | null
+  gender?: 'male' | 'female' | 'other' | null
   name?: string
-  height_cm?: number
-  birth_year?: number
+  height_cm?: number | null
+  birth_year?: number | null
   sex?: 'male' | 'female' | 'other'
-  goal_weight_kg?: number
-  sleep_goal_minutes?: number
-  steps_goal?: number
+  goal_weight_kg?: number | null
+  sleep_goal_minutes?: number | null
+  steps_goal?: number | null
+  weight_goal?: 'lose' | 'gain' | 'maintain' | null
+  bp_goal_systolic?: number | null
+  bp_goal_diastolic?: number | null
+  lens_weight?: 0 | 1
+  lens_bp?: 0 | 1
+  lens_sleep?: 0 | 1
+  lens_performance?: 0 | 1
+  exercise_freq?: 'none' | 'weekly12' | 'weekly35' | 'daily' | null
+  exercise_type?: 'walk' | 'gym' | 'run' | 'bodyweight' | 'none' | null
+  exercise_intensity?: 'light' | 'moderate' | 'high' | null
+}
+
+export interface ProfileUpdateRequest {
+  age?: number | null
+  gender?: 'male' | 'female' | 'other' | null
+  height_cm?: number | null
+  weight_goal?: 'lose' | 'gain' | 'maintain' | null
+  bp_goal_systolic?: number | null
+  bp_goal_diastolic?: number | null
+  lens_weight?: 0 | 1
+  lens_bp?: 0 | 1
+  lens_sleep?: 0 | 1
+  lens_performance?: 0 | 1
+  exercise_freq?: 'none' | 'weekly12' | 'weekly35' | 'daily' | null
+  exercise_type?: 'walk' | 'gym' | 'run' | 'bodyweight' | 'none' | null
+  exercise_intensity?: 'light' | 'moderate' | 'high' | null
 }
 
 export type ReportType = 'daily' | 'weekly' | 'monthly'

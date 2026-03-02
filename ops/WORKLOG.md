@@ -13,6 +13,13 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-03-02 (4)
+- Owner: Codex
+- Scope: B2-SETUP（初回セットアップ画面）実装
+- Result: 初回アクセス時にセットアップを表示し、4ステップ（基本情報・目的レンズ・運動プロフィール・完了）で入力できるようにした。スキップ導線を追加し、保存時はプロフィール保存機能へ接続。完了またはスキップ後は2回目以降にホームへ直行する導線を実装。ビルド確認は成功。
+- Files: `web-app/src/App.tsx`, `web-app/src/App.css`, `web-app/src/api/healthApi.ts`, `web-app/src/api/types.ts`, `web-app/src/screens/SetupScreen.tsx`, `web-app/src/screens/SetupScreen.css`, `ops/archive/CEO_DASHBOARD.html`, `ops/WORKLOG.md`, `handoff/incoming/20260302-codex-b2-setup-questionnaire.md`
+- Risk/Follow-up: スキップ時は端末内の初回完了フラグで再表示を抑制しているため、別端末では再度セットアップが表示される。全端末で統一したい場合はサーバー側に「セットアップ完了フラグ」を追加する。
+
 ### 2026-03-02 (3)
 - Owner: Codex
 - Scope: A3-PROFILE（ユーザープロフィール保存API）実装
