@@ -242,6 +242,7 @@ const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'activity' | 'nutrition'
   nutrition: 75,
   condition: 73,
 }
+const DEFAULT_BMR_KCAL = 1500
 const DEFAULT_LLM_PROVIDER = 'anthropic'
 const DEFAULT_LLM_MODEL = 'claude-haiku-4-5-20251001'
 const LLM_TIMEOUT_MS = 30_000
@@ -3331,16 +3332,17 @@ function activityAbsoluteScore(
 }
 
 function nutritionAbsoluteScore(row: Pick<DailyMetricRow, 'intake_kcal' | 'bmr_kcal'>): number | null {
-  if (row.intake_kcal == null || !Number.isFinite(row.intake_kcal)) {
+  if (row.intake_kcal == null || !Number.isFinite(row.intake_kcal) || row.intake_kcal < 0) {
     return null
   }
 
-  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : 1500
+  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : DEFAULT_BMR_KCAL
   const ratio = row.intake_kcal / bmrKcal
 
   let score: number
   if (ratio >= 0.9 && ratio <= 1.4) {
-    score = 90 + (1.0 - Math.abs(ratio - 1.15)) * 40
+    // 1.15 中心で 100、範囲端（0.9, 1.4）で 90 となる勾配
+    score = 100 - Math.abs(ratio - 1.15) * 40
   } else if (ratio >= 0.7 && ratio < 0.9) {
     score = 70 - (0.9 - ratio) * 100
   } else if (ratio > 1.4 && ratio <= 1.8) {
@@ -3475,23 +3477,18 @@ function generateInsights(
     }
   }
 
-  const positiveMessages: Record<string, string> = {
+  const positiveMessages: Record<InsightDomain, string> = {
     sleep: '睡眠の調子がいつもより良く、体をしっかり休められています。',
-    body: '体のコンディションがいつもより良い状態です。',
-    bp: '血圧の調子がいつもより安定しています。',
     activity: '活動量がいつもよりしっかり確保できています。',
+    nutrition: '食事バランスがいつもより良好です。',
+    condition: 'コンディションがいつもより良い状態です。',
   }
-  const attentionMessages: Record<string, string> = {
+  const attentionMessages: Record<InsightDomain, string> = {
     sleep: '睡眠の調子がいつもより落ちています。今夜は少し早めに休みましょう。',
-    body: '体のコンディションがいつもより下がっています。食事と休息を整えましょう。',
-    bp: '血圧の調子がいつもより不安定です。無理をせず落ち着いて過ごしましょう。',
     activity: '活動量がいつもより少なめです。短い散歩から戻していきましょう。',
+    nutrition: '食事バランスがいつもより崩れています。摂取量を整えましょう。',
+    condition: 'コンディションがいつもより不安定です。無理をせず体調管理を優先しましょう。',
   }
-
-  positiveMessages.nutrition = '食事バランスがいつもより良好です。'
-  positiveMessages.condition = 'コンディションがいつもより良い状態です。'
-  attentionMessages.nutrition = '食事バランスがいつもより崩れています。摂取量を整えましょう。'
-  attentionMessages.condition = 'コンディションがいつもより不安定です。無理をせず体調管理を優先しましょう。'
 
   ;(['sleep', 'activity', 'nutrition', 'condition'] as InsightDomain[]).forEach((domain) => {
     const score = currentDomainScores[domain]
@@ -3639,7 +3636,7 @@ function nutritionSummary(row: Pick<DailyMetricRow, 'intake_kcal' | 'bmr_kcal'> 
   if (!row || row.intake_kcal == null || !Number.isFinite(row.intake_kcal)) {
     return '食事データがありません'
   }
-  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : 1500
+  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : DEFAULT_BMR_KCAL
   const ratio = row.intake_kcal / bmrKcal
   if (ratio < 0.8) {
     return '摂取カロリーがやや少なめです'
@@ -4012,6 +4009,23 @@ function buildDailyReportPrompt(params: {
     '- 絵文字は一切使わない',
     '- 各コメントは80〜150文字（日本語）',
     '- データがnullの領域は触れずにスキップする',
+    '',
+    '# 比較の基準',
+    '- 「高め」「低め」「改善」「悪化」を判断する基準は、医学基準ではなくユーザー個人の14日平均（ベースライン）を使う',
+    '- 例: 血圧の14日平均が132/82で今日が129/86なら「平均より少し下がっています」が正しい',
+    '- 医学的な正常値に触れる場合は「一般的な基準では〜」と明示する',
+    '',
+    '# コメントの構成ルール',
+    '- 各コメントは「事実の確認→ポジティブな解釈or具体的な提案」の順にする',
+    '- 数値が悪くても、まず客観的に事実を述べ、次に具体的で実行可能なアクションを1つ提案する',
+    '- 「頑張りましょう」「意識しましょう」のような抽象的な励ましは避け、具体的な行動を提案する',
+    '  - 悪い例: 「歩数を増やす工夫を始めてみましょう」',
+    '  - 良い例: 「昼食後に10分だけ近所を歩くと、無理なく2000歩ほど上乗せできますよ」',
+    '',
+    '# home と tabs の役割分担',
+    '- home（ホーム画面）: その専門家が今日一番伝えたいこと1つに絞る。概要として機能する',
+    '- tabs（タブ画面）: homeとは別の切り口で書く。具体的なデータ比較・トレンド分析・行動提案を含める',
+    '- homeとtabsで同じ話題を繰り返してはならない。例えばhomeで血圧に触れたら、tabsでは体重や心拍など別の指標に焦点を当てる',
   ].join('\n')
 
   const userPrompt = [
@@ -4047,22 +4061,32 @@ function buildDailyReportPrompt(params: {
     '## ユウ先生（内科医・男性）',
     '担当: homeのyuコメント + tabsのconditionコメント',
     'トーン: 穏やかで安心感がある。データを噛み砕いて丁寧に伝える。',
-    '口癖: 「焦らなくて大丈夫ですよ」',
-    '特徴: 季節と体調の関連を自然に織り込む。血圧・体重・睡眠など身体データを中心に語る。',
-    '例文: 「血圧が安定してきていますね。この時期は寒暖差で揺れやすいので、引き続き朝の測定を続けていきましょう。焦らなくて大丈夫ですよ。」',
+    '特徴: 14日平均との比較で「改善/横ばい/注意」を正確に判定する。季節と体調の関連を自然に織り込む。',
+    '注意: 血圧が14日平均より下がっていれば「改善傾向」と書く。平均より上がっていれば「やや上がっている」と書く。方向を間違えない。',
+    'homeの書き方: 今日のコンディションで一番伝えたいことを1つ。安心感を与える締め。',
+    'tabsの書き方: homeで触れなかった指標のトレンド分析。14日間の変化と具体的な生活改善提案。',
+    '例文: 「今日の血圧は14日平均より少し下がっていますね。この調子で減塩を続けていけば、安定したラインに近づいていきますよ。」',
     '',
     '## サキさん（管理栄養士・女性）',
     '担当: homeのsakiコメント + tabsのmealコメント',
     'トーン: 明るく親しみやすい。旬の食材や具体的なメニュー提案が得意。',
-    '信条: 「美味しく続ける」',
-    '特徴: 制限ではなく「こうすると美味しいですよ」という提案型。摂取カロリーや栄養バランスに触れる。',
+    '特徴: 制限ではなく「こうすると美味しいですよ」という提案型。季節の食材を具体的なメニュー名で提案する。',
+    'homeの書き方: 今日の食事状況をサッと触れて、旬の食材を使った具体的な一品を提案。',
+    'tabsの書き方: カロリーバランスや栄養面のトレンドを分析し、1週間単位での食事パターン改善を提案。',
+    '食事記録がない場合: 「記録がない」とだけ指摘せず、記録することのメリットと、今日食べると良い具体メニューを提案する。',
     '例文: 「たんぱく質がしっかり摂れていますね。今の時期は新玉ねぎが甘くて美味しいので、スライスしてかつお節をのせるだけで立派な一品になりますよ。」',
     '',
     '## マイコーチ（パーソナルトレーナー・女性）',
     '担当: homeのmaiコメント + tabsのactivityコメント',
-    'トーン: ポジティブで励まし上手。小さな進歩でも必ず褒める。',
-    '特徴: 歩数・活動量・運動習慣を中心に語る。無理な提案はせず、今の状態から一歩だけ先を示す。',
-    '例文: 「昨日より歩数が増えていますね。この調子で続けていけば、来週には目標の8000歩が自然と達成できるようになりますよ。」',
+    'トーン: ポジティブで励まし上手。コーチとして具体的なメニューを提案する。',
+    '特徴: ユーザーの運動種目・頻度を踏まえて、今日できる具体的な運動を1つ提案する。',
+    '重要: 「歩数が少ない」「目標未達」という事実の報告だけではAIの価値がない。コーチとして「今日これをやろう」という具体的アクションを必ず含める。',
+    `  - ユーザーの運動種目: ${profile.exercise_type ?? '未設定'}`,
+    `  - ユーザーの運動頻度: ${profile.exercise_freq ?? '未設定'}`,
+    'homeの書き方: 今日の活動で良かった点を見つけて褒め、+αの具体アクション1つ。',
+    'tabsの書き方: 14日間の活動トレンドを分析し、週間での運動リズムを提案。歩数だけでなく消費カロリーや距離も活用。',
+    '歩数が極端に少ない日: 「歩数が少ない」と繰り返さず、「今日は室内で過ごす日のようですね」と受け入れた上で、室内でできるストレッチや筋トレを提案する。',
+    '例文: 「今日は室内中心の一日だったようですね。夕食前に5分だけスクワットとストレッチをすると、明日の身体が軽くなりますよ。」',
     '',
     '---',
     '# 出力フォーマット（このJSON構造を厳守）',
