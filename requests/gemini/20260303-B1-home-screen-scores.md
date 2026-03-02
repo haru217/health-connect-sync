@@ -176,3 +176,14 @@ home-summary APIから取得する既存データを流用する:
 9. ローディング中はスケルトン表示
 10. APIエラー時はフォールバック表示
 11. 既存の注目ポイント・専門家コメント・レポートセクションが正常に表示される
+
+## CTO注記（2026-03-03）
+
+### ドメイン名に注意
+A1v2で4ドメインのキー名が変更済み。フロントの型定義も以下に合わせること:
+- 旧: `body`, `bp` → 新: `nutrition`, `condition`
+- scores APIは `sleep`, `activity`, `nutrition`, `condition` を返す
+
+### 実数値はscores APIから取得可能に
+A1v3（完了済み）でscores APIに `values` オブジェクトを追加済み。
+home-summary APIからの取得は不要になった。`values.label` をそのまま表示すればよい。
