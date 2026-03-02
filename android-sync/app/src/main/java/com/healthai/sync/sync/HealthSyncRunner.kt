@@ -2,27 +2,10 @@ package com.healthai.sync.sync
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
-import androidx.health.connect.client.records.BasalBodyTemperatureRecord
-import androidx.health.connect.client.records.BasalMetabolicRateRecord
-import androidx.health.connect.client.records.BloodPressureRecord
-import androidx.health.connect.client.records.BodyTemperatureRecord
-import androidx.health.connect.client.records.BodyFatRecord
-import androidx.health.connect.client.records.DistanceRecord
-import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.HeartRateRecord
-import androidx.health.connect.client.records.HeightRecord
-import androidx.health.connect.client.records.OxygenSaturationRecord
-import androidx.health.connect.client.records.RestingHeartRateRecord
-import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.SpeedRecord
-import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
-import androidx.health.connect.client.records.WeightRecord
 import com.healthai.sync.AppConfig
 import com.healthai.sync.data.SettingsStore
 import com.healthai.sync.health.HealthConnectReader
+import com.healthai.sync.health.HealthRecordRegistry
 import com.healthai.sync.net.SyncApiClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -41,25 +24,12 @@ class HealthSyncRunner(
     private val appContext = context.applicationContext
 
     companion object {
-        val requiredPermissions: Set<String> = setOf(
-            HealthPermission.getReadPermission(StepsRecord::class),
-            HealthPermission.getReadPermission(WeightRecord::class),
-            HealthPermission.getReadPermission(SleepSessionRecord::class),
-            HealthPermission.getReadPermission(HeartRateRecord::class),
-            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-            HealthPermission.getReadPermission(DistanceRecord::class),
-            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
-            HealthPermission.getReadPermission(SpeedRecord::class),
-            HealthPermission.getReadPermission(RestingHeartRateRecord::class),
-            HealthPermission.getReadPermission(BloodPressureRecord::class),
-            HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-            HealthPermission.getReadPermission(BodyTemperatureRecord::class),
-            HealthPermission.getReadPermission(BasalBodyTemperatureRecord::class),
-            HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
-            HealthPermission.getReadPermission(HeightRecord::class),
-            HealthPermission.getReadPermission(BodyFatRecord::class),
-        )
+        val requiredPermissions: Set<String> = HealthRecordRegistry.readPermissions
+
+        private val initialLookback: Duration = Duration.ofDays(30)
+        private val overlap: Duration = Duration.ofMinutes(5)
+        private val windowSize: Duration = Duration.ofDays(1)
+        private const val maxWindowsPerRun: Int = 3
     }
 
     fun sdkStatus(): Int = HealthConnectClient.getSdkStatus(appContext)
@@ -94,46 +64,79 @@ class HealthSyncRunner(
             return@withContext SyncOutcome.NonRetryableError(msg)
         }
 
-        val end = Instant.now()
-        val deviceId = settings.ensureDeviceId()
-        val localLastSyncMs = settings.getLastSyncEpochMs()
-        val serverLastSyncMs = if (localLastSyncMs != null && localLastSyncMs > 0L) {
-            null
-        } else {
-            runCatching { client.getSyncCursorEpochMs(apiKey, deviceId) }.getOrNull()
-        }
-        val effectiveLastSyncMs = localLastSyncMs ?: serverLastSyncMs
-        if (localLastSyncMs == null && serverLastSyncMs != null && serverLastSyncMs > 0L) {
-            settings.saveSyncOutcome(serverLastSyncMs, "Cursor repaired from server")
-        }
-        val start = if (effectiveLastSyncMs != null && effectiveLastSyncMs > 0L) {
-            Instant.ofEpochMilli(effectiveLastSyncMs).minus(Duration.ofMinutes(5))
-        } else {
-            end.minus(Duration.ofDays(7))
-        }
-
         try {
-            val records = reader.readRecords(start, end)
+            val now = Instant.now()
+            val deviceId = settings.ensureDeviceId()
+            val localLastSyncMs = settings.getLastSyncEpochMs()
+            val serverLastSyncMs = if (localLastSyncMs != null && localLastSyncMs > 0L) {
+                null
+            } else {
+                runCatching { client.getSyncCursorEpochMs(apiKey, deviceId) }.getOrNull()
+            }
+            val effectiveLastSyncMs = localLastSyncMs ?: serverLastSyncMs
+            if (localLastSyncMs == null && serverLastSyncMs != null && serverLastSyncMs > 0L) {
+                settings.saveSyncOutcome(serverLastSyncMs, "Cursor repaired from server")
+            }
+
+            var cursor = if (effectiveLastSyncMs != null && effectiveLastSyncMs > 0L) {
+                Instant.ofEpochMilli(effectiveLastSyncMs).minus(overlap)
+            } else {
+                now.minus(initialLookback)
+            }
+
+            if (effectiveLastSyncMs == null || effectiveLastSyncMs <= 0L) {
+                val minCursor = now.minus(initialLookback)
+                if (cursor.isBefore(minCursor)) {
+                    cursor = minCursor
+                }
+            }
+
             var upsertedTotal = 0
             var skippedTotal = 0
             var sentChunks = 0
+            var windowsDone = 0
+            var lastWindowEnd: Instant? = null
 
-            for (chunk in records.chunked(100)) {
-                val response = postChunkWithRepair(
-                    apiKey = apiKey,
-                    deviceId = deviceId,
-                    start = start,
-                    end = end,
-                    records = chunk,
-                    grantedPermissions = granted,
+            while (cursor.isBefore(now) && windowsDone < maxWindowsPerRun) {
+                val windowEnd = minOf(now, cursor.plus(windowSize))
+                val records = reader.readRecords(cursor, windowEnd)
+                for (chunk in records.chunked(100)) {
+                    val response = postChunkWithRepair(
+                        apiKey = apiKey,
+                        deviceId = deviceId,
+                        start = cursor,
+                        end = windowEnd,
+                        records = chunk,
+                        grantedPermissions = granted,
+                    )
+                    upsertedTotal += response.upsertedCount
+                    skippedTotal += response.skippedCount
+                    sentChunks += 1
+                }
+
+                settings.saveSyncOutcome(
+                    windowEnd.toEpochMilli(),
+                    "Sync progress: upserted ${upsertedTotal} (skipped ${skippedTotal}, chunks ${sentChunks}, windows ${windowsDone + 1})",
                 )
-                upsertedTotal += response.upsertedCount
-                skippedTotal += response.skippedCount
-                sentChunks += 1
+
+                lastWindowEnd = windowEnd
+                cursor = windowEnd
+                windowsDone += 1
             }
 
-            val message = "Sync complete: ${upsertedTotal} upserted (skipped ${skippedTotal}, chunks ${sentChunks})"
-            settings.saveSyncOutcome(end.toEpochMilli(), message)
+            val hasRemaining = cursor.isBefore(now.minusSeconds(60))
+            if (hasRemaining) {
+                SyncScheduler.enqueueCatchUpNow(appContext)
+            }
+
+            val finalSyncMs = (lastWindowEnd ?: now).toEpochMilli()
+            val message = buildString {
+                append("Sync complete: ${upsertedTotal} upserted (skipped ${skippedTotal}, chunks ${sentChunks}, windows ${windowsDone})")
+                if (hasRemaining) {
+                    append(", catch-up queued")
+                }
+            }
+            settings.saveSyncOutcome(finalSyncMs, message)
             return@withContext SyncOutcome.Success(message)
         } catch (io: IOException) {
             val msg = "Network error: ${io.message ?: io.javaClass.simpleName}"
@@ -219,7 +222,7 @@ class HealthSyncRunner(
                 throw e
             }
 
-            if (records.size > 50) {
+            if (records.size > 1) {
                 val mid = records.size / 2
                 val left = postChunkWithRepair(
                     apiKey = apiKey,
@@ -244,7 +247,7 @@ class HealthSyncRunner(
                 )
             }
 
-            if (attempt >= 2) {
+            if (attempt >= 4) {
                 throw RuntimeException(
                     "SYNC_REPAIR_FAILED(size=${records.size}): ${e.message ?: e.javaClass.simpleName}",
                     e,
@@ -254,7 +257,9 @@ class HealthSyncRunner(
             val backoffMs = when (attempt) {
                 0 -> 1_000L
                 1 -> 2_500L
-                else -> 5_000L
+                2 -> 5_000L
+                3 -> 8_000L
+                else -> 12_000L
             }
             delay(backoffMs)
             return postChunkWithRepair(
