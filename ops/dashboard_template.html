@@ -35,9 +35,7 @@
             --radius-sm: 8px;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -93,9 +91,7 @@
             color: var(--text-main);
         }
 
-        .nav-section {
-            padding: 0 12px;
-        }
+        .nav-section { padding: 0 12px; }
 
         .nav-title {
             font-size: 12px;
@@ -120,17 +116,8 @@
             transition: all 0.2s;
             margin-bottom: 2px;
         }
-
-        .nav-item:hover {
-            background: var(--surface);
-            color: var(--text-main);
-        }
-
-        .nav-item.active {
-            background: var(--surface);
-            color: var(--text-main);
-            border-left: 3px solid var(--accent);
-        }
+        .nav-item:hover { background: var(--surface); color: var(--text-main); }
+        .nav-item.active { background: var(--surface); color: var(--text-main); border-left: 3px solid var(--accent); }
 
         .nav-badge {
             background: var(--line);
@@ -148,15 +135,8 @@
             flex-direction: column;
             gap: 24px;
         }
-
-        .main-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .main-content::-webkit-scrollbar-thumb {
-            background: var(--line);
-            border-radius: 3px;
-        }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
         .hero {
             background: linear-gradient(135deg, var(--hero-a), var(--hero-b));
@@ -167,290 +147,195 @@
             flex-direction: column;
             gap: 16px;
         }
+        .hero-h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+        .meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .tag { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 12px; background: var(--surface); color: var(--text-muted); }
+        .ctrl-row { display: flex; gap: 16px; align-items: center; }
+        .ctrl-row select { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-main); font-size: 13px; outline: none; cursor: pointer; }
 
-        .hero-h1 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-
-        .meta-row {
+        /* Tab bar */
+        .tab-bar {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .tag {
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 4px 12px;
-            font-size: 12px;
-            background: var(--surface);
-            color: var(--text-muted);
-        }
-
-        .ctrl-row {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .ctrl-row select {
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--text-main);
-            font-size: 13px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-        }
-
-        .card {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius-md);
-            padding: 16px;
-        }
-
-        .card h3 {
-            margin: 0 0 12px 0;
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .card .val {
-            font-size: 28px;
-            font-weight: 800;
-            font-family: sans-serif;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-
-        .card .sub {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .tasks-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .tasks-header h2 {
-            font-size: 18px;
-            margin: 0;
-        }
-
-        #task-sections {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .task-card {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius-md);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            transition: border-color 0.2s;
-        }
-
-        .task-card:hover {
-            border-color: var(--line-soft);
-        }
-
-        .task-card-title {
-            font-size: 14px;
-            font-weight: 800;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            color: var(--text-main);
-        }
-
-        .task-card-desc {
-            font-size: 12px;
-            color: var(--text-muted);
-            line-height: 1.5;
-            flex: 1;
-        }
-
-        .task-meta {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .select-state {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--text-main);
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-            outline: none;
-            width: 100%;
-        }
-
-        .chip {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .priority-highest {
-            background: var(--block-bg);
-            color: var(--block-text);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .priority-high {
-            background: var(--prog-bg);
-            color: var(--prog-text);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        .thread-details {
-            margin-top: 4px;
+            gap: 0;
             background: var(--surface);
             border-radius: var(--radius-sm);
+            padding: 4px;
             border: 1px solid var(--line);
-            overflow: hidden;
         }
-
-        .thread-summary {
-            padding: 8px 12px;
-            font-size: 11px;
+        .tab-btn {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: "Noto Sans JP", sans-serif;
+            font-size: 14px;
             font-weight: 700;
             cursor: pointer;
-            color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
-            background: var(--surface);
-            user-select: none;
-        }
-
-        .thread-summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .thread-summary:hover {
-            background: var(--line-soft);
-        }
-
-        .thread-msg {
-            padding: 10px 12px;
-            font-size: 11px;
-            line-height: 1.5;
-            border-top: 1px dashed var(--line);
-            color: var(--text-main);
-        }
-
-        .thread-msg .from {
-            font-weight: 800;
-            display: block;
-            margin-bottom: 2px;
-            color: #cbd5e1;
-        }
-
-        .thread-msg.cto .from {
-            color: var(--accent);
-        }
-
-        .stamp {
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 6px;
-            text-align: right;
-        }
-
-        /* 右カラム */
-        .sidebar-right {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .activity-list {
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 16px;
-        }
-
-        .activity-item {
-            position: relative;
-            padding-left: 16px;
-            border-left: 2px solid var(--line);
-        }
-
-        .activity-item::before {
-            content: '';
-            position: absolute;
-            left: -5px;
-            top: 4px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-muted);
-        }
-
-        .activity-item.active::before {
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
-        }
-
-        .act-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 4px;
-            line-height: 1.4;
-        }
-
-        .act-time {
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-
-        .health-status {
-            padding: 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            color: var(--accent);
-            font-weight: 700;
-            font-size: 14px;
+        }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { background: var(--accent); color: #fff; }
+        .tab-badge {
+            background: var(--danger);
+            color: #fff;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-weight: 800;
         }
 
-        .health-dot {
-            width: 10px;
-            height: 10px;
-            background: var(--accent);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent);
+        /* KPI cards */
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; }
+        .card h3 { margin: 0 0 12px 0; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .card .val { font-size: 28px; font-weight: 800; font-family: sans-serif; margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px; }
+        .card .sub { font-size: 12px; color: var(--text-muted); }
+
+        /* CEO View: Screen cards */
+        .screen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .screen-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.2s;
         }
+        .screen-card:hover { border-color: var(--line-soft); }
+        .screen-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 800;
+        }
+        .signal { font-size: 20px; }
+        .screen-card-summary { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+        .screen-card-owner { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+        /* CEO View: Decisions */
+        .decision-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .decision-card.answered { opacity: 0.5; }
+        .decision-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .decision-screen { font-size: 12px; color: var(--accent); font-weight: 700; }
+        .decision-priority { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 800; }
+        .decision-priority.high { background: var(--block-bg); color: var(--block-text); }
+        .decision-priority.medium { background: var(--prog-bg); color: var(--prog-text); }
+        .decision-priority.low { background: var(--todo-bg); color: var(--todo-text); }
+        .decision-question { font-size: 14px; font-weight: 600; line-height: 1.6; }
+        .decision-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .decision-opt-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: "Noto Sans JP", sans-serif;
+        }
+        .decision-opt-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .decision-opt-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .decision-from { font-size: 11px; color: var(--text-muted); }
+        .decision-undo { font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+
+        /* CEO View: Approvals */
+        .approval-banner {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--warning);
+        }
+        .approval-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .approval-title { font-size: 15px; font-weight: 700; }
+        .approval-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+        .approval-actions { display: flex; gap: 8px; }
+        .btn-approve, .btn-reject {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "Noto Sans JP", sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-approve { background: var(--accent); color: #fff; }
+        .btn-approve:hover { background: var(--accent-hover); }
+        .btn-reject { background: var(--danger); color: #fff; }
+        .btn-reject:hover { opacity: 0.8; }
+
+        /* Section headers */
+        .section-title { font-size: 18px; font-weight: 800; margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px; }
+        .section-subtitle { font-size: 14px; font-weight: 700; color: var(--text-muted); margin: 0 0 12px 0; }
+
+        /* Engineer view task sections */
+        .tasks-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .tasks-header h2 { font-size: 18px; margin: 0; }
+        #task-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+        .task-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s; }
+        .task-card:hover { border-color: var(--line-soft); }
+        .task-card-title { font-size: 14px; font-weight: 800; display: flex; justify-content: space-between; align-items: flex-start; color: var(--text-main); }
+        .task-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1; }
+        .task-meta { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+        .select-state { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text-main); font-size: 11px; font-weight: 700; cursor: pointer; outline: none; width: 100%; }
+        .chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; }
+        .priority-highest { background: var(--block-bg); color: var(--block-text); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .priority-high { background: var(--prog-bg); color: var(--prog-text); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .thread-details { margin-top: 4px; background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--line); overflow: hidden; }
+        .thread-summary { padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-muted); display: flex; justify-content: space-between; background: var(--surface); user-select: none; }
+        .thread-summary::-webkit-details-marker { display: none; }
+        .thread-summary:hover { background: var(--line-soft); }
+        .thread-msg { padding: 10px 12px; font-size: 11px; line-height: 1.5; border-top: 1px dashed var(--line); color: var(--text-main); }
+        .thread-msg .from { font-weight: 800; display: block; margin-bottom: 2px; color: #cbd5e1; }
+        .thread-msg.cto .from { color: var(--accent); }
+        .stamp { font-family: monospace; font-size: 10px; color: var(--text-muted); margin-top: 6px; text-align: right; }
+
+        /* Right column */
+        .sidebar-right { display: flex; flex-direction: column; gap: 16px; }
+        .activity-list { display: flex; flex-direction: column; padding: 16px; gap: 16px; }
+        .activity-item { position: relative; padding-left: 16px; border-left: 2px solid var(--line); }
+        .activity-item::before { content: ''; position: absolute; left: -5px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+        .activity-item.active::before { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .act-title { font-size: 12px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; line-height: 1.4; }
+        .act-time { font-size: 10px; color: var(--text-muted); }
+        .health-status { padding: 16px; display: flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 700; font-size: 14px; }
+        .health-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
+
+        .hidden { display: none !important; }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
     </style>
 </head>
 
@@ -478,46 +363,106 @@
                     <span class="tag">更新責任: CTO（Codex）</span>
                 </div>
                 <div class="ctrl-row">
-                    <label for="actor" style="font-size:12px; color:var(--text-muted); font-weight:700;">STAMP
-                        ACTOR</label>
+                    <label for="actor" style="font-size:12px; color:var(--text-muted); font-weight:700;">STAMP ACTOR</label>
                     <select id="actor">
                         <option>Codex</option>
+                        <option>Codex-shinsekai</option>
                         <option>Gemini</option>
                         <option>CEO</option>
                         <option>Claude</option>
+                        <option>Claude-shinsekai</option>
                     </select>
                 </div>
             </header>
 
-            <section class="cards">
-                <article class="card">
-                    <h3>戦略目標の総数</h3>
-                    <div class="val">120</div>
-                    <div class="sub">Google Play公開・Android正式リリース</div>
-                </article>
-                <article class="card">
-                    <h3>完了タスク</h3>
-                    <div class="val"><span id="pct">0</span><span style="font-size:16px;">%</span></div>
-                    <div class="sub" id="frac">0 / 0 完了</div>
-                </article>
-                <article class="card">
-                    <h3>進行中タスク / フェーズ</h3>
-                    <div class="val" id="phase">フェーズ1</div>
-                    <div class="sub">イテレーションとリリーススケジュール</div>
-                </article>
-                <article class="card">
-                    <h3>ブロック中の件数</h3>
-                    <div class="val" id="blocked" style="color:var(--danger)">0</div>
-                    <div class="sub">CEO判断が必要な重要事項</div>
-                </article>
-            </section>
+            <!-- Tab bar -->
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="ceo" id="tab-ceo-btn">&#x1F454; CEO</button>
+                <button class="tab-btn" data-tab="eng" id="tab-eng-btn">&#x1F527; エンジニア</button>
+            </div>
 
-            <section>
-                <div class="tasks-header">
-                    <h2 id="mid-category-title">ミッドカテゴリ</h2>
-                </div>
-                <div id="task-sections"></div>
-            </section>
+            <!-- ==================== CEO VIEW ==================== -->
+            <div id="ceo-view">
+                <!-- CEO KPI Cards -->
+                <section class="cards" id="ceo-cards">
+                    <article class="card">
+                        <h3>画面の完成度</h3>
+                        <div class="val"><span id="ceo-screens-done">0</span><span style="font-size:16px;">/5画面</span></div>
+                        <div class="sub">フロントエンド画面の進捗</div>
+                    </article>
+                    <article class="card">
+                        <h3>あなたの判断待ち</h3>
+                        <div class="val" id="ceo-decisions-count" style="color:var(--warning)">0</div>
+                        <div class="sub">回答をお願いします</div>
+                    </article>
+                    <article class="card">
+                        <h3>次のマイルストーン</h3>
+                        <div class="val" style="font-size:18px;" id="ceo-milestone">Android公開</div>
+                        <div class="sub" id="ceo-milestone-sub">目標: 2026-03-20</div>
+                    </article>
+                    <article class="card">
+                        <h3>設計承認待ち</h3>
+                        <div class="val" id="ceo-approvals-count" style="color:var(--warning)">0</div>
+                        <div class="sub">UI/UX変更の承認</div>
+                    </article>
+                </section>
+
+                <!-- Approvals banner -->
+                <div id="ceo-approvals-banner" class="hidden"></div>
+
+                <!-- Screen status cards -->
+                <section>
+                    <h2 class="section-title">画面の状況</h2>
+                    <h3 class="section-subtitle">フロントエンド（5画面）</h3>
+                    <div class="screen-grid" id="ceo-frontend-screens"></div>
+                    <h3 class="section-subtitle" style="margin-top:20px;">バックエンド</h3>
+                    <div class="screen-grid" id="ceo-backend-screens"></div>
+                </section>
+
+                <!-- Decisions -->
+                <section>
+                    <h2 class="section-title">&#x1F4CB; あなたの判断が必要です</h2>
+                    <div id="ceo-decisions-list"></div>
+                </section>
+
+                <!-- Approvals -->
+                <section>
+                    <h2 class="section-title">&#x1F3A8; 設計変更の承認</h2>
+                    <div id="ceo-approvals-list"></div>
+                </section>
+            </div>
+
+            <!-- ==================== ENGINEER VIEW ==================== -->
+            <div id="eng-view" class="hidden">
+                <section class="cards" id="eng-cards">
+                    <article class="card">
+                        <h3>戦略目標の総数</h3>
+                        <div class="val">120</div>
+                        <div class="sub">Google Play公開・Android正式リリース</div>
+                    </article>
+                    <article class="card">
+                        <h3>完了タスク</h3>
+                        <div class="val"><span id="pct">0</span><span style="font-size:16px;">%</span></div>
+                        <div class="sub" id="frac">0 / 0 完了</div>
+                    </article>
+                    <article class="card">
+                        <h3>進行中タスク / フェーズ</h3>
+                        <div class="val" id="phase">フェーズ1</div>
+                        <div class="sub">イテレーションとリリーススケジュール</div>
+                    </article>
+                    <article class="card">
+                        <h3>ブロック中の件数</h3>
+                        <div class="val" id="blocked" style="color:var(--danger)">0</div>
+                        <div class="sub">CEO判断が必要な重要事項</div>
+                    </article>
+                </section>
+                <section>
+                    <div class="tasks-header">
+                        <h2 id="mid-category-title">ミッドカテゴリ</h2>
+                    </div>
+                    <div id="task-sections"></div>
+                </section>
+            </div>
         </main>
 
         <aside class="sidebar-right">
@@ -563,155 +508,328 @@
 
             // DATA_BLOCK_PLACEHOLDER
 
+            // SCREEN_STATUS_PLACEHOLDER
+
+            // CEO_DECISIONS_PLACEHOLDER
+
+            // CEO_APPROVALS_PLACEHOLDER
+
+            const SIGNAL_MAP = { ok: "\u{1F7E2}", wip: "\u{1F7E1}", not_started: "\u{1F534}" };
+
             function getTaskLabel(id) {
-                if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return \`引き継ぎタスク \${id} を進めます。\`; return \`タスク \${id} を進めます。\`; }
-      function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
+                if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
+            function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
 
-      const BIG_CATEGORIES = [
-        { id: "iter", name: "イテレーション", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("I")) },
-        { id: "p1", name: "フェーズ1", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
-        { id: "p2", name: "フェーズ2", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P2-")) },
-        { id: "p3", name: "フェーズ3", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
-        { id: "legacy", name: "引き継ぎタスク", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C-")) },
-      ];
+            const BIG_CATEGORIES = [
+                { id: "iter", name: "イテレーション", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("I")) },
+                { id: "p1", name: "フェーズ1", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
+                { id: "p2", name: "フェーズ2", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P2-")) },
+                { id: "p3", name: "フェーズ3", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
+                { id: "legacy", name: "引き継ぎタスク", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C-")) },
+            ];
 
-      let activeCategory = "iter";
+            let activeCategory = "iter";
+            let activeTab = "ceo";
 
-      function stampNow() {
-        const d = new Date(); const p = (n) => String(n).padStart(2, "0");
-        return \`\${actor.value} @ \${d.getFullYear()}-\${p(d.getMonth() + 1)}-\${p(d.getDate())} \${p(d.getHours())}:\${p(d.getMinutes())}\`;
-      }
-
-      function renderNav() {
-        navBigCategories.innerHTML = '<div class="nav-title">ビッグカテゴリ</div>';
-        BIG_CATEGORIES.forEach(cat => {
-            const div = document.createElement("div");
-            div.className = \`nav-item \${activeCategory === cat.id ? 'active' : ''}\`;
-            const count = cat.tasks.length;
-            const badge = cat.isUrgent ? \`<span class="nav-badge" style="background:var(--block-bg);color:var(--block-text)">\${count}</span>\` : \`<span class="nav-badge">\${count}</span>\`;
-            div.innerHTML = \`\${cat.name} \${badge}\`;
-            div.onclick = () => {  activeCategory = cat.id; renderNav(); renderTasks(); };
-            navBigCategories.appendChild(div);
-        });
-      }
-
-      function createTaskCard(task) {
-        const card = document.createElement("div");
-        card.className = "task-card leaf";
-        card.dataset.id = task.id;
-        card.dataset.default = task.defaultStatus;
-        if (task.defaultStamp) card.dataset.stamp = task.defaultStamp;
-        if (task.track) card.dataset.track = task.track;
-
-        const questions = TASK_THREADS[task.id] || [];
-        const replies = TASK_REPLIES[task.id] || [];
-        const pendingCount = Math.max(questions.length - replies.length, 0);
-
-        const prio = TASK_PRIORITY[task.id];
-        const prioHtml = prio ? \`<span class="chip priority-\${prio}">\${PRIORITY_LABELS[prio]}</span>\` : '';
-
-        const header = document.createElement("div");
-        header.className = "task-card-title";
-        header.innerHTML = \`<span>\${task.id}</span> \${prioHtml}\`;
-
-        const desc = document.createElement("div");
-        desc.className = "task-card-desc";
-        desc.innerHTML = \`\${getTaskLabel(task.id)} <div class="task-meta">\${getTaskMeta(task.id)}</div>\`;
-
-        const ctrl = document.createElement("div");
-        const select = document.createElement("select");
-        select.className = "select-state state";
-        ["todo", "in_progress", "blocked", "done"].forEach((state) => {
-          const option = document.createElement("option"); option.value = state; option.textContent = STATE_LABELS[state] || state; select.appendChild(option);
-        });
-        
-        const stampStr = task.defaultStamp || "スタンプ未設定";
-        const stamp = document.createElement("div");
-        stamp.className = "stamp";
-        stamp.textContent = stampStr;
-
-        ctrl.appendChild(select);
-        ctrl.appendChild(stamp);
-
-        card.appendChild(header);
-        card.appendChild(desc);
-        card.appendChild(ctrl);
-
-        if (questions.length > 0 || replies.length > 0) {
-            const threadWrap = document.createElement("details");
-            threadWrap.className = "thread-details";
-            
-            const summary = document.createElement("summary");
-            summary.className = "thread-summary";
-            const qCount = pendingCount > 0 ? \`<span style="color:var(--warning)">🔔\${pendingCount}</span>\` : "";
-            summary.innerHTML = \`<span>スレッド (💬\${questions.length + replies.length})</span> \${qCount}\`;
-            threadWrap.appendChild(summary);
-
-            questions.forEach((q) => {
-              const msg = document.createElement("div"); msg.className = "thread-msg";
-              msg.innerHTML = \`<span class="from">Claude</span>\${q}\`;
-              threadWrap.appendChild(msg);
-            });
-            replies.forEach((r) => {
-              const msg = document.createElement("div"); msg.className = "thread-msg cto";
-              msg.innerHTML = \`<span class="from">CTO</span>\${r}\`;
-              threadWrap.appendChild(msg);
-            });
-            
-            card.appendChild(threadWrap);
-        }
-
-        // イベントバインディング
-        select.addEventListener("change", (e) => {
-            const nextStatus = e.target.value; 
-            card.dataset.default = nextStatus;
-            if (nextStatus === "done") card.dataset.stamp = stampNow();
-            else if (nextStatus === "todo") card.dataset.stamp = "";
-            else if (nextStatus === "blocked") card.dataset.stamp = \`\${actor.value}（要対応）\`;
-            else card.dataset.stamp = \`\${actor.value}（進行中）\`;
-            stamp.textContent = card.dataset.stamp;
-            refreshMetrics();
-        });
-
-        // 初期値
-        select.value = card.dataset.default || "todo";
-
-        return card;
-      }
-
-      function renderTasks() {
-         taskSections.innerHTML = "";
-         const cat = BIG_CATEGORIES.find(c => c.id === activeCategory);
-         if(!cat) return;
-         midCategoryTitle.textContent = \`ミッドカテゴリ: \${cat.name}\`;
-         cat.tasks.forEach(t => {
-            taskSections.appendChild(createTaskCard(t));
-         });
-         refreshMetrics();
-      }
-
-      function refreshMetrics() {
-        let total = 0, done = 0, block = 0;
-        TASKS.forEach(t => {
-            const card = document.querySelector(\`.task-card[data-id="\${t.id}"]\`);
-            const state = card ? card.dataset.default : t.defaultStatus;
-            if (t.track !== "legacy") {
-                total++;
-                if (state === "done") done++;
-                if (state === "blocked") block++;
+            // === Tab switching ===
+            function setTab(tab) {
+                activeTab = tab;
+                document.getElementById("ceo-view").classList.toggle("hidden", tab !== "ceo");
+                document.getElementById("eng-view").classList.toggle("hidden", tab !== "eng");
+                document.getElementById("tab-ceo-btn").classList.toggle("active", tab === "ceo");
+                document.getElementById("tab-eng-btn").classList.toggle("active", tab === "eng");
+                navBigCategories.classList.toggle("hidden", tab === "ceo");
+                window.location.hash = tab === "ceo" ? "#ceo" : "#eng";
             }
-        });
-        const percent = total ? Math.round((done / total) * 100) : 0;
-        pct.textContent = String(percent);
-        frac.textContent = \`\${done} / \${total} 完了\`;
-        blocked.textContent = String(block);
-        phase.textContent = percent >= 95 ? "フェーズ3" : percent >= 70 ? "フェーズ2" : "フェーズ1";
-      }
 
-      renderNav();
-      renderTasks();
+            document.getElementById("tab-ceo-btn").onclick = () => setTab("ceo");
+            document.getElementById("tab-eng-btn").onclick = () => setTab("eng");
 
-    })();
+            // Restore tab from URL hash
+            const hash = window.location.hash.replace("#", "");
+            if (hash === "eng") setTab("eng");
+            else setTab("ceo");
+
+            // === CEO View rendering ===
+            function renderCEOView() {
+                renderScreenCards();
+                renderDecisions();
+                renderApprovals();
+                refreshCEOMetrics();
+            }
+
+            function renderScreenCards() {
+                const frontendEl = document.getElementById("ceo-frontend-screens");
+                const backendEl = document.getElementById("ceo-backend-screens");
+                frontendEl.innerHTML = "";
+                backendEl.innerHTML = "";
+
+                SCREEN_STATUS.forEach(s => {
+                    const card = document.createElement("div");
+                    card.className = "screen-card";
+                    card.innerHTML = `
+                        <div class="screen-card-header">
+                            <span class="signal">${SIGNAL_MAP[s.status] || "\u{1F534}"}</span>
+                            <span>${s.name}</span>
+                        </div>
+                        <div class="screen-card-summary">${s.summary}</div>
+                        <div class="screen-card-owner">担当: ${s.owner}</div>
+                    `;
+                    if (s.type === "backend") backendEl.appendChild(card);
+                    else frontendEl.appendChild(card);
+                });
+            }
+
+            function renderDecisions() {
+                const list = document.getElementById("ceo-decisions-list");
+                list.innerHTML = "";
+
+                const sorted = [...CEO_DECISIONS].sort((a, b) => {
+                    const order = { high: 0, medium: 1, low: 2 };
+                    return (order[a.priority] || 2) - (order[b.priority] || 2);
+                });
+
+                if (sorted.length === 0) {
+                    list.innerHTML = '<div class="empty-state">判断待ちの項目はありません</div>';
+                    return;
+                }
+
+                sorted.forEach(d => {
+                    const card = document.createElement("div");
+                    card.className = `decision-card ${d.answer != null ? "answered" : ""}`;
+                    card.dataset.id = d.id;
+
+                    const optionsHtml = d.options.map((opt, i) =>
+                        `<button class="decision-opt-btn ${d.answer === i ? 'selected' : ''}" data-did="${d.id}" data-idx="${i}">${opt}</button>`
+                    ).join("");
+
+                    const undoHtml = d.answer != null ? `<span class="decision-undo" data-did="${d.id}">取り消す</span>` : "";
+
+                    card.innerHTML = `
+                        <div class="decision-header">
+                            <span class="decision-screen">${d.screen}</span>
+                            <span class="decision-priority ${d.priority}">${d.priority === "high" ? "高" : d.priority === "medium" ? "中" : "低"}</span>
+                        </div>
+                        <div class="decision-question">${d.question}</div>
+                        <div class="decision-options">${optionsHtml}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span class="decision-from">質問元: ${d.from}</span>
+                            ${undoHtml}
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+
+                list.addEventListener("click", (e) => {
+                    const btn = e.target.closest(".decision-opt-btn");
+                    if (btn) {
+                        const did = btn.dataset.did;
+                        const idx = parseInt(btn.dataset.idx);
+                        const d = CEO_DECISIONS.find(x => x.id === did);
+                        if (d) { d.answer = idx; renderDecisions(); refreshCEOMetrics(); }
+                        return;
+                    }
+                    const undo = e.target.closest(".decision-undo");
+                    if (undo) {
+                        const did = undo.dataset.did;
+                        const d = CEO_DECISIONS.find(x => x.id === did);
+                        if (d) { d.answer = null; renderDecisions(); refreshCEOMetrics(); }
+                    }
+                });
+            }
+
+            function renderApprovals() {
+                const list = document.getElementById("ceo-approvals-list");
+                const banner = document.getElementById("ceo-approvals-banner");
+                list.innerHTML = "";
+
+                const pending = CEO_APPROVALS.filter(a => a.status === "pending");
+
+                if (pending.length > 0) {
+                    banner.className = "approval-banner";
+                    banner.innerHTML = `&#x26A0;&#xFE0F; ${pending.length}件の設計変更が承認を待っています`;
+                } else {
+                    banner.className = "hidden";
+                }
+
+                if (CEO_APPROVALS.length === 0) {
+                    list.innerHTML = '<div class="empty-state">承認待ちの変更はありません</div>';
+                    return;
+                }
+
+                CEO_APPROVALS.forEach(a => {
+                    const card = document.createElement("div");
+                    card.className = "approval-card";
+                    const statusLabel = a.status === "pending" ? "承認待ち" : a.status === "approved" ? "承認済み" : "却下";
+                    const actions = a.status === "pending" ? `
+                        <div class="approval-actions">
+                            <button class="btn-approve" data-aid="${a.id}">承認する</button>
+                            <button class="btn-reject" data-aid="${a.id}">却下する</button>
+                        </div>
+                    ` : `<div style="font-size:12px;color:var(--text-muted);font-weight:700;">${statusLabel}</div>`;
+
+                    card.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span class="decision-screen">${a.screen}</span>
+                            <span style="font-size:11px;color:var(--text-muted);">from ${a.from}</span>
+                        </div>
+                        <div class="approval-title">${a.title}</div>
+                        <div class="approval-desc">${a.description}</div>
+                        ${actions}
+                    `;
+                    list.appendChild(card);
+                });
+
+                list.addEventListener("click", (e) => {
+                    const approveBtn = e.target.closest(".btn-approve");
+                    const rejectBtn = e.target.closest(".btn-reject");
+                    if (approveBtn) {
+                        const a = CEO_APPROVALS.find(x => x.id === approveBtn.dataset.aid);
+                        if (a) { a.status = "approved"; renderApprovals(); refreshCEOMetrics(); }
+                    }
+                    if (rejectBtn) {
+                        const a = CEO_APPROVALS.find(x => x.id === rejectBtn.dataset.aid);
+                        if (a) { a.status = "rejected"; renderApprovals(); refreshCEOMetrics(); }
+                    }
+                });
+            }
+
+            function refreshCEOMetrics() {
+                const screensDone = SCREEN_STATUS.filter(s => s.status === "ok" && s.type !== "backend").length;
+                document.getElementById("ceo-screens-done").textContent = String(screensDone);
+
+                const pendingDecisions = CEO_DECISIONS.filter(d => d.answer == null).length;
+                document.getElementById("ceo-decisions-count").textContent = String(pendingDecisions);
+
+                const pendingApprovals = CEO_APPROVALS.filter(a => a.status === "pending").length;
+                document.getElementById("ceo-approvals-count").textContent = String(pendingApprovals);
+
+                // Update tab badge
+                const tabCeoBtn = document.getElementById("tab-ceo-btn");
+                const existingBadge = tabCeoBtn.querySelector(".tab-badge");
+                if (existingBadge) existingBadge.remove();
+                if (pendingDecisions > 0) {
+                    const badge = document.createElement("span");
+                    badge.className = "tab-badge";
+                    badge.textContent = String(pendingDecisions);
+                    tabCeoBtn.appendChild(badge);
+                }
+            }
+
+            // === Engineer View ===
+            function stampNow() {
+                const d = new Date(); const p = (n) => String(n).padStart(2, "0");
+                return `${actor.value} @ ${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+            }
+
+            function renderNav() {
+                navBigCategories.innerHTML = '<div class="nav-title">ビッグカテゴリ</div>';
+                BIG_CATEGORIES.forEach(cat => {
+                    const div = document.createElement("div");
+                    div.className = `nav-item ${activeCategory === cat.id ? 'active' : ''}`;
+                    const count = cat.tasks.length;
+                    const badge = cat.isUrgent ? `<span class="nav-badge" style="background:var(--block-bg);color:var(--block-text)">${count}</span>` : `<span class="nav-badge">${count}</span>`;
+                    div.innerHTML = `${cat.name} ${badge}`;
+                    div.onclick = () => { activeCategory = cat.id; renderNav(); renderTasks(); };
+                    navBigCategories.appendChild(div);
+                });
+            }
+
+            function createTaskCard(task) {
+                const card = document.createElement("div");
+                card.className = "task-card leaf";
+                card.dataset.id = task.id;
+                card.dataset.default = task.defaultStatus;
+                if (task.defaultStamp) card.dataset.stamp = task.defaultStamp;
+                if (task.track) card.dataset.track = task.track;
+
+                const questions = TASK_THREADS[task.id] || [];
+                const replies = TASK_REPLIES[task.id] || [];
+                const pendingCount = Math.max(questions.length - replies.length, 0);
+
+                const prio = TASK_PRIORITY[task.id];
+                const prioHtml = prio ? `<span class="chip priority-${prio}">${PRIORITY_LABELS[prio]}</span>` : '';
+
+                const header = document.createElement("div");
+                header.className = "task-card-title";
+                header.innerHTML = `<span>${task.id}</span> ${prioHtml}`;
+
+                const desc = document.createElement("div");
+                desc.className = "task-card-desc";
+                desc.innerHTML = `${getTaskLabel(task.id)} <div class="task-meta">${getTaskMeta(task.id)}</div>`;
+
+                const ctrl = document.createElement("div");
+                const select = document.createElement("select");
+                select.className = "select-state state";
+                ["todo", "in_progress", "blocked", "done"].forEach((state) => {
+                    const option = document.createElement("option"); option.value = state; option.textContent = STATE_LABELS[state] || state; select.appendChild(option);
+                });
+
+                const stampStr = task.defaultStamp || "スタンプ未設定";
+                const stamp = document.createElement("div");
+                stamp.className = "stamp";
+                stamp.textContent = stampStr;
+
+                ctrl.appendChild(select);
+                ctrl.appendChild(stamp);
+                card.appendChild(header);
+                card.appendChild(desc);
+                card.appendChild(ctrl);
+
+                if (questions.length > 0 || replies.length > 0) {
+                    const threadWrap = document.createElement("details");
+                    threadWrap.className = "thread-details";
+                    const summary = document.createElement("summary");
+                    summary.className = "thread-summary";
+                    const qCount = pendingCount > 0 ? `<span style="color:var(--warning)">\u{1F514}${pendingCount}</span>` : "";
+                    summary.innerHTML = `<span>スレッド (\u{1F4AC}${questions.length + replies.length})</span> ${qCount}`;
+                    threadWrap.appendChild(summary);
+                    questions.forEach((q) => { const msg = document.createElement("div"); msg.className = "thread-msg"; msg.innerHTML = `<span class="from">Claude</span>${q}`; threadWrap.appendChild(msg); });
+                    replies.forEach((r) => { const msg = document.createElement("div"); msg.className = "thread-msg cto"; msg.innerHTML = `<span class="from">CTO</span>${r}`; threadWrap.appendChild(msg); });
+                    card.appendChild(threadWrap);
+                }
+
+                select.addEventListener("change", (e) => {
+                    const nextStatus = e.target.value;
+                    card.dataset.default = nextStatus;
+                    if (nextStatus === "done") card.dataset.stamp = stampNow();
+                    else if (nextStatus === "todo") card.dataset.stamp = "";
+                    else if (nextStatus === "blocked") card.dataset.stamp = `${actor.value}（要対応）`;
+                    else card.dataset.stamp = `${actor.value}（進行中）`;
+                    stamp.textContent = card.dataset.stamp;
+                    refreshMetrics();
+                });
+                select.value = card.dataset.default || "todo";
+                return card;
+            }
+
+            function renderTasks() {
+                taskSections.innerHTML = "";
+                const cat = BIG_CATEGORIES.find(c => c.id === activeCategory);
+                if (!cat) return;
+                midCategoryTitle.textContent = `ミッドカテゴリ: ${cat.name}`;
+                cat.tasks.forEach(t => { taskSections.appendChild(createTaskCard(t)); });
+                refreshMetrics();
+            }
+
+            function refreshMetrics() {
+                let total = 0, done = 0, block = 0;
+                TASKS.forEach(t => {
+                    const card = document.querySelector(`.task-card[data-id="${t.id}"]`);
+                    const state = card ? card.dataset.default : t.defaultStatus;
+                    if (t.track !== "legacy") { total++; if (state === "done") done++; if (state === "blocked") block++; }
+                });
+                const percent = total ? Math.round((done / total) * 100) : 0;
+                pct.textContent = String(percent);
+                frac.textContent = `${done} / ${total} 完了`;
+                blocked.textContent = String(block);
+                phase.textContent = percent >= 95 ? "フェーズ3" : percent >= 70 ? "フェーズ2" : "フェーズ1";
+            }
+
+            renderNav();
+            renderTasks();
+            renderCEOView();
+        })();
     </script>
 </body>
 

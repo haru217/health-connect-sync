@@ -12,14 +12,16 @@ Last updated: 2026-02-27
 - Android sync app: `android-sync/`
 - Archived legacy backend (reference only): `_archive/pc-server/`
 
-## 3) Agent role split
-- CEO: プロダクト判断・優先順位決定
-- Claude (CTO): 要件定義・仕様書作成・タスク分解。CEOと壁打ちして仕様を策定する
-- Codex (実装・レビュー、マルチエージェント):
+## 3) Agent role split (5エージェント体制)
+- **CEO**: プロダクト判断・優先順位決定
+- **Claude** (CTO / 司令塔): 要件定義・仕様書作成・タスク分解・全体指揮。CEOと壁打ちして仕様を策定する
+- **Claude-shinsekai** (CTO補助 / 調査員): 調査・情報収集・ドキュメント下書き（Teamプラン制約あり。Claudeの指示で動く）
+- **Codex** (メインエンジニア):
   - Codex-1: フロントエンド（`web-app/`）
   - Codex-2: バックエンド（`cloudflare-api/`, `android-sync/`）
   - Codex-3: コードレビュー・品質確認
-- Gemini (デザイン): UIデザイン・クリエイティブ・ストア素材
+- **Codex-shinsekai** (サブエンジニア): Codexと同じ実装能力。並行して別タスクを担当（Claudeが分担を指定）
+- **Gemini** (デザイナー): UIデザイン・クリエイティブ・ストア素材。UI/UX変更時はCEO承認必須
 
 ## 4) Mandatory process
 1. CTO（Claude）がCEOと要件を詰め、仕様書とタスクを `requests/<agent>/` に作成する
@@ -32,6 +34,7 @@ Last updated: 2026-02-27
 ## 5) Quick links
 - File map: `ops/FILE_MAP.md`
 - Workflow: `ops/WORKFLOW.md`
+- Rules: `ops/RULES.md`
 - Common rules: `agents/common/FIRST_READ.md`
 - CEO dashboard: `ops/CEO_DASHBOARD.html`
 - Dashboard update guide: `ops/CEO_DASHBOARD_UPDATE.md`

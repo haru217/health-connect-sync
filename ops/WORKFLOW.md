@@ -7,13 +7,11 @@
    - タスクを `requests/<agent>/YYYYMMDD-<topic>.md` に作成する
 2. **着手**（担当エージェント）:
    - リクエストファイルに owner + status を記入する
-3. **実装**（Codex-1 or Codex-2）:
+3. **実装**（Codex / Codex-shinsekai）:
    - スコープをリクエストの完了条件に限定する
-4. **コミット**（Codex）:
-   - 動作確認が取れたら即 `git commit`
-   - タスク1件 = 1コミット以上。複数タスクをまとめない
-   - コミットメッセージ形式: `<種別>(<担当>): <要約>`（例: `feat(Codex-2): /api/home-summary 実装`）
-5. **レビュー**（Codex-3）:
+4. **コミット**:
+   - Gitルールは `ops/RULES.md` §2 を参照
+5. **レビュー**（Codex-3 or Claude-shinsekai）:
    - 実装後にコードレビューを実施する
    - 指摘があれば修正 → 再コミット
 6. **ハンドオフ**:
@@ -22,8 +20,7 @@
    - ハンドオフを `handoff/done/` に移動する
    - リクエストをクローズする
 8. **ダッシュボード更新**（全員）:
-   - ステータスが `done` または `blocked` になったら更新する
-   - `ops/update-ceo-dashboard-task.ps1` を使う
+   - 更新ルールは `ops/RULES.md` §3 を参照
 
 ## Status labels
 - `todo`
