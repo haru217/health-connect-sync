@@ -2,7 +2,8 @@
 
 - Date: 2026-03-02
 - Owner: Codex-shinsekai
-- Status: `in_progress`
+- Status: `done`
+- Note: A1v2で再設計予定 → `requests/codex-shinsekai/20260303-A1v2-scoring-redesign.md`
 - Phase: A（基盤）
 - Design ref: `docs/plans/2026-03-02-health-os-design.md` §5
 

@@ -2,7 +2,8 @@
 
 - Date: 2026-03-02
 - Owner: Gemini
-- Status: `todo`
+- Status: `superseded`
+- Superseded by: `requests/gemini/20260303-B1-home-screen-scores.md`
 - Phase: B（ホーム画面）
 - Design ref: `docs/plans/2026-03-02-health-os-design.md` §5, §9, §10
 - Depends on: A1（スコア算出API）— 完了済み

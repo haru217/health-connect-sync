@@ -263,7 +263,7 @@ const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'activity' | 'nutrition'
 const DEFAULT_BMR_KCAL = 1500
 const DEFAULT_LLM_PROVIDER = 'anthropic'
 const DEFAULT_LLM_MODEL = 'claude-haiku-4-5-20251001'
-const LLM_TIMEOUT_MS = 60_000
+const LLM_TIMEOUT_MS = 120_000
 const REPORT_EMOJI_RE = /\p{Extended_Pictographic}/gu
 const RECORD_PERMISSION_MAP: Readonly<Record<string, (typeof HEALTH_CONNECT_REQUIRED_PERMISSIONS)[number]>> = {
   StepsRecord: 'android.permission.health.READ_STEPS',
