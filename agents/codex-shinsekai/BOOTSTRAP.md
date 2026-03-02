@@ -36,10 +36,21 @@ This is the only required entry for Codex-shinsekai.
 .\ops\update-ceo-dashboard.ps1 -Type task -TaskId <id> -Status <todo|in_progress|blocked|done> -Actor Codex-shinsekai
 ```
 
-## 6) Required Output Steps
-1. `requests/codex/` から担当タスクを確認する（Claude指定）。
-2. 実装を実施する。
-3. 動作確認後に git commit する（タスク1件 = 1コミット以上）。
-4. `handoff/incoming/` にハンドオフを書く。
-5. ダッシュボードを更新する。
-6. `ops/WORKLOG.md` を更新する。
+## 6) CEO向け記述ルール（重要）
+CEOは非エンジニア。ダッシュボード・ハンドオフ・ワークログは以下を守る:
+- ファイルパス・行番号・API名・メソッド名を書かない
+- 「何が変わったか」をユーザー体験で説明する
+- 「次どうすればいいか」を明確にする
+- 詳細は `ops/RULES.md` §5 を参照
+
+## 7) 作業フロー（承認ゲートあり）
+1. `requests/codex-shinsekai/` から担当タスクを確認する。
+2. **実装計画を立てたらダッシュボードに「承認待ち」を登録する**:
+   ```powershell
+   .\ops\update-ceo-dashboard.ps1 -Type approval -Screen "対象画面" -Title "計画タイトル" -Description "やること（平易な日本語で）" -Actor Codex-shinsekai
+   ```
+3. **CEO承認後に**実装を開始する。
+4. 動作確認後に git commit する（タスク1件 = 1コミット以上）。
+5. `handoff/incoming/` にハンドオフを書く（CEO向けルールに従う）。
+6. ダッシュボードを更新する。
+7. `ops/WORKLOG.md` を更新する。

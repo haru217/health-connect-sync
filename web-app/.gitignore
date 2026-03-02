@@ -28,3 +28,4 @@ dist-ssr
 # Local Vercel/env artifacts
 .env.production.vercel
 vercel_api_*.txt
+.env*.local

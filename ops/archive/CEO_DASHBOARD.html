@@ -711,7 +711,7 @@
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "wip", summary: "要約・注目ポイント・AIアドバイスを表示中。日付ズレとタグ表示の修正対応中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I1-CODEX","I1-GEMINI","P1-1-3","P1-1-4","P1-1-5"] },
+                { name: "ホーム画面", status: "ok", summary: "本番デプロイ完了、全データ表示OK", owner: "Codex-shinsekai", type: "frontend", relatedTasks: ["I1-CODEX","I1-GEMINI","P1-1-3","P1-1-4","P1-1-5"] },
                 { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
@@ -729,6 +729,7 @@
                 { id: "D-005", screen: "マイページ", question: "同期状況の表示をマイページの上に置きます。タップすると詳細を見せる形でいいですか？", options: ["はい、その形でお願いします", "別の場所に置きたい"], priority: "medium", from: "Codex-1", originalThread: "P1-2-2", answer: 0 },
                 { id: "D-006", screen: "全体", question: "旧サーバーを止める条件として「主要4画面で実データ確認 + 不具合0件を24時間維持」でいいですか？", options: ["はい、その条件でお願いします", "条件を変えたい"], priority: "low", from: "Codex-2", originalThread: "P1-2-3", answer: 0 },
                 { id: "D-007", screen: "全体", question: "Play Storeの安全性申告は「データ収集あり」で進めます。Cloudflareは委託先扱いでいいですか？", options: ["はい、その整理で進めてください", "別の整理にしたい"], priority: "medium", from: "Codex-2", originalThread: "P3-2-1", answer: 0 },
+                { id: "D-008", screen: "全体", question: "本番サイトをローカル最新版に同期し、Android APKを再インストールしてエクササイズ権限を追加します。よろしいですか？", options: ["はい進めて", "確認事項がある"], priority: "high", from: "Claude", originalThread: "", answer: null }
             ];
 
             const CEO_APPROVALS = [];
@@ -1053,6 +1054,9 @@
 </body>
 
 </html>
+
+
+
 
 
 

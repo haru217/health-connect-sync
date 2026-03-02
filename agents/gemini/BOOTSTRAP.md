@@ -45,11 +45,24 @@ UI/UXの見た目を変更する場合は、実装前にCEO承認を取る:
 - `I4-GEMINI` -> `docs/v3/iter4-gemini.md`（食事）
 - `I5-GEMINI` -> `docs/v3/iter5-gemini.md`（プロフィール）
 
-## 6) Required Output Steps
+## 6) CEO向け記述ルール（重要）
+CEOは非エンジニア。ダッシュボード・ハンドオフ・ワークログは以下を守る:
+- ファイルパス・行番号・API名・メソッド名を書かない
+- 「何が変わったか」をユーザー体験で説明する
+- 「次どうすればいいか」を明確にする
+- 詳細は `ops/RULES.md` §5 を参照
+
+## 7) 作業フロー（承認ゲートあり）
 1. `requests/gemini/` から担当タスクを確認する。
-2. デザイン・UI実装を行う。
-3. `handoff/incoming/` にハンドオフを書く。
-4. ダッシュボードを更新する:
+2. **デザイン案を立てたらダッシュボードに「承認待ち」を登録する**:
+   ```powershell
+   .\ops\update-ceo-dashboard.ps1 -Type approval -Screen "対象画面" -Title "デザイン案タイトル" -Description "やること（平易な日本語で）" -Actor Gemini
+   ```
+3. **CEO承認後に**デザイン・UI実装を開始する。
+4. 動作確認後に git commit する（タスク1件 = 1コミット以上）。
+5. `handoff/incoming/` にハンドオフを書く（CEO向けルールに従う）。
+6. ダッシュボードを更新する:
    - タスク: `.\ops\update-ceo-dashboard.ps1 -Type task -TaskId <I*-GEMINI> -Status <status> -Actor Gemini`
    - 画面: `.\ops\update-ceo-dashboard.ps1 -Type screen -Name "画面名" -Status <ok|wip|not_started> -Summary "説明" -Actor Gemini`
-5. `ops/WORKLOG.md` を更新する。
+   - 判断依頼: `.\ops\update-ceo-dashboard.ps1 -Type decision -Screen "画面名" -Question "質問" -Options "A,B" -Priority <high|medium|low> -Actor Gemini`
+7. `ops/WORKLOG.md` を更新する。

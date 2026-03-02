@@ -13,6 +13,20 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-03-02 (2)
+- Owner: Claude (CTO)
+- Scope: 全エージェントBOOTSTRAPにCEO記述ルール・承認ゲートを追加
+- Result: CEO向け記述ルール（技術用語禁止・ユーザー体験で説明）と承認ゲート付きワークフロー（計画→承認待ち登録→CEO承認→実装開始）を全エージェントのBOOTSTRAPに追加。ops/RULES.mdの§5・§6を各BOOTSTRAPから参照する形に統一。
+- Files: `agents/codex/BOOTSTRAP.md`, `agents/gemini/BOOTSTRAP.md`, `agents/claude/BOOTSTRAP.md`, `agents/codex-shinsekai/BOOTSTRAP.md`（前セッション更新済み）, `ops/RULES.md`（前セッション更新済み）
+- Risk/Follow-up: Claude-shinsekaiのBOOTSTRAPも同様の更新が必要（未作成の場合は作成時に反映）。
+
+### 2026-03-02
+- Owner: Claude (CTO)
+- Scope: Codex-shinsekai向けタスク起票（本番デプロイ + APK権限拡張 + 同期ロジック安定化）
+- Result: 本番Vercelが3コミット遅れ→デプロイ依頼。Android APKの権限を全種に拡張する依頼。旧APK（android-app）の時間窓チャンク・自動再キュー・窓ごとカーソル保存を現APK（android-sync）に移植する依頼。CEOダッシュボード改善+5エージェント体制+ドキュメント一元化を前セッションで完了しコミット済み。
+- Files: `requests/codex-shinsekai/20260302-prod-deploy-and-apk-update.md`, `ops/WORKLOG.md`
+- Risk/Follow-up: 同期ロジック移植はコア機能のため、Codex-shinsekaiの成果物をCTO（Claude）がレビューする。
+
 ### 2026-02-27
 - Owner: Claude (CTO)
 - Scope: ローカルAPI廃止後の運用ポリシー CTO決裁（Codex-1依頼への回答）

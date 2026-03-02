@@ -32,7 +32,13 @@ This is the only required entry for Claude-shinsekai.
 - All rules: `ops/RULES.md`
 - Current state: `ops/PROJECT_STATE.md`
 
-## 6) Required Output Steps
+## 6) CEO向け記述ルール
+CEOは非エンジニア。ワークログ等に記載する場合は以下を守る:
+- ファイルパス・行番号・API名・メソッド名を書かない
+- 「何が変わったか」をユーザー体験で説明する
+- 詳細は `ops/RULES.md` §5 を参照
+
+## 7) 作業フロー
 1. Claude (CTO) から調査指示を受け取る。
 2. 指示に従い調査・情報収集を実施する。
 3. 調査結果をClaude (CTO) に報告する。
