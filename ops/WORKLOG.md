@@ -13,6 +13,13 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-03-02 (3)
+- Owner: Codex
+- Scope: A3-PROFILE（ユーザープロフィール保存API）実装
+- Result: `user_profiles` テーブルを追加し、`GET /api/profile` と `PUT /api/profile` を新スキーマへ切替。`PUT` は部分更新を維持し、列挙値・数値レンジ・レンズON/OFFのバリデーションで不正値を `400` 返却にした。ローカルでマイグレーション適用とAPI実リクエスト検証（正常系/異常系）を完了。
+- Files: `cloudflare-api/migrations/0007_user_profiles.sql`, `cloudflare-api/src/index.ts`, `ops/archive/CEO_DASHBOARD.html`, `ops/WORKLOG.md`, `handoff/incoming/20260302-codex-a3-profile-api.md`
+- Risk/Follow-up: 既存 `user_profile` テーブル参照ロジック（栄養目標・推定計算など）は温存しているため、今後 B2/B3 で新スキーマへ統合する場合は参照先統一タスクが必要。
+
 ### 2026-03-02 (2)
 - Owner: Claude (CTO)
 - Scope: 全エージェントBOOTSTRAPにCEO記述ルール・承認ゲートを追加

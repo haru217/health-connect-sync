@@ -6,6 +6,10 @@ interface Env {
 
 type ReportType = 'daily' | 'weekly' | 'monthly'
 type SexType = 'male' | 'female' | 'other'
+type WeightGoalType = 'lose' | 'gain' | 'maintain'
+type ExerciseFreqType = 'none' | 'weekly12' | 'weekly35' | 'daily'
+type ExerciseType = 'walk' | 'gym' | 'run' | 'bodyweight' | 'none'
+type ExerciseIntensityType = 'light' | 'moderate' | 'high'
 
 interface DailyMetricRow {
   date: string
@@ -52,6 +56,25 @@ interface ProfileRow {
   sleep_goal_minutes?: number | null
   steps_goal?: number | null
   updated_at: string
+}
+
+interface UserProfileRow {
+  user_id: string
+  age: number | null
+  gender: SexType | null
+  height_cm: number | null
+  weight_goal: WeightGoalType | null
+  bp_goal_systolic: number | null
+  bp_goal_diastolic: number | null
+  lens_weight: number | null
+  lens_bp: number | null
+  lens_sleep: number | null
+  lens_performance: number | null
+  exercise_freq: ExerciseFreqType | null
+  exercise_type: ExerciseType | null
+  exercise_intensity: ExerciseIntensityType | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 interface ReportRow {
@@ -114,6 +137,12 @@ interface CatalogItem {
 }
 
 const REPORT_TYPES: readonly ReportType[] = ['daily', 'weekly', 'monthly'] as const
+const PROFILE_USER_ID = 'default'
+const WEIGHT_GOAL_VALUES: readonly WeightGoalType[] = ['lose', 'gain', 'maintain'] as const
+const EXERCISE_FREQ_VALUES: readonly ExerciseFreqType[] = ['none', 'weekly12', 'weekly35', 'daily'] as const
+const EXERCISE_TYPE_VALUES: readonly ExerciseType[] = ['walk', 'gym', 'run', 'bodyweight', 'none'] as const
+const EXERCISE_INTENSITY_VALUES: readonly ExerciseIntensityType[] = ['light', 'moderate', 'high'] as const
+const GENDER_VALUES: readonly SexType[] = ['male', 'female', 'other'] as const
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const CURSOR_REPAIR_SAFETY_MS = 5 * 60 * 1000
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000
@@ -272,6 +301,13 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
   }
 }
 
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
 function toNumberOrNull(value: unknown): number | null {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null
@@ -281,6 +317,103 @@ function toNumberOrNull(value: unknown): number | null {
     return Number.isFinite(n) ? n : null
   }
   return null
+}
+
+function hasOwn(payload: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(payload, key)
+}
+
+function normalizeLensFlag(value: unknown): 0 | 1 | null {
+  if (value == null) {
+    return null
+  }
+  if (typeof value === 'boolean') {
+    return value ? 1 : 0
+  }
+  if (typeof value === 'number' && Number.isInteger(value) && (value === 0 || value === 1)) {
+    return value as 0 | 1
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === '1' || normalized === 'true') {
+      return 1
+    }
+    if (normalized === '0' || normalized === 'false') {
+      return 0
+    }
+  }
+  return null
+}
+
+function toValidatedInteger(value: unknown, field: string, min: number, max: number): number {
+  const n = toNumberOrNull(value)
+  if (n == null || !Number.isInteger(n) || n < min || n > max) {
+    throw new ValidationError(`${field} must be an integer between ${min} and ${max}`)
+  }
+  return n
+}
+
+function toValidatedNumber(value: unknown, field: string, min: number, max: number): number {
+  const n = toNumberOrNull(value)
+  if (n == null || n < min || n > max) {
+    throw new ValidationError(`${field} must be a number between ${min} and ${max}`)
+  }
+  return n
+}
+
+function toValidatedEnum<T extends string>(value: unknown, field: string, allowed: readonly T[]): T {
+  if (typeof value !== 'string') {
+    throw new ValidationError(`${field} must be one of: ${allowed.join(', ')}`)
+  }
+  if (!allowed.includes(value as T)) {
+    throw new ValidationError(`${field} must be one of: ${allowed.join(', ')}`)
+  }
+  return value as T
+}
+
+function emptyUserProfile(): UserProfileRow {
+  return {
+    user_id: PROFILE_USER_ID,
+    age: null,
+    gender: null,
+    height_cm: null,
+    weight_goal: null,
+    bp_goal_systolic: null,
+    bp_goal_diastolic: null,
+    lens_weight: 0,
+    lens_bp: 0,
+    lens_sleep: 0,
+    lens_performance: 0,
+    exercise_freq: null,
+    exercise_type: null,
+    exercise_intensity: null,
+    created_at: null,
+    updated_at: null,
+  }
+}
+
+function sanitizeUserProfileRow(row: UserProfileRow | null): UserProfileRow {
+  if (!row) {
+    return emptyUserProfile()
+  }
+  return {
+    user_id: row.user_id || PROFILE_USER_ID,
+    age: row.age,
+    gender: row.gender,
+    height_cm: row.height_cm,
+    weight_goal: row.weight_goal,
+    bp_goal_systolic: row.bp_goal_systolic,
+    bp_goal_diastolic: row.bp_goal_diastolic,
+    lens_weight: row.lens_weight === 1 ? 1 : 0,
+    lens_bp: row.lens_bp === 1 ? 1 : 0,
+    lens_sleep: row.lens_sleep === 1 ? 1 : 0,
+    lens_performance: row.lens_performance === 1 ? 1 : 0,
+    exercise_freq: row.exercise_freq,
+    exercise_type: row.exercise_type,
+    exercise_intensity: row.exercise_intensity,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
 }
 
 function toPositiveCount(value: unknown, fallback = 1): number {
@@ -1980,55 +2113,164 @@ async function getNutritionDay(db: D1Database, date: string): Promise<Record<str
   }
 }
 
-async function upsertProfile(db: D1Database, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const current = await queryFirst<ProfileRow>(db, 'SELECT * FROM user_profile WHERE id = 1')
+async function getUserProfile(db: D1Database): Promise<UserProfileRow> {
+  const row = await queryFirst<UserProfileRow>(
+    db,
+    `
+    SELECT
+      user_id, age, gender, height_cm, weight_goal, bp_goal_systolic, bp_goal_diastolic,
+      lens_weight, lens_bp, lens_sleep, lens_performance,
+      exercise_freq, exercise_type, exercise_intensity,
+      created_at, updated_at
+    FROM user_profiles
+    WHERE user_id = ?
+    `,
+    [PROFILE_USER_ID],
+  )
+  return sanitizeUserProfileRow(row)
+}
 
-  const nextName = typeof payload.name === 'string' ? payload.name : (current?.name ?? null)
-  const nextHeight = toNumberOrNull(payload.height_cm) ?? current?.height_cm ?? null
-  const nextBirthYear = toNumberOrNull(payload.birth_year) ?? current?.birth_year ?? null
-  const nextGoalWeight = toNumberOrNull(payload.goal_weight_kg) ?? current?.goal_weight_kg ?? null
-  const nextSleepGoal = toNumberOrNull(payload.sleep_goal_minutes) ?? current?.sleep_goal_minutes ?? 420
-  const nextStepsGoal = toNumberOrNull(payload.steps_goal) ?? current?.steps_goal ?? 8000
+function applyUserProfilePatch(base: UserProfileRow, payload: Record<string, unknown>): UserProfileRow {
+  const next: UserProfileRow = {
+    ...base,
+    user_id: PROFILE_USER_ID,
+  }
 
-  const sexRaw = payload.sex
-  const sexCandidates: SexType[] = ['male', 'female', 'other']
-  const nextSex: SexType | null = sexCandidates.includes(sexRaw as SexType)
-    ? (sexRaw as SexType)
-    : (current?.sex ?? null)
+  if (hasOwn(payload, 'age')) {
+    next.age = payload.age == null ? null : toValidatedInteger(payload.age, 'age', 0, 130)
+  }
+  if (hasOwn(payload, 'gender')) {
+    next.gender = payload.gender == null ? null : toValidatedEnum(payload.gender, 'gender', GENDER_VALUES)
+  }
+  if (hasOwn(payload, 'height_cm')) {
+    next.height_cm = payload.height_cm == null ? null : toValidatedNumber(payload.height_cm, 'height_cm', 80, 250)
+  }
+  if (hasOwn(payload, 'weight_goal')) {
+    next.weight_goal =
+      payload.weight_goal == null
+        ? null
+        : toValidatedEnum(payload.weight_goal, 'weight_goal', WEIGHT_GOAL_VALUES)
+  }
+  if (hasOwn(payload, 'bp_goal_systolic')) {
+    next.bp_goal_systolic =
+      payload.bp_goal_systolic == null
+        ? null
+        : toValidatedInteger(payload.bp_goal_systolic, 'bp_goal_systolic', 70, 250)
+  }
+  if (hasOwn(payload, 'bp_goal_diastolic')) {
+    next.bp_goal_diastolic =
+      payload.bp_goal_diastolic == null
+        ? null
+        : toValidatedInteger(payload.bp_goal_diastolic, 'bp_goal_diastolic', 40, 150)
+  }
+  if (hasOwn(payload, 'lens_weight')) {
+    const flag = normalizeLensFlag(payload.lens_weight)
+    if (flag == null) {
+      throw new ValidationError('lens_weight must be 0 or 1')
+    }
+    next.lens_weight = flag
+  }
+  if (hasOwn(payload, 'lens_bp')) {
+    const flag = normalizeLensFlag(payload.lens_bp)
+    if (flag == null) {
+      throw new ValidationError('lens_bp must be 0 or 1')
+    }
+    next.lens_bp = flag
+  }
+  if (hasOwn(payload, 'lens_sleep')) {
+    const flag = normalizeLensFlag(payload.lens_sleep)
+    if (flag == null) {
+      throw new ValidationError('lens_sleep must be 0 or 1')
+    }
+    next.lens_sleep = flag
+  }
+  if (hasOwn(payload, 'lens_performance')) {
+    const flag = normalizeLensFlag(payload.lens_performance)
+    if (flag == null) {
+      throw new ValidationError('lens_performance must be 0 or 1')
+    }
+    next.lens_performance = flag
+  }
+  if (hasOwn(payload, 'exercise_freq')) {
+    next.exercise_freq =
+      payload.exercise_freq == null
+        ? null
+        : toValidatedEnum(payload.exercise_freq, 'exercise_freq', EXERCISE_FREQ_VALUES)
+  }
+  if (hasOwn(payload, 'exercise_type')) {
+    next.exercise_type =
+      payload.exercise_type == null
+        ? null
+        : toValidatedEnum(payload.exercise_type, 'exercise_type', EXERCISE_TYPE_VALUES)
+  }
+  if (hasOwn(payload, 'exercise_intensity')) {
+    next.exercise_intensity =
+      payload.exercise_intensity == null
+        ? null
+        : toValidatedEnum(payload.exercise_intensity, 'exercise_intensity', EXERCISE_INTENSITY_VALUES)
+  }
+
+  if (
+    next.bp_goal_systolic != null &&
+    next.bp_goal_diastolic != null &&
+    next.bp_goal_diastolic >= next.bp_goal_systolic
+  ) {
+    throw new ValidationError('bp_goal_diastolic must be lower than bp_goal_systolic')
+  }
+
+  return next
+}
+
+async function upsertUserProfile(db: D1Database, payload: Record<string, unknown>): Promise<UserProfileRow> {
+  const current = await getUserProfile(db)
+  const next = applyUserProfilePatch(current, payload)
+  const timestamp = nowIso()
 
   await execute(
     db,
     `
-    INSERT INTO user_profile(
-      id, name, height_cm, birth_year, sex, goal_weight_kg, sleep_goal_minutes, steps_goal, updated_at
+    INSERT INTO user_profiles(
+      user_id, age, gender, height_cm, weight_goal, bp_goal_systolic, bp_goal_diastolic,
+      lens_weight, lens_bp, lens_sleep, lens_performance,
+      exercise_freq, exercise_type, exercise_intensity, updated_at
     )
-    VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      name = excluded.name,
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      age = excluded.age,
+      gender = excluded.gender,
       height_cm = excluded.height_cm,
-      birth_year = excluded.birth_year,
-      sex = excluded.sex,
-      goal_weight_kg = excluded.goal_weight_kg,
-      sleep_goal_minutes = excluded.sleep_goal_minutes,
-      steps_goal = excluded.steps_goal,
+      weight_goal = excluded.weight_goal,
+      bp_goal_systolic = excluded.bp_goal_systolic,
+      bp_goal_diastolic = excluded.bp_goal_diastolic,
+      lens_weight = excluded.lens_weight,
+      lens_bp = excluded.lens_bp,
+      lens_sleep = excluded.lens_sleep,
+      lens_performance = excluded.lens_performance,
+      exercise_freq = excluded.exercise_freq,
+      exercise_type = excluded.exercise_type,
+      exercise_intensity = excluded.exercise_intensity,
       updated_at = excluded.updated_at
     `,
-    [nextName, nextHeight, nextBirthYear, nextSex, nextGoalWeight, nextSleepGoal, nextStepsGoal, nowIso()],
+    [
+      PROFILE_USER_ID,
+      next.age,
+      next.gender,
+      next.height_cm,
+      next.weight_goal,
+      next.bp_goal_systolic,
+      next.bp_goal_diastolic,
+      next.lens_weight,
+      next.lens_bp,
+      next.lens_sleep,
+      next.lens_performance,
+      next.exercise_freq,
+      next.exercise_type,
+      next.exercise_intensity,
+      timestamp,
+    ],
   )
 
-  const updated = await queryFirst<ProfileRow>(db, 'SELECT * FROM user_profile WHERE id = 1')
-  if (!updated) {
-    return {}
-  }
-  return {
-    name: updated.name ?? undefined,
-    height_cm: updated.height_cm ?? undefined,
-    birth_year: updated.birth_year ?? undefined,
-    sex: updated.sex ?? undefined,
-    goal_weight_kg: updated.goal_weight_kg ?? undefined,
-    sleep_goal_minutes: updated.sleep_goal_minutes ?? 420,
-    steps_goal: updated.steps_goal ?? 8000,
-  }
+  return getUserProfile(db)
 }
 
 function average(values: Array<number | null | undefined>): number | null {
@@ -3625,27 +3867,25 @@ const worker: ExportedHandler<Env> = {
       }
 
       if (pathname === '/api/profile' && method === 'GET') {
-        const row = await queryFirst<ProfileRow>(env.DB, 'SELECT * FROM user_profile WHERE id = 1')
-        if (!row) {
-          return jsonResponse({
-            sleep_goal_minutes: 420,
-            steps_goal: 8000,
-          })
-        }
-        return jsonResponse({
-          name: row.name ?? undefined,
-          height_cm: row.height_cm ?? undefined,
-          birth_year: row.birth_year ?? undefined,
-          sex: row.sex ?? undefined,
-          goal_weight_kg: row.goal_weight_kg ?? undefined,
-          sleep_goal_minutes: row.sleep_goal_minutes ?? 420,
-          steps_goal: row.steps_goal ?? 8000,
-        })
+        return jsonResponse(await getUserProfile(env.DB))
       }
 
       if (pathname === '/api/profile' && method === 'PUT') {
-        const payload = await readJsonBody(request)
-        return jsonResponse(await upsertProfile(env.DB, payload))
+        let payload: Record<string, unknown>
+        try {
+          payload = await readJsonBody(request)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Invalid request body'
+          return jsonResponse({ detail: message }, 400)
+        }
+        try {
+          return jsonResponse(await upsertUserProfile(env.DB, payload))
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            return jsonResponse({ detail: error.message }, 400)
+          }
+          throw error
+        }
       }
 
       if (pathname === '/api/connection-status' && method === 'GET') {
