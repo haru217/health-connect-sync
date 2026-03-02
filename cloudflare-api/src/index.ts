@@ -3979,7 +3979,13 @@ async function callAnthropicDailyReport(
     responseStatus = response.status
     rawResponse = await response.text()
     if (!response.ok) {
-      throw new Error(`Anthropic API error (${responseStatus})`)
+      let detail = ''
+      try {
+        const parsed = JSON.parse(rawResponse) as Record<string, unknown>
+        const err = parsed.error as Record<string, unknown> | undefined
+        detail = typeof err?.message === 'string' ? `: ${err.message}` : ''
+      } catch { /* ignore parse failure */ }
+      throw new Error(`Anthropic API error (${responseStatus})${detail}`)
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
