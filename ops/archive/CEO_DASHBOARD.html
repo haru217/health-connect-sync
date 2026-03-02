@@ -537,7 +537,7 @@
                 // Phase B: ホーム画面・セットアップ・アバター
                 { id: "B1-HOME", defaultStatus: "todo", track: "iter" },
                 { id: "B2-SETUP", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-02 22:39", track: "iter" },
-                { id: "B3-AVATAR", defaultStatus: "todo", track: "iter" },
+                { id: "B3-AVATAR", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03 00:12", track: "iter" },
                 // Phase C: 各タブ強化（スコアUI完成後）
                 { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
@@ -624,7 +624,7 @@
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "wip", summary: "スコア算出API完成済み。次はGeminiがドーナツチャートUIを実装予定", owner: "Gemini", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
+                { name: "ホーム画面", status: "ok", summary: "3専門家のアバター画像（アニメ調・フェイスショット版）を確定し、アプリ内に配置完了", owner: "Gemini", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
                 { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },

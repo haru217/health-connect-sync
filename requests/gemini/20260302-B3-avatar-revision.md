@@ -2,7 +2,7 @@
 
 - Date: 2026-03-02
 - Owner: Gemini
-- Status: `todo`
+- Status: `done`
 - Phase: B（ホーム画面）
 - 元リクエスト: `requests/gemini/20260302-expert-avatars.md`
 
