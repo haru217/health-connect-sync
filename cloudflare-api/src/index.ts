@@ -128,6 +128,24 @@ interface AnthropicMessageResponse {
   }
 }
 
+interface OpenAICompatibleResponse {
+  model?: string
+  choices?: Array<{ message?: { content?: string } }>
+  usage?: {
+    prompt_tokens?: number
+    completion_tokens?: number
+  }
+}
+
+interface GeminiResponse {
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>
+  modelVersion?: string
+  usageMetadata?: {
+    promptTokenCount?: number
+    candidatesTokenCount?: number
+  }
+}
+
 interface HealthRecordRow {
   record_key: string
   device_id: string
@@ -245,7 +263,7 @@ const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'activity' | 'nutrition'
 const DEFAULT_BMR_KCAL = 1500
 const DEFAULT_LLM_PROVIDER = 'anthropic'
 const DEFAULT_LLM_MODEL = 'claude-haiku-4-5-20251001'
-const LLM_TIMEOUT_MS = 30_000
+const LLM_TIMEOUT_MS = 120_000
 const REPORT_EMOJI_RE = /\p{Extended_Pictographic}/gu
 const RECORD_PERMISSION_MAP: Readonly<Record<string, (typeof HEALTH_CONNECT_REQUIRED_PERMISSIONS)[number]>> = {
   StepsRecord: 'android.permission.health.READ_STEPS',
@@ -3844,6 +3862,13 @@ interface DailyReportGenerationResult {
   completion_tokens: number | null
 }
 
+interface DailyReportGenerationOptions {
+  force?: boolean
+  provider?: string
+  apiKey?: string
+  model?: string
+}
+
 interface DailyReportPersistInput extends DailyReportGeneratedPayload {
   date: string
   model: string
@@ -4191,6 +4216,137 @@ async function callAnthropicDailyReport(
   }
 }
 
+async function callOpenAIDailyReport(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<DailyReportGenerationResult> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
+
+  let rawResponse = ''
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_completion_tokens: /^(gpt-5|o[1-9])/.test(model) ? 16384 : 1200,
+        ...(/^(gpt-5|o[1-9])/.test(model) ? {} : { temperature: 0.5 }),
+        messages: [
+          { role: /^(gpt-5|o[1-9])/.test(model) ? 'developer' : 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+      signal: controller.signal,
+    })
+    rawResponse = await response.text()
+    if (!response.ok) {
+      throw new Error(`OpenAI API error (${response.status}): ${rawResponse.slice(0, 200)}`)
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  const parsed = JSON.parse(rawResponse) as OpenAICompatibleResponse
+  const generatedText = parsed.choices?.[0]?.message?.content?.trim() ?? ''
+  if (!generatedText) {
+    throw new Error('OpenAI API returned empty content')
+  }
+
+  const payload = parseDailyReportGeneratedPayload(generatedText)
+  return {
+    payload: { ...payload },
+    model: typeof parsed.model === 'string' ? parsed.model : model,
+    prompt_tokens: typeof parsed.usage?.prompt_tokens === 'number' ? parsed.usage.prompt_tokens : null,
+    completion_tokens: typeof parsed.usage?.completion_tokens === 'number' ? parsed.usage.completion_tokens : null,
+  }
+}
+
+async function callGeminiDailyReport(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<DailyReportGenerationResult> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
+
+  const geminiModel = model || 'gemini-2.5-flash'
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`
+
+  let rawResponse = ''
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          maxOutputTokens: 16384,
+          temperature: 0.5,
+        },
+      }),
+      signal: controller.signal,
+    })
+    rawResponse = await response.text()
+    if (!response.ok) {
+      throw new Error(`Gemini API error (${response.status}): ${rawResponse.slice(0, 200)}`)
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  const parsed = JSON.parse(rawResponse) as GeminiResponse
+  const parts = parsed.candidates?.[0]?.content?.parts ?? []
+  // Gemini 2.5 models include "thought" parts before the actual response.
+  // Find the last non-thought part which contains the generated text.
+  const outputPart = [...parts].reverse().find((p) => !p.thought)
+  const generatedText = (typeof outputPart?.text === 'string' ? outputPart.text : '').trim()
+  if (!generatedText) {
+    throw new Error(`Gemini API returned empty content. Parts count: ${parts.length}, raw snippet: ${rawResponse.slice(0, 300)}`)
+  }
+
+  const payload = parseDailyReportGeneratedPayload(generatedText)
+  return {
+    payload: { ...payload },
+    model: parsed.modelVersion ?? geminiModel,
+    prompt_tokens: typeof parsed.usageMetadata?.promptTokenCount === 'number' ? parsed.usageMetadata.promptTokenCount : null,
+    completion_tokens: typeof parsed.usageMetadata?.candidatesTokenCount === 'number' ? parsed.usageMetadata.candidatesTokenCount : null,
+  }
+}
+
+async function callLlmDailyReport(
+  provider: string,
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<DailyReportGenerationResult> {
+  if (provider === 'openai') {
+    return callOpenAIDailyReport(apiKey, model || 'gpt-4o-mini', systemPrompt, userPrompt)
+  }
+  if (provider === 'gemini' || provider === 'google') {
+    return callGeminiDailyReport(apiKey, model || 'gemini-2.5-flash', systemPrompt, userPrompt)
+  }
+  return callAnthropicDailyReport(apiKey, model || DEFAULT_LLM_MODEL, systemPrompt, userPrompt)
+}
+
 async function getDailyReport(db: D1Database, date: string): Promise<DailyReportRow | null> {
   const row = await queryFirst<DailyReportRow>(
     db,
@@ -4212,6 +4368,9 @@ function toDailyReportResponse(row: DailyReportRow): Record<string, unknown> {
   return {
     date: row.date,
     generated_at: row.generated_at,
+    model: row.model,
+    prompt_tokens: row.prompt_tokens,
+    completion_tokens: row.completion_tokens,
     home: {
       headline: row.headline,
       yu: row.yu_comment,
@@ -4717,7 +4876,7 @@ function parseSyncRequestPayload(payload: Record<string, unknown>): SyncRequestI
   }
 }
 
-async function handleSync(request: Request, env: Env): Promise<Response> {
+async function handleSync(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const payload = parseSyncRequestPayload(await readJsonBody(request))
   let upserted = 0
   let skipped = 0
@@ -4845,6 +5004,16 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
         [payload.rangeEnd, nowIso(), payload.syncId, payload.deviceId],
       )
     }
+  }
+
+  const today = toIsoDate(new Date())
+  const llmApiKey = (env.LLM_API_KEY ?? '').trim()
+  if (llmApiKey && ctx) {
+    ctx.waitUntil(
+      generateDailyReportIfNeeded(env, today).catch((err) =>
+        console.error('Auto report generation failed:', err)
+      ),
+    )
   }
 
   return jsonResponse({
@@ -5008,15 +5177,71 @@ async function handleDailyReportGet(url: URL, env: Env): Promise<Response> {
   return jsonResponse(toDailyReportResponse(row))
 }
 
+async function generateDailyReportIfNeeded(
+  env: Env,
+  date: string,
+  options: DailyReportGenerationOptions = {},
+): Promise<{ date: string; generated: boolean; cached: boolean; generated_at?: string }> {
+  const force = options.force ?? false
+  const cached = await getDailyReport(env.DB, date)
+  if (cached && !force) {
+    return {
+      date,
+      generated: false,
+      cached: true,
+      generated_at: cached.generated_at,
+    }
+  }
+
+  await ensureAggregatesUpToDate(env.DB)
+  const [profile, scores, trendRows] = await Promise.all([
+    getUserProfile(env.DB),
+    getScores(env.DB, date),
+    queryDailyReportTrendRows(env.DB, date),
+  ])
+  const season = buildSeasonContext(date)
+  const prompt = buildDailyReportPrompt({
+    date,
+    season: { ...season },
+    profile: { ...profile },
+    scores: { ...scores },
+    trendRows: [...trendRows],
+  })
+
+  const envProvider = (env.LLM_PROVIDER ?? DEFAULT_LLM_PROVIDER).trim().toLowerCase() || DEFAULT_LLM_PROVIDER
+  const provider = options.provider?.trim().toLowerCase() || envProvider
+  const overrideApiKey = options.apiKey?.trim() ?? ''
+  const envApiKey = (env.LLM_API_KEY ?? '').trim()
+  const effectiveApiKey = overrideApiKey || envApiKey
+  if (!effectiveApiKey) {
+    throw new Error('LLM API key is not configured')
+  }
+  const overrideModel = options.model?.trim() ?? ''
+  const model = overrideModel || (env.LLM_MODEL ?? '').trim() || ''
+
+  const generated = await callLlmDailyReport(provider, effectiveApiKey, model, prompt.systemPrompt, prompt.userPrompt)
+  const persistPayload: DailyReportPersistInput = {
+    date,
+    model: generated.model,
+    prompt_tokens: generated.prompt_tokens,
+    completion_tokens: generated.completion_tokens,
+    generated_at: nowIso(),
+    ...generated.payload,
+  }
+
+  await saveDailyReport(env.DB, persistPayload)
+
+  return {
+    date,
+    generated: true,
+    cached: false,
+  }
+}
+
 async function handleDailyReportGenerate(request: Request, url: URL, env: Env): Promise<Response> {
   const apiKey = (env.LLM_API_KEY ?? '').trim()
   if (!apiKey) {
     return jsonResponse({ detail: 'LLM API key is not configured' }, 503)
-  }
-
-  const provider = (env.LLM_PROVIDER ?? DEFAULT_LLM_PROVIDER).trim().toLowerCase() || DEFAULT_LLM_PROVIDER
-  if (provider !== DEFAULT_LLM_PROVIDER) {
-    return jsonResponse({ detail: `Unsupported LLM provider: ${provider}` }, 503)
   }
 
   let body: Record<string, unknown>
@@ -5040,36 +5265,18 @@ async function handleDailyReportGenerate(request: Request, url: URL, env: Env): 
   const forceFromQuery = parseBooleanFlag(url.searchParams.get('force'))
   const force = forceFromBody ?? forceFromQuery ?? false
 
-  const cached = await getDailyReport(env.DB, date)
-  if (cached && !force) {
-    return jsonResponse({
-      date,
-      generated: false,
-      cached: true,
-      generated_at: cached.generated_at,
-    })
-  }
+  const provider = typeof body.provider === 'string' ? body.provider : undefined
+  const overrideApiKey = typeof body.api_key === 'string' ? body.api_key : undefined
+  const overrideModel = typeof body.model === 'string' ? body.model : undefined
 
-  await ensureAggregatesUpToDate(env.DB)
-  const [profile, scores, trendRows] = await Promise.all([
-    getUserProfile(env.DB),
-    getScores(env.DB, date),
-    queryDailyReportTrendRows(env.DB, date),
-  ])
-  const season = buildSeasonContext(date)
-  const prompt = buildDailyReportPrompt({
-    date,
-    season: { ...season },
-    profile: { ...profile },
-    scores: { ...scores },
-    trendRows: [...trendRows],
-  })
-
-  const model = (env.LLM_MODEL ?? DEFAULT_LLM_MODEL).trim() || DEFAULT_LLM_MODEL
-
-  let generated: DailyReportGenerationResult
   try {
-    generated = await callAnthropicDailyReport(apiKey, model, prompt.systemPrompt, prompt.userPrompt)
+    const result = await generateDailyReportIfNeeded(env, date, {
+      force,
+      provider,
+      apiKey: overrideApiKey ?? apiKey,
+      model: overrideModel,
+    })
+    return jsonResponse({ ...result })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to generate daily report'
     if (message.includes('JSON') || message.includes('LLM response')) {
@@ -5077,27 +5284,10 @@ async function handleDailyReportGenerate(request: Request, url: URL, env: Env): 
     }
     return jsonResponse({ detail: message }, 500)
   }
-
-  const persistPayload: DailyReportPersistInput = {
-    date,
-    model: generated.model,
-    prompt_tokens: generated.prompt_tokens,
-    completion_tokens: generated.completion_tokens,
-    generated_at: nowIso(),
-    ...generated.payload,
-  }
-
-  await saveDailyReport(env.DB, persistPayload)
-
-  return jsonResponse({
-    date,
-    generated: true,
-    cached: false,
-  })
 }
 
 const worker: ExportedHandler<Env> = {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url)
     const pathname = url.pathname
     const method = request.method.toUpperCase()
@@ -5163,7 +5353,7 @@ const worker: ExportedHandler<Env> = {
       }
 
       if (pathname === '/api/sync' && method === 'POST') {
-        return handleSync(request, env)
+        return handleSync(request, env, ctx)
       }
 
       if (pathname === '/api/supplements' && method === 'GET') {
