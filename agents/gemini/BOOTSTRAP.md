@@ -56,7 +56,7 @@ UI/UXの見た目を変更する場合は、実装前にCEO承認を取る:
 
 ## 5) Phase Mapping
 - B3-AVATAR: 3専門家アバター画像（`requests/gemini/20260302-expert-avatars.md`）
-- B1-HOME: ホーム画面スコアUI（`requests/gemini/20260302-B1-home-screen-scores.md`）
+- B1-HOME: ホーム画面スコアUI（`requests/gemini/20260303-B1-home-screen-scores.md`）
 - Phase C以降: 各タブ画面のUI改善（リクエストは都度追加）
 
 ## 6) CEO向け記述ルール（重要）

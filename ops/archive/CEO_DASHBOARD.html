@@ -532,13 +532,17 @@
             const TASKS = [
                 // Phase A: 基盤（ルールエンジン・プロフィール）
                 { id: "A1-SCORE", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-02 23:44", track: "iter" },
+                { id: "A1v2-SCORE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 02:00", track: "iter" },
                 { id: "A2-INSIGHT", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 00:21", track: "iter" },
                 { id: "A3-PROFILE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-02 23:25", track: "iter" },
                 // Phase B: ホーム画面・セットアップ・アバター
-                { id: "B1-HOME", defaultStatus: "todo", track: "iter" },
+                { id: "B1-HOME", defaultStatus: "in_progress", track: "iter" },
                 { id: "B2-SETUP", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-02 22:39", track: "iter" },
                 { id: "B3-AVATAR", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03 00:12", track: "iter" },
-                // Phase C: 各タブ強化（スコアUI完成後）
+                // Phase C: AIレポート
+                { id: "C1-REPORT", defaultStatus: "done", defaultStamp: "Codex-shinsekai + Claude @ 2026-03-03", track: "iter" },
+                { id: "C1v2-TRIGGER", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03", track: "iter" },
+                // Phase D: 各タブ強化（スコアUI完成後）
                 { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
@@ -574,6 +578,9 @@
                 "P3-2-1": "Play Store申請に必要な安全性情報をそろえます。",
                 "P3-2-2": "ストア掲載素材を仕上げて公開準備を完了します。",
                 "P3-2-3": "公開の最終判断と公開手順を確定します。",
+                "A1v2-SCORE": "健康スコアを4領域（睡眠・活動・栄養・コンディション）に再編しました。より直感的な評価体系です。",
+                "C1-REPORT": "AIが毎日の健康データを分析し、3人の専門家視点でコメントを生成するAPIを作りました。",
+                "C1v2-TRIGGER": "データ同期が完了したら自動でAIレポートを生成する仕組みを追加します。",
             };
 
             const TASK_META = {
@@ -599,6 +606,9 @@
                 "P3-2-1": "担当はCEOとCodex。申請内容と実運用を一致させます。",
                 "P3-2-2": "担当はGemini。公開時の見え方を最終調整します。",
                 "P3-2-3": "担当はCEO。公開判断の条件を先に明文化します。",
+                "A1v2-SCORE": "担当はCodex-shinsekai。A1の後継。旧4分野を新4領域に再編済み。",
+                "C1-REPORT": "担当はCodex-shinsekai + Claude(CTO)。LLMモデル選定（Haiku 4.5に決定）とマルチプロバイダ対応はClaude担当。",
+                "C1v2-TRIGGER": "担当はCodex-shinsekai。同期後にバックグラウンドで自動生成。当日分のみ。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
@@ -620,6 +630,9 @@
                 "B2-SETUP": "mid",
                 "B3-AVATAR": "mid",
                 "I2-CODEX": "mid",
+                "A1v2-SCORE": "high",
+                "C1-REPORT": "high",
+                "C1v2-TRIGGER": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
@@ -629,7 +642,7 @@
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。全5タブのデータ取得が正常動作中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4"] },
+                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。全5タブのデータ取得+AIレポート生成が正常動作中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
@@ -637,14 +650,16 @@
             const CEO_DECISIONS = [
                 { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: 0 },
                 { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null, freeText: "内容による。エラーがどういう想定なのか詳しく知りたい。ケースごとに対応を決めたい" },
-                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "GPT・Claude・Gemini全て検討。候補: (1) Gemini 2.5 Flash $0.18/月 (2) GPT-5 Mini $0.15/月 (3) Claude Haiku 4.5 $0.45/月。3つとも試して日本語品質・キャラ演じ分けの比較検証を行う。月$1以下なので全部試せる" },
+                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "【決定済み】5モデル比較検証の結果、日次レポートはClaude Haiku 4.5に決定。Gemini 2.5 Proは品質最高だがコスト高。週次・月次レポートには別モデルを検討予定。マルチプロバイダ対応済みのため切替は環境変数のみで可能" },
                 { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: 0, freeText: "日本のヘルスケアアプリで使う想定のデザインで" },
                 { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: 0 },
                 { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 }
             ];
 
             const CEO_APPROVALS = [
-                { id: "A-001", screen: "ホーム画面", title: "3専門家のアバター画像作成（Geminiへ依頼）", description: "ユウ先生（医師・男性・穏やか・青緑系）、サキさん（管理栄養士・女性・明るい・オレンジピンク系）、マイコーチ（トレーナー・女性・元気・黄緑系）の3人分。日本のヘルスケアアプリ風のフラットイラスト、円形アバター用、透明背景PNG。あすけん・FiNC等を参考に、清潔感と親しみやすさのあるデザイン。", status: "approved", from: "Gemini" }
+                { id: "A-001", screen: "ホーム画面", title: "3専門家のアバター画像作成（Geminiへ依頼）", description: "ユウ先生（医師・男性・穏やか・青緑系）、サキさん（管理栄養士・女性・明るい・オレンジピンク系）、マイコーチ（トレーナー・女性・元気・黄緑系）の3人分。日本のヘルスケアアプリ風のフラットイラスト、円形アバター用、透明背景PNG。あすけん・FiNC等を参考に、清潔感と親しみやすさのあるデザイン。", status: "approved", from: "Gemini" },
+                { id: "A-002", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "総合スコア（大ドーナツ）、ドメイン別スコア（小ドーナツ）、気づきリストを画面上部に新規追加し、既存UI（ステータス・アドバイス等）は下部にそのまま残すデザイン実装", status: "pending", from: "Gemini" },
+                { id: "A-003", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "CTO承認完了: 総合スコア+ドメインカード追加、StatusBar削除、アバター差替", status: "pending", from: "Gemini" }
             ];
 
             const SIGNAL_MAP = { ok: "\u{1F7E2}", wip: "\u{1F7E1}", not_started: "\u{1F534}" };
