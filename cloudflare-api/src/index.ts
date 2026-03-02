@@ -197,6 +197,12 @@ const HEALTH_CONNECT_REQUIRED_PERMISSIONS = [
   'android.permission.health.READ_HEIGHT',
   'android.permission.health.READ_BODY_FAT',
 ] as const
+const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'body' | 'bp' | 'activity', number>> = {
+  sleep: 70,
+  body: 75,
+  bp: 72,
+  activity: 60,
+}
 const RECORD_PERMISSION_MAP: Readonly<Record<string, (typeof HEALTH_CONNECT_REQUIRED_PERMISSIONS)[number]>> = {
   StepsRecord: 'android.permission.health.READ_STEPS',
   WeightRecord: 'android.permission.health.READ_WEIGHT',
@@ -1717,6 +1723,7 @@ type HomeStatusTab = 'home' | 'health' | 'exercise' | 'meal' | 'my'
 type HomeInnerTab = 'composition' | 'vital' | 'sleep'
 type HomeStatusTone = 'normal' | 'warning' | 'critical'
 type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
+type ScoreColor = 'green' | 'yellow' | 'red'
 type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
 type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
 type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
@@ -3101,6 +3108,287 @@ function statusByRule(actual: number | null, target: number, rule: 'range' | 'mi
   return 'red'
 }
 
+function clampScore(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function scoreColor(score: number): ScoreColor {
+  if (score >= 70) {
+    return 'green'
+  }
+  if (score >= 50) {
+    return 'yellow'
+  }
+  return 'red'
+}
+
+function sleepAbsoluteScore(row: Pick<DailyMetricRow, 'sleep_hours' | 'spo2_pct'>, goalMinutes: number): number | null {
+  if (row.sleep_hours == null || !Number.isFinite(row.sleep_hours) || row.sleep_hours <= 0) {
+    return null
+  }
+
+  const sleepMinutes = row.sleep_hours * 60
+  const ratio = goalMinutes > 0 ? sleepMinutes / goalMinutes : 0
+  let durationScore: number
+  if (ratio <= 1) {
+    durationScore = ratio * 100
+  } else if (ratio <= 1.2) {
+    durationScore = 100 - (ratio - 1) * 25
+  } else {
+    durationScore = 95 - (ratio - 1.2) * 50
+  }
+
+  let qualityScore = 75
+  if (row.spo2_pct != null && Number.isFinite(row.spo2_pct)) {
+    if (row.spo2_pct >= 97) {
+      qualityScore = 100
+    } else if (row.spo2_pct >= 95) {
+      qualityScore = 85
+    } else if (row.spo2_pct >= 93) {
+      qualityScore = 70
+    } else {
+      qualityScore = 50
+    }
+  }
+
+  return clampScore(durationScore * 0.8 + qualityScore * 0.2)
+}
+
+function bodyAbsoluteScore(
+  row: Pick<DailyMetricRow, 'weight_kg' | 'body_fat_pct'>,
+  profile: UserProfileRow,
+): number | null {
+  const scores: number[] = []
+  if (row.weight_kg != null && Number.isFinite(row.weight_kg) && row.weight_kg > 0) {
+    const goalWeight = profile.goal_weight_kg
+    if (goalWeight != null && Number.isFinite(goalWeight) && goalWeight > 0) {
+      const diffRatio = Math.abs(row.weight_kg - goalWeight) / goalWeight
+      scores.push(clampScore(100 - diffRatio * 250))
+    } else {
+      scores.push(80)
+    }
+  }
+
+  if (row.body_fat_pct != null && Number.isFinite(row.body_fat_pct) && row.body_fat_pct > 0) {
+    const targetBodyFat = profile.gender === 'female' ? 28 : 20
+    const diff = Math.abs(row.body_fat_pct - targetBodyFat)
+    scores.push(clampScore(100 - diff * 4))
+  }
+
+  return scores.length > 0 ? clampScore(scores.reduce((sum, item) => sum + item, 0) / scores.length) : null
+}
+
+function bpAbsoluteScore(row: Pick<DailyMetricRow, 'blood_systolic' | 'blood_diastolic'>): number | null {
+  const sys = row.blood_systolic
+  const dia = row.blood_diastolic
+  if (sys == null || dia == null || !Number.isFinite(sys) || !Number.isFinite(dia)) {
+    return null
+  }
+
+  if (sys < 120 && dia < 80) {
+    return 95
+  }
+  if (sys < 130 && dia < 85) {
+    return 80
+  }
+  if (sys < 140 && dia < 90) {
+    return 60
+  }
+  if (sys < 160 && dia < 100) {
+    return 40
+  }
+  return 20
+}
+
+function activityAbsoluteScore(row: Pick<DailyMetricRow, 'steps' | 'active_kcal'>, stepsGoal: number): number | null {
+  const scores: number[] = []
+
+  if (row.steps != null && Number.isFinite(row.steps) && row.steps >= 0) {
+    const ratio = stepsGoal > 0 ? row.steps / stepsGoal : 0
+    scores.push(clampScore(Math.min(100, ratio * 100)))
+  }
+
+  if (row.active_kcal != null && Number.isFinite(row.active_kcal) && row.active_kcal >= 0) {
+    const ratio = row.active_kcal / 300
+    scores.push(clampScore(Math.min(100, ratio * 100)))
+  }
+
+  return scores.length > 0 ? clampScore(scores.reduce((sum, item) => sum + item, 0) / scores.length) : null
+}
+
+function trendScore(currentScore: number, baselineScore: number): number {
+  return clampScore(100 - Math.abs(currentScore - baselineScore) * 1.2)
+}
+
+function sleepSummary(row: Pick<DailyMetricRow, 'sleep_hours'> | null, profile: UserProfileRow): string {
+  if (!row || row.sleep_hours == null || row.sleep_hours <= 0) {
+    return '\u7761\u7720\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'
+  }
+  const minutes = Math.round(row.sleep_hours * 60)
+  const goal = profile.sleep_goal_minutes > 0 ? profile.sleep_goal_minutes : 420
+  if (minutes >= goal) {
+    return '\u7761\u7720\u76ee\u6a19\u3092\u9054\u6210'
+  }
+  if (minutes >= goal * 0.8) {
+    return '\u7761\u7720\u306f\u6982\u306d\u5b89\u5b9a'
+  }
+  return '\u7761\u7720\u6642\u9593\u304c\u77ed\u3081'
+}
+
+function bodySummary(row: Pick<DailyMetricRow, 'weight_kg'> | null, profile: UserProfileRow): string {
+  if (!row || row.weight_kg == null || row.weight_kg <= 0) {
+    return '\u8eab\u4f53\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'
+  }
+  if (profile.goal_weight_kg != null && profile.goal_weight_kg > 0) {
+    const diff = row.weight_kg - profile.goal_weight_kg
+    if (Math.abs(diff) <= 1.0) {
+      return '\u4f53\u91cd\u306f\u76ee\u6a19\u4ed8\u8fd1\u3067\u5b89\u5b9a'
+    }
+    return diff > 0 ? '\u4f53\u91cd\u306f\u76ee\u6a19\u3088\u308a\u9ad8\u3081' : '\u4f53\u91cd\u306f\u76ee\u6a19\u3088\u308a\u4f4e\u3081'
+  }
+  return '\u8eab\u4f53\u30c7\u30fc\u30bf\u3092\u7d99\u7d9a\u8a08\u6e2c\u4e2d'
+}
+
+function bpSummary(row: Pick<DailyMetricRow, 'blood_systolic' | 'blood_diastolic'> | null): string {
+  const sys = row?.blood_systolic
+  const dia = row?.blood_diastolic
+  if (sys == null || dia == null) {
+    return '\u8840\u5727\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'
+  }
+  if (sys < 130 && dia < 85) {
+    return '\u8840\u5727\u306f\u6b63\u5e38\u7bc4\u56f2'
+  }
+  if (sys < 140 && dia < 90) {
+    return '\u8840\u5727\u306f\u3084\u3084\u9ad8\u3081'
+  }
+  return '\u8840\u5727\u304c\u9ad8\u3081'
+}
+
+function activitySummary(row: Pick<DailyMetricRow, 'steps'> | null, profile: UserProfileRow): string {
+  const steps = row?.steps
+  if (steps == null || steps < 0) {
+    return '\u6d3b\u52d5\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'
+  }
+  const goal = profile.steps_goal > 0 ? profile.steps_goal : 8000
+  const ratio = goal > 0 ? steps / goal : 0
+  if (ratio >= 1) {
+    return '\u6b69\u6570\u76ee\u6a19\u3092\u9054\u6210'
+  }
+  if (ratio >= 0.7) {
+    return '\u6b69\u6570\u306f\u76ee\u6a19\u306b\u63a5\u8fd1'
+  }
+  return '\u6b69\u6570\u304c\u76ee\u6a19\u672a\u9054'
+}
+
+async function getScores(db: D1Database, date: string): Promise<Record<string, unknown>> {
+  const profile = await getUserProfile(db)
+  const startDate = shiftIsoDateByDays(date, -14)
+  const rows = await queryAll<DailyMetricRow>(
+    db,
+    `
+    SELECT
+      date, steps, distance_km, active_kcal, total_kcal, intake_kcal,
+      sleep_hours, weight_kg, body_fat_pct, resting_bpm, heart_bpm, spo2_pct,
+      blood_systolic, blood_diastolic, bmr_kcal, record_count
+    FROM daily_metrics
+    WHERE date BETWEEN ? AND ?
+    ORDER BY date ASC
+    `,
+    [startDate, date],
+  )
+
+  const byDate = new Map(rows.map((row) => [row.date, row]))
+  const current = byDate.get(date) ?? null
+  const history = rows.filter((row) => row.date !== date)
+
+  const sleepGoalMinutes = profile.sleep_goal_minutes > 0 ? profile.sleep_goal_minutes : 420
+  const stepsGoal = profile.steps_goal > 0 ? profile.steps_goal : 8000
+
+  const sleepHistoryScores = history.map((row) => sleepAbsoluteScore(row, sleepGoalMinutes))
+  const bodyHistoryScores = history.map((row) => bodyAbsoluteScore(row, profile))
+  const bpHistoryScores = history.map((row) => bpAbsoluteScore(row))
+  const activityHistoryScores = history.map((row) => activityAbsoluteScore(row, stepsGoal))
+
+  const baselineSleep = clampScore(average(sleepHistoryScores) ?? DEFAULT_BASELINE_SCORE.sleep)
+  const baselineBody = clampScore(average(bodyHistoryScores) ?? DEFAULT_BASELINE_SCORE.body)
+  const baselineBp = clampScore(average(bpHistoryScores) ?? DEFAULT_BASELINE_SCORE.bp)
+  const baselineActivity = clampScore(average(activityHistoryScores) ?? DEFAULT_BASELINE_SCORE.activity)
+
+  const currentSleepAbs = current == null ? null : sleepAbsoluteScore(current, sleepGoalMinutes)
+  const currentBodyAbs = current == null ? null : bodyAbsoluteScore(current, profile)
+  const currentBpAbs = current == null ? null : bpAbsoluteScore(current)
+  const currentActivityAbs = current == null ? null : activityAbsoluteScore(current, stepsGoal)
+
+  const sleepScore =
+    currentSleepAbs == null ? null : clampScore(currentSleepAbs * 0.7 + trendScore(currentSleepAbs, baselineSleep) * 0.3)
+  const bodyScore =
+    currentBodyAbs == null ? null : clampScore(currentBodyAbs * 0.7 + trendScore(currentBodyAbs, baselineBody) * 0.3)
+  const bpScore = currentBpAbs == null ? null : clampScore(currentBpAbs * 0.7 + trendScore(currentBpAbs, baselineBp) * 0.3)
+  const activityScore =
+    currentActivityAbs == null
+      ? null
+      : clampScore(currentActivityAbs * 0.7 + trendScore(currentActivityAbs, baselineActivity) * 0.3)
+
+  const domains = {
+    sleep:
+      sleepScore == null
+        ? null
+        : {
+            score: sleepScore,
+            color: scoreColor(sleepScore),
+            summary: sleepSummary(current, profile),
+          },
+    body:
+      bodyScore == null
+        ? null
+        : {
+            score: bodyScore,
+            color: scoreColor(bodyScore),
+            summary: bodySummary(current, profile),
+          },
+    bp:
+      bpScore == null
+        ? null
+        : {
+            score: bpScore,
+            color: scoreColor(bpScore),
+            summary: bpSummary(current),
+          },
+    activity:
+      activityScore == null
+        ? null
+        : {
+            score: activityScore,
+            color: scoreColor(activityScore),
+            summary: activitySummary(current, profile),
+          },
+  }
+
+  const overallValue = average([sleepScore, bodyScore, bpScore, activityScore])
+  const overall =
+    overallValue == null
+      ? null
+      : {
+          score: clampScore(overallValue),
+          color: scoreColor(clampScore(overallValue)),
+        }
+
+  return {
+    date,
+    overall,
+    domains,
+    baseline: {
+      sleep: baselineSleep,
+      body: baselineBody,
+      bp: baselineBp,
+      activity: baselineActivity,
+    },
+  }
+}
+
 async function computeTargets(db: D1Database, date: string): Promise<Record<string, unknown>> {
   const profile = await getUserProfile(db)
   const latestWeight = await queryFirst<{ weight_kg: number | null }>(
@@ -3858,6 +4146,15 @@ const worker: ExportedHandler<Env> = {
         }
         await ensureAggregatesUpToDate(env.DB)
         return jsonResponse(await buildHomeSummary(env.DB, date))
+      }
+
+      if (pathname === '/api/scores' && method === 'GET') {
+        const date = url.searchParams.get('date') ?? toIsoDate(new Date())
+        if (!isValidDate(date)) {
+          return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+        }
+        await ensureAggregatesUpToDate(env.DB)
+        return jsonResponse(await getScores(env.DB, date))
       }
 
       if (pathname === '/api/sync/cursor' && method === 'GET') {

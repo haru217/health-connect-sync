@@ -13,6 +13,13 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-03-02 (6)
+- Owner: Codex
+- Scope: A1-SCORE（ルールエンジンのスコア算出API）
+- Result: 睡眠・身体・血圧・活動の4分野を0-100で採点する仕組みを追加し、総合スコアと色判定を返すAPIを実装。過去14日平均を分野ごとの基準値として使い、当日データがない分野は非表示制御用に `null` を返す。サーバー側チェックは成功。
+- Files: `cloudflare-api/src/index.ts`, `ops/archive/CEO_DASHBOARD.html`, `ops/WORKLOG.md`, `handoff/incoming/20260302-codex-a1-rule-engine-scores.md`
+- Risk/Follow-up: スコア文言は暫定ルールのため、画面統合後の実データ確認で微調整する余地あり。
+
 ### 2026-03-02 (5)
 - Owner: Codex-shinsekai
 - Scope: R1（プロフィール保管先の統合と安全性強化）
