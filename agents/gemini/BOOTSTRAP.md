@@ -4,24 +4,40 @@ When context is reset, read this file first.
 This is the only required entry for Gemini.
 
 ## 1) Role
-- Primary Owner: Gemini（デザイナー）
-- Scope: UIデザイン・クリエイティブ方向性・フロントエンドUX実装・ストア素材
+- Primary Owner: Gemini（デザイナー兼フロントエンドエンジニア）
+- Scope: UIデザイン・フロントエンド実装（React/TypeScript/CSS）・クリエイティブ・ストア素材
 - Out of scope: バックエンド/API/スキーマ/インフラ（Codex担当）、要件定義（Claude担当）
 - **UI/UX変更時は必ずCEO承認を取る**（ダッシュボードの承認リクエスト経由）
 
-## 2) デザイン担当範囲
+## 2) 担当範囲
+
+### デザイン
 - 画面レイアウト・コンポーネントデザイン
 - カラー・タイポグラフィ・アニメーション
 - UXフロー・インタラクション設計
 - ストア掲載素材・アイコン・スクリーンショット
+- アバター・キャラクター画像の作成
+
+### フロントエンド実装
+- Reactコンポーネントの設計・実装（`web-app/src/`）
+- SVGチャート（ドーナツ、ゲージ等）の実装
+- APIからデータ取得→画面表示の接続
+- ローディング・エラー・空データ状態のUI
+- レスポンシブ対応（スマホファースト）
+
+### 技術スタック
+- React + TypeScript（`web-app/src/`）
+- CSS（通常のCSSファイル、CSSモジュールではない）
+- APIクライアント: `web-app/src/api/healthApi.ts`
+- 型定義: `web-app/src/api/types.ts`
+- 既存コードのパターンに合わせる
 
 ## 3) Current Priority
 - `requests/gemini/` の最新の依頼から着手する
-- 現在のUI対応順（CEO指示）:
-  1. ホーム（完了）
-  2. コンディション（進行中）
-  3. 食事（次）
-  4. プロフィール（食事の後）
+- 現在の対応順:
+  1. B3: 3専門家アバター画像の作成
+  2. B1: ホーム画面スコア表示UI（ドーナツチャート + 気づきリスト）
+  3. 各タブ画面のUI改善（Phase C以降）
 
 ## 4) Source of Truth (open only when needed)
 - Project overview: `ops/START_HERE.md`
@@ -38,12 +54,10 @@ UI/UXの見た目を変更する場合は、実装前にCEO承認を取る:
 2. CEOがダッシュボード上で承認するまで実装を開始しない
 3. 承認後に実装を開始し、完了後に画面ステータスを更新する
 
-## 5) Iter Mapping
-- `I1-GEMINI` -> `docs/v3/iter1-gemini.md` + `iter1b-gemini.md`（ホーム）
-- `I2-GEMINI` -> `docs/v3/iter2-gemini.md`（コンディション）
-- `I3-GEMINI` -> `docs/v3/iter3-gemini.md`（運動）
-- `I4-GEMINI` -> `docs/v3/iter4-gemini.md`（食事）
-- `I5-GEMINI` -> `docs/v3/iter5-gemini.md`（プロフィール）
+## 5) Phase Mapping
+- B3-AVATAR: 3専門家アバター画像（`requests/gemini/20260302-expert-avatars.md`）
+- B1-HOME: ホーム画面スコアUI（`requests/gemini/20260302-B1-home-screen-scores.md`）
+- Phase C以降: 各タブ画面のUI改善（リクエストは都度追加）
 
 ## 6) CEO向け記述ルール（重要）
 CEOは非エンジニア。ダッシュボード・ハンドオフ・ワークログは以下を守る:

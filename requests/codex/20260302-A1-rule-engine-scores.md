@@ -1,8 +1,8 @@
 # Request: ルールエンジン — スコア算出API
 
 - Date: 2026-03-02
-- Owner: Codex
-- Status: `todo`
+- Owner: Codex-shinsekai
+- Status: `in_progress`
 - Phase: A（基盤）
 - Design ref: `docs/plans/2026-03-02-health-os-design.md` §5
 

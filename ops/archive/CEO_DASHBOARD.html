@@ -580,7 +580,7 @@
                 "A1-SCORE": "担当はCodex。これが全体の土台になります。完成するとホーム画面にスコアが出せます。",
                 "A2-INSIGHT": "担当はCodex。A1完成後に着手。気づきはAIレポートの入力にもなります。",
                 "A3-PROFILE": "担当はCodex-shinsekai。A1と並行して進められます。",
-                "B1-HOME": "担当はCodex。A1・A2完成後に着手。ホーム画面の大幅リニューアルです。",
+                "B1-HOME": "担当はGemini。A1完了済み。ドーナツチャートでスコアを表示するホーム画面UIを実装します。",
                 "B2-SETUP": "担当はCodex-shinsekai。A3完成後に着手。初回アンケートでパーソナライズ開始。",
                 "B3-AVATAR": "担当はGemini。他タスクと並行可能。日本のヘルスケアアプリ風のイラストです。",
                 "I2-CODEX": "担当はCodex。AIコメントはユウ先生（医師キャラ）。",
@@ -624,7 +624,7 @@
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "wip", summary: "現行版は本番稼働中。まずスコア算出API（A1）を構築してからUI（B1）に着手予定", owner: "Codex → B1で着手", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
+                { name: "ホーム画面", status: "wip", summary: "スコア算出API完成済み。次はGeminiがドーナツチャートUIを実装予定", owner: "Gemini", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
                 { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },

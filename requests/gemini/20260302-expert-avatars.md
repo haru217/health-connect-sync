@@ -2,7 +2,8 @@
 
 - Date: 2026-03-02
 - Owner: Gemini
-- Status: `todo`
+- Status: `revision_required`
+- Revision: `requests/gemini/20260302-B3-avatar-revision.md`
 - Phase: B（ホーム画面）
 - Design ref: `docs/plans/2026-03-02-health-os-design.md` §7
 - CEO承認: D-010 承認済み

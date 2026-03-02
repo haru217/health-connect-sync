@@ -19,7 +19,7 @@ Last updated: 2026-03-02
 - **Claude-shinsekai** (CTO補助): 調査・情報収集・ドキュメント下書き（Claudeの指示で動く）
 - **Codex** (メインエンジニア): フロント・バックエンド実装・コードレビュー
 - **Codex-shinsekai** (サブエンジニア): Codexと並行して別タスクを担当（Claudeが分担を指定）
-- **Gemini** (デザイナー): UI/UXデザイン・アイコン・ストア素材。UI/UX変更時はCEO承認必須
+- **Gemini** (デザイナー兼フロントエンド): UI/UXデザイン・フロントエンド実装（React/CSS/SVGチャート）・アイコン・ストア素材。UI/UX変更時はCEO承認必須
 
 ## 4) Mandatory process
 1. CTO（Claude）がCEOと要件を詰め、仕様書とタスクを `requests/<agent>/` に作成する
