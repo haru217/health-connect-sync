@@ -1,40 +1,38 @@
 # START HERE (Single Entry Point)
 
-Last updated: 2026-02-27
+Last updated: 2026-03-02
 
 ## 1) What this project is
-- Product: Health AI Advisor
-- Core flow: Android Health Connect sync -> API aggregation -> Web UI + reports
+- Product: **Health OS** — 複数の健康データを横断統合し、今日の最適行動を提案する健康AI
+- Core flow: Android Health Connect → Sync APK → Cloudflare Workers/D1 → ルールエンジン → LLM → React Web App
+- 設計ドキュメント: `docs/plans/2026-03-02-health-os-design.md`
 
 ## 2) Current production line (source of truth)
-- Frontend: `web-app/`
+- Frontend: `web-app/` (React + Vercel)
 - API: `cloudflare-api/` (Cloudflare Workers + D1)
 - Android sync app: `android-sync/`
-- Archived legacy backend (reference only): `_archive/pc-server/`
+- Archived legacy: `_archive/`
 
 ## 3) Agent role split (5エージェント体制)
 - **CEO**: プロダクト判断・優先順位決定
-- **Claude** (CTO / 司令塔): 要件定義・仕様書作成・タスク分解・全体指揮。CEOと壁打ちして仕様を策定する
-- **Claude-shinsekai** (CTO補助 / 調査員): 調査・情報収集・ドキュメント下書き（Teamプラン制約あり。Claudeの指示で動く）
-- **Codex** (メインエンジニア):
-  - Codex-1: フロントエンド（`web-app/`）
-  - Codex-2: バックエンド（`cloudflare-api/`, `android-sync/`）
-  - Codex-3: コードレビュー・品質確認
-- **Codex-shinsekai** (サブエンジニア): Codexと同じ実装能力。並行して別タスクを担当（Claudeが分担を指定）
-- **Gemini** (デザイナー): UIデザイン・クリエイティブ・ストア素材。UI/UX変更時はCEO承認必須
+- **Claude** (CTO / 司令塔): 要件定義・仕様策定・タスク分解・全体指揮・CEO壁打ち
+- **Claude-shinsekai** (CTO補助): 調査・情報収集・ドキュメント下書き（Claudeの指示で動く）
+- **Codex** (メインエンジニア): フロント・バックエンド実装・コードレビュー
+- **Codex-shinsekai** (サブエンジニア): Codexと並行して別タスクを担当（Claudeが分担を指定）
+- **Gemini** (デザイナー): UI/UXデザイン・アイコン・ストア素材。UI/UX変更時はCEO承認必須
 
 ## 4) Mandatory process
 1. CTO（Claude）がCEOと要件を詰め、仕様書とタスクを `requests/<agent>/` に作成する
-2. 各エージェントがスコープ内の作業を実施する
-3. 動作確認後に git commit する（タスク1件 = 1コミット以上）
-4. `handoff/incoming/` にハンドオフを書く
-5. ダッシュボードを更新する
-6. `ops/WORKLOG.md` を更新する
+2. 担当エージェントが実装計画を立て、ダッシュボードに「承認待ち」を登録する
+3. **CEO承認後に**実装を開始する
+4. 動作確認後に git commit する（タスク1件 = 1コミット以上）
+5. `handoff/incoming/` にハンドオフを書く
+6. ダッシュボードを更新する（`ops/RULES.md` §3 参照）
 
 ## 5) Quick links
-- File map: `ops/FILE_MAP.md`
+- Rules (全ルール集約): `ops/RULES.md`
 - Workflow: `ops/WORKFLOW.md`
-- Rules: `ops/RULES.md`
-- Common rules: `agents/common/FIRST_READ.md`
-- CEO dashboard: `ops/CEO_DASHBOARD.html`
+- File map: `ops/FILE_MAP.md`
+- CEO dashboard: `ops/archive/CEO_DASHBOARD.html`
 - Dashboard update guide: `ops/CEO_DASHBOARD_UPDATE.md`
+- Health OS設計: `docs/plans/2026-03-02-health-os-design.md`

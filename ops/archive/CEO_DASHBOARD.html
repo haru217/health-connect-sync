@@ -530,34 +530,45 @@
             const STATE_LABELS = { todo: "未着手", in_progress: "進行中", blocked: "要対応", done: "完了" };
 
             const TASKS = [
-                { id: "I1-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I1-GEMINI", defaultStatus: "todo", track: "iter" },
+                // Phase A: 基盤（ルールエンジン・プロフィール）
+                { id: "A1-SCORE", defaultStatus: "todo", track: "iter" },
+                { id: "A2-INSIGHT", defaultStatus: "todo", track: "iter" },
+                { id: "A3-PROFILE", defaultStatus: "todo", track: "iter" },
+                // Phase B: ホーム画面・セットアップ・アバター
+                { id: "B1-HOME", defaultStatus: "todo", track: "iter" },
+                { id: "B2-SETUP", defaultStatus: "todo", track: "iter" },
+                { id: "B3-AVATAR", defaultStatus: "todo", track: "iter" },
+                // Phase C: 各タブ強化（スコアUI完成後）
                 { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
+                // Phase D: マイページ・仕上げ
                 { id: "I5-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I5-GEMINI", defaultStatus: "todo", track: "iter" },
-
                 { id: "P1-2-1", defaultStatus: "todo" }, { id: "P1-2-2", defaultStatus: "todo" }, { id: "P1-2-3", defaultStatus: "todo" },
-                { id: "P2-1-2", defaultStatus: "todo" },
+                // Phase E: 公開準備
                 { id: "P3-1-1", defaultStatus: "todo" }, { id: "P3-1-2", defaultStatus: "todo" },
                 { id: "P3-2-1", defaultStatus: "todo" }, { id: "P3-2-2", defaultStatus: "todo" },
                 { id: "P3-2-3", defaultStatus: "todo" },
             ];
 
             const TASK_LABELS = {
-                "I1-CODEX": "ホーム画面にスコア表示・気づき・AIレポートを実装します。（Health OS設計準拠）",
-                "I1-GEMINI": "ホーム画面のスコア円・専門家セクションのデザインを作ります。",
-                "I2-CODEX": "コンディション画面のデータ表示を安定させ、AIコメント欄を追加します。",
+                "A1-SCORE": "健康スコアを自動算出するしくみを作ります。睡眠・身体・血圧・活動の4分野を0-100で採点します。",
+                "A2-INSIGHT": "スコアをもとに「気づき」を自動生成します。良い傾向や注意点を最大5つ教えてくれます。",
+                "A3-PROFILE": "ユーザーの基本情報・目的・運動習慣を保存する場所を作ります。パーソナライズの土台です。",
+                "B1-HOME": "ホーム画面にスコア円（総合+4分野）と気づきリストを表示します。Health OSの中心画面です。",
+                "B2-SETUP": "初回起動時に目的（ダイエット・血圧改善等）と運動習慣を聞くアンケート画面を作ります。",
+                "B3-AVATAR": "3人の専門家（ユウ先生・サキさん・マイコーチ）のアバター画像を作成します。",
+                "I2-CODEX": "コンディション画面のデータ表示を安定させ、ユウ先生のAIコメント欄を追加します。",
                 "I2-GEMINI": "コンディションタブの見た目と使い心地を整えます。",
-                "I3-CODEX": "運動データを正しく集計し、AIコメント欄を追加します。",
+                "I3-CODEX": "運動データを正しく集計し、マイコーチのAIコメント欄を追加します。",
                 "I3-GEMINI": "運動画面を使いやすく整えます。",
-                "I4-CODEX": "食事データを集計し、AIコメント欄を追加します。",
+                "I4-CODEX": "食事データを集計し、サキさんのAIコメント欄を追加します。",
                 "I4-GEMINI": "食事画面の表示をわかりやすく整えます。",
                 "I5-CODEX": "マイページにプロフィール・目的レンズ・運動プロフィール設定を実装します。",
                 "I5-GEMINI": "マイページのプロフィール設定画面をデザインします。",
                 "P1-2-1": "プロフィール画面の仮表示を本番表示に置き換えます。",
                 "P1-2-2": "同期状況がひと目でわかる表示を入れます。",
                 "P1-2-3": "旧サーバーを安全に止められる状態にします。",
-                "P2-1-2": "初回セットアップアンケート（目的レンズ・運動プロフィール選択）の画面仕様を確定します。",
                 "P3-1-1": "リリース鍵の管理ルールを確定します。",
                 "P3-1-2": "本番用ファイルを安定して作れるようにします。",
                 "P3-2-1": "Play Store申請に必要な安全性情報をそろえます。",
@@ -566,45 +577,54 @@
             };
 
             const TASK_META = {
-                "I1-CODEX": "担当はCodexです。設計は docs/plans/2026-03-02-health-os-design.md を参照。",
-                "I1-GEMINI": "担当はGeminiです。設計は docs/plans/2026-03-02-health-os-design.md を参照。",
-                "I2-CODEX": "担当はCodexです。AIコメントはユウ先生（医師）が担当。",
-                "I2-GEMINI": "担当はGeminiです。",
-                "I3-CODEX": "担当はCodexです。AIコメントはマイコーチ（トレーナー）が担当。",
-                "I3-GEMINI": "担当はGeminiです。",
-                "I4-CODEX": "担当はCodexです。AIコメントはサキさん（管理栄養士）が担当。",
-                "I4-GEMINI": "担当はGeminiです。",
-                "I5-CODEX": "担当はCodexです。初回セットアップと連動。",
-                "I5-GEMINI": "担当はGeminiです。",
-                "P1-2-1": "担当はCodexです。段階的に本番表示へ置き換えます。",
-                "P1-2-2": "担当はCodexです。利用者が迷わない見せ方にします。",
-                "P1-2-3": "担当はCEOとCodexです。停止条件を合意してから進めます。",
-                "P2-1-2": "担当はGeminiです。Health OS設計の初回セットアップアンケートとして設計。",
-                "P3-1-1": "担当はCodexです。公開前に確定。",
-                "P3-1-2": "担当はCodexです。公開前に自動生成の安定化を完了します。",
-                "P3-2-1": "担当はCEOとCodexです。申請内容と実運用を一致させます。",
-                "P3-2-2": "担当はGeminiです。公開時の見え方を最終調整します。",
-                "P3-2-3": "担当はCEOです。公開判断の条件を先に明文化します。",
+                "A1-SCORE": "担当はCodex。これが全体の土台になります。完成するとホーム画面にスコアが出せます。",
+                "A2-INSIGHT": "担当はCodex。A1完成後に着手。気づきはAIレポートの入力にもなります。",
+                "A3-PROFILE": "担当はCodex-shinsekai。A1と並行して進められます。",
+                "B1-HOME": "担当はCodex。A1・A2完成後に着手。ホーム画面の大幅リニューアルです。",
+                "B2-SETUP": "担当はCodex-shinsekai。A3完成後に着手。初回アンケートでパーソナライズ開始。",
+                "B3-AVATAR": "担当はGemini。他タスクと並行可能。日本のヘルスケアアプリ風のイラストです。",
+                "I2-CODEX": "担当はCodex。AIコメントはユウ先生（医師キャラ）。",
+                "I2-GEMINI": "担当はGemini。",
+                "I3-CODEX": "担当はCodex。AIコメントはマイコーチ（トレーナーキャラ）。",
+                "I3-GEMINI": "担当はGemini。",
+                "I4-CODEX": "担当はCodex。AIコメントはサキさん（管理栄養士キャラ）。",
+                "I4-GEMINI": "担当はGemini。",
+                "I5-CODEX": "担当はCodex。セットアップアンケートと連動。",
+                "I5-GEMINI": "担当はGemini。",
+                "P1-2-1": "担当はCodex。段階的に本番表示へ置き換えます。",
+                "P1-2-2": "担当はCodex。利用者が迷わない見せ方にします。",
+                "P1-2-3": "担当はCEOとCodex。停止条件を合意してから進めます。",
+                "P3-1-1": "担当はCodex。公開前に確定。",
+                "P3-1-2": "担当はCodex。公開前に自動生成の安定化を完了します。",
+                "P3-2-1": "担当はCEOとCodex。申請内容と実運用を一致させます。",
+                "P3-2-2": "担当はGemini。公開時の見え方を最終調整します。",
+                "P3-2-3": "担当はCEO。公開判断の条件を先に明文化します。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
             function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
 
-            const TASK_THREADS = {};
+            const TASK_THREADS = {
+                "B3-AVATAR": [
+                    { author: "Claude(CTO)", ts: "2026-03-02 19:30", body: "Geminiへの依頼内容:\n\n3人の専門家アバター画像を作成してください。\n\n■ ユウ先生（医師・男性・30代後半）\n穏やか・安心感。白衣なし、カジュアルで清潔感のある服装。青〜緑系のアクセントカラー。\n\n■ サキさん（管理栄養士・女性・20代後半）\n明るい・親しみやすい笑顔。シンプルなブラウス。オレンジ〜ピンク系。\n\n■ マイコーチ（トレーナー・女性・20代後半）\nポジティブ・元気。スポーティだがマッチョすぎない。黄〜緑系。\n\n■ デザイン要件\n- フラットイラスト（写真ではない）\n- 日本のヘルスケアアプリ風（あすけん、FiNC等を参考）\n- 円形アバター用（顔中心のクロップ）\n- 透明背景 PNG 512x512px以上\n- 清潔感・信頼感・親しみやすさ\n\n詳細リクエスト: requests/gemini/20260302-expert-avatars.md" }
+                ]
+            };
 
             const TASK_REPLIES = {};
 
             const TASK_PRIORITY = {
-                "I1-CODEX": "high",
-                "I1-GEMINI": "high",
-                "I2-CODEX": "high",
-                "I2-GEMINI": "mid",
-                "I5-CODEX": "mid",
+                "A1-SCORE": "high",
+                "A2-INSIGHT": "high",
+                "A3-PROFILE": "high",
+                "B1-HOME": "high",
+                "B2-SETUP": "mid",
+                "B3-AVATAR": "mid",
+                "I2-CODEX": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "wip", summary: "現行版は本番稼働中。Health OS設計に基づきスコア表示・AIレポート・レポート履歴導線を追加予定", owner: "未定", type: "frontend", relatedTasks: ["I1-CODEX","I1-GEMINI","P1-1-3","P1-1-4","P1-1-5"] },
+                { name: "ホーム画面", status: "wip", summary: "現行版は本番稼働中。まずスコア算出API（A1）を構築してからUI（B1）に着手予定", owner: "Codex → B1で着手", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
                 { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
@@ -615,12 +635,12 @@
             ];
 
             const CEO_DECISIONS = [
-                { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null },
-                { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null },
-                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: null },
-                { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: null },
-                { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: null },
-                { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: null }
+                { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: 0 },
+                { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null, freeText: "内容による。エラーがどういう想定なのか詳しく知りたい。ケースごとに対応を決めたい" },
+                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "基本GPTを使う想定。最高品質モデルは使わず一つ下のクラス（GPT-4oレベル）をイメージ。コストと品質のバランスを見て決める" },
+                { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: 0, freeText: "日本のヘルスケアアプリで使う想定のデザインで" },
+                { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: 0 },
+                { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 }
             ];
 
             const CEO_APPROVALS = [];
@@ -632,14 +652,14 @@
             function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
 
             const BIG_CATEGORIES = [
-                { id: "iter", name: "イテレーション", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("I")) },
-                { id: "p1", name: "フェーズ1", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
-                { id: "p2", name: "フェーズ2", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P2-")) },
-                { id: "p3", name: "フェーズ3", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
-                { id: "legacy", name: "引き継ぎタスク", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C-")) },
+                { id: "foundation", name: "基盤（Phase A）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("A")) },
+                { id: "home", name: "ホーム画面（Phase B）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("B")) },
+                { id: "tabs", name: "タブ強化（Phase C）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("I")) },
+                { id: "mypage", name: "マイページ・仕上げ", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
+                { id: "release", name: "公開準備", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
             ];
 
-            let activeCategory = "iter";
+            let activeCategory = "foundation";
             let activeTab = "ceo";
 
             // === Tab switching ===
