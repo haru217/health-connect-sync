@@ -533,6 +533,7 @@
                 // Phase A: 基盤（ルールエンジン・プロフィール）
                 { id: "A1-SCORE", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-02 23:44", track: "iter" },
                 { id: "A1v2-SCORE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 02:00", track: "iter" },
+                { id: "A1v3-VALUES", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 03:30", track: "iter" },
                 { id: "A2-INSIGHT", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 00:21", track: "iter" },
                 { id: "A3-PROFILE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-02 23:25", track: "iter" },
                 // Phase B: ホーム画面・セットアップ・アバター
@@ -579,6 +580,7 @@
                 "P3-2-2": "ストア掲載素材を仕上げて公開準備を完了します。",
                 "P3-2-3": "公開の最終判断と公開手順を確定します。",
                 "A1v2-SCORE": "健康スコアを4領域（睡眠・活動・栄養・コンディション）に再編しました。より直感的な評価体系です。",
+                "A1v3-VALUES": "スコアAPIに実数値（睡眠時間・歩数・カロリー・血圧値）を追加。フロントが1つのAPIで完結します。",
                 "C1-REPORT": "AIが毎日の健康データを分析し、3人の専門家視点でコメントを生成するAPIを作りました。",
                 "C1v2-TRIGGER": "データ同期が完了したら自動でAIレポートを生成する仕組みを追加します。",
             };
@@ -609,6 +611,7 @@
                 "A1v2-SCORE": "担当はCodex-shinsekai。A1の後継。旧4分野を新4領域に再編済み。",
                 "C1-REPORT": "担当はCodex-shinsekai + Claude(CTO)。LLMモデル選定（Haiku 4.5に決定）とマルチプロバイダ対応はClaude担当。",
                 "C1v2-TRIGGER": "担当はCodex-shinsekai。同期後にバックグラウンドで自動生成。当日分のみ。",
+                "A1v3-VALUES": "担当はCodex-shinsekai。A1v2に実数値を追加。B1ホーム画面が1API呼び出しで完結。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
@@ -633,6 +636,7 @@
                 "A1v2-SCORE": "high",
                 "C1-REPORT": "high",
                 "C1v2-TRIGGER": "mid",
+                "A1v3-VALUES": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
@@ -671,7 +675,8 @@
             const BIG_CATEGORIES = [
                 { id: "foundation", name: "基盤（Phase A）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("A")) },
                 { id: "home", name: "ホーム画面（Phase B）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("B")) },
-                { id: "tabs", name: "タブ強化（Phase C）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("I")) },
+                { id: "ai", name: "AIレポート（Phase C）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C")) },
+                { id: "tabs", name: "タブ強化（Phase D）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("I")) },
                 { id: "mypage", name: "マイページ・仕上げ", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
                 { id: "release", name: "公開準備", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
             ];
