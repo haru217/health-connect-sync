@@ -42,16 +42,16 @@ const STATUS_META: Record<HomeStatusItem['key'], StatusMeta> = {
       </svg>
     ),
   },
-  steps: {
-    label: '歩数',
+  activity: {
+    label: '活動',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
     ),
   },
-  meal: {
-    label: '食事',
+  nutrition: {
+    label: '栄養',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
@@ -60,18 +60,8 @@ const STATUS_META: Record<HomeStatusItem['key'], StatusMeta> = {
       </svg>
     ),
   },
-  weight: {
-    label: '体重',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="5" width="16" height="14" rx="3" ry="3" />
-        <path d="M12 5v4" />
-        <path d="M8 9h8" />
-      </svg>
-    ),
-  },
-  bp: {
-    label: '血圧',
+  condition: {
+    label: 'コンディション',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -355,13 +345,18 @@ function fallbackStatusItems(data: HomeSummaryResponse): HomeStatusItem[] {
   const sufficiency = data.sufficiency
   const items: HomeStatusItem[] = [
     { key: 'sleep', label: '睡眠', value: null, ok: Boolean(sufficiency.sleep), tab: 'health', innerTab: 'sleep', tone: 'normal' },
-    { key: 'steps', label: '歩数', value: null, ok: Boolean(sufficiency.steps), tab: 'exercise', tone: 'normal' },
-    { key: 'meal', label: '食事', value: null, ok: Boolean(sufficiency.meal), tab: 'meal', tone: 'normal' },
-    { key: 'weight', label: '体重', value: null, ok: Boolean(sufficiency.weight), tab: 'health', innerTab: 'composition', tone: 'normal' },
+    { key: 'activity', label: '活動', value: null, ok: Boolean(sufficiency.steps), tab: 'exercise', tone: 'normal' },
+    { key: 'nutrition', label: '栄養', value: null, ok: Boolean(sufficiency.meal), tab: 'meal', tone: 'normal' },
+    {
+      key: 'condition',
+      label: 'コンディション',
+      value: null,
+      ok: Boolean(sufficiency.weight || sufficiency.bp),
+      tab: 'health',
+      innerTab: sufficiency.bp ? 'vital' : 'composition',
+      tone: 'normal',
+    },
   ]
-  if (sufficiency.bp) {
-    items.push({ key: 'bp', label: 'BP', value: null, ok: true, tab: 'health', innerTab: 'vital', tone: 'normal' })
-  }
   return items
 }
 

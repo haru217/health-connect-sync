@@ -236,11 +236,11 @@ const HEALTH_CONNECT_REQUIRED_PERMISSIONS = [
   'android.permission.health.READ_HEIGHT',
   'android.permission.health.READ_BODY_FAT',
 ] as const
-const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'body' | 'bp' | 'activity', number>> = {
+const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'activity' | 'nutrition' | 'condition', number>> = {
   sleep: 70,
-  body: 75,
-  bp: 72,
   activity: 60,
+  nutrition: 75,
+  condition: 73,
 }
 const DEFAULT_LLM_PROVIDER = 'anthropic'
 const DEFAULT_LLM_MODEL = 'claude-haiku-4-5-20251001'
@@ -1790,10 +1790,10 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
 type HomeStatusTab = 'home' | 'health' | 'exercise' | 'meal' | 'my'
 type HomeInnerTab = 'composition' | 'vital' | 'sleep'
 type HomeStatusTone = 'normal' | 'warning' | 'critical'
-type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
+type HomeStatusKey = 'sleep' | 'activity' | 'nutrition' | 'condition'
 type ScoreColor = 'green' | 'yellow' | 'red'
 type InsightType = 'positive' | 'attention' | 'threshold'
-type InsightDomain = 'sleep' | 'body' | 'bp' | 'activity'
+type InsightDomain = 'sleep' | 'activity' | 'nutrition' | 'condition'
 type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
 type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
 type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
@@ -1806,9 +1806,9 @@ interface ScoreInsight {
 
 interface ScoresBaseline {
   sleep: number
-  body: number
-  bp: number
   activity: number
+  nutrition: number
+  condition: number
 }
 
 interface InsightCandidate extends ScoreInsight {
@@ -2006,8 +2006,8 @@ async function buildHomeSummary(db: D1Database, date: string): Promise<Record<st
       progress: progressByTarget(sleepMinutes, sleepGoalMinutes),
     },
     {
-      key: 'steps',
-      label: '\u6b69\u6570',
+      key: 'activity',
+      label: '\u6d3b\u52d5',
       value: formatRoundedWithUnit(steps, ''),
       ok: sufficiency.steps,
       tab: 'exercise',
@@ -2015,8 +2015,8 @@ async function buildHomeSummary(db: D1Database, date: string): Promise<Record<st
       progress: progressByTarget(steps, stepsGoal),
     },
     {
-      key: 'meal',
-      label: '\u98df\u4e8b',
+      key: 'nutrition',
+      label: '\u6804\u990a',
       value: formatRoundedWithUnit(intakeKcal, 'kcal'),
       ok: sufficiency.meal,
       tab: 'meal',
@@ -2024,29 +2024,16 @@ async function buildHomeSummary(db: D1Database, date: string): Promise<Record<st
       progress: sufficiency.meal ? 100 : 0,
     },
     {
-      key: 'weight',
-      label: '\u4f53\u91cd',
-      value: weight == null ? null : `${weight.toFixed(1)}kg`,
-      ok: sufficiency.weight,
+      key: 'condition',
+      label: '\u30b3\u30f3\u30c7\u30a3\u30b7\u30e7\u30f3',
+      value: hasBp && bpSystolic != null && bpDiastolic != null ? `${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}` : weight == null ? null : `${weight.toFixed(1)}kg`,
+      ok: sufficiency.weight || sufficiency.bp,
       tab: 'health',
-      innerTab: 'composition',
-      tone: 'normal',
-      progress: sufficiency.weight ? 100 : 0,
+      innerTab: hasBp ? 'vital' : 'composition',
+      tone: hasBp ? bpTone : 'normal',
+      progress: hasBp && bpSystolic != null ? clampPercent(100 - Math.max(0, bpSystolic - 120) * 2) : sufficiency.weight ? 100 : 0,
     },
   ]
-
-  if (hasBp && bpSystolic != null && bpDiastolic != null) {
-    statusItems.push({
-      key: 'bp',
-      label: 'BP',
-      value: `${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}`,
-      ok: bpTone === 'normal',
-      tab: 'health',
-      innerTab: 'vital',
-      tone: bpTone,
-      progress: clampPercent(100 - Math.max(0, bpSystolic - 120) * 2),
-    })
-  }
 
   const attentionPoints: HomeAttentionPointPayload[] = []
   if (hasBp && bpSystolic != null && bpDiastolic != null) {
@@ -2459,6 +2446,35 @@ function average(values: Array<number | null | undefined>): number | null {
     return null
   }
   return valid.reduce((sum, value) => sum + value, 0) / valid.length
+}
+
+function weightedAverage(
+  values: Array<number | null | undefined>,
+  weights: Array<number | null | undefined>,
+): number | null {
+  let weightedSum = 0
+  let weightTotal = 0
+
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index]
+    const weight = weights[index]
+    if (
+      typeof value !== 'number' ||
+      !Number.isFinite(value) ||
+      typeof weight !== 'number' ||
+      !Number.isFinite(weight) ||
+      weight <= 0
+    ) {
+      continue
+    }
+    weightedSum += value * weight
+    weightTotal += weight
+  }
+
+  if (weightTotal <= 0) {
+    return null
+  }
+  return weightedSum / weightTotal
 }
 
 function minimum(values: Array<number | null | undefined>): number | null {
@@ -3290,7 +3306,10 @@ function bpAbsoluteScore(row: Pick<DailyMetricRow, 'blood_systolic' | 'blood_dia
   return 20
 }
 
-function activityAbsoluteScore(row: Pick<DailyMetricRow, 'steps' | 'active_kcal'>, stepsGoal: number): number | null {
+function activityAbsoluteScore(
+  row: Pick<DailyMetricRow, 'steps' | 'active_kcal' | 'distance_km'>,
+  stepsGoal: number,
+): number | null {
   const scores: number[] = []
 
   if (row.steps != null && Number.isFinite(row.steps) && row.steps >= 0) {
@@ -3303,7 +3322,72 @@ function activityAbsoluteScore(row: Pick<DailyMetricRow, 'steps' | 'active_kcal'
     scores.push(clampScore(Math.min(100, ratio * 100)))
   }
 
+  if (row.distance_km != null && Number.isFinite(row.distance_km) && row.distance_km >= 0) {
+    const ratio = row.distance_km / 5
+    scores.push(clampScore(Math.min(100, ratio * 100)))
+  }
+
   return scores.length > 0 ? clampScore(scores.reduce((sum, item) => sum + item, 0) / scores.length) : null
+}
+
+function nutritionAbsoluteScore(row: Pick<DailyMetricRow, 'intake_kcal' | 'bmr_kcal'>): number | null {
+  if (row.intake_kcal == null || !Number.isFinite(row.intake_kcal)) {
+    return null
+  }
+
+  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : 1500
+  const ratio = row.intake_kcal / bmrKcal
+
+  let score: number
+  if (ratio >= 0.9 && ratio <= 1.4) {
+    score = 90 + (1.0 - Math.abs(ratio - 1.15)) * 40
+  } else if (ratio >= 0.7 && ratio < 0.9) {
+    score = 70 - (0.9 - ratio) * 100
+  } else if (ratio > 1.4 && ratio <= 1.8) {
+    score = 70 - (ratio - 1.4) * 75
+  } else {
+    score = Math.max(20, 50 - Math.abs(ratio - 1.15) * 30)
+  }
+
+  return clampScore(score)
+}
+
+function conditionAbsoluteScore(
+  row: Pick<
+    DailyMetricRow,
+    'blood_systolic' | 'blood_diastolic' | 'resting_bpm' | 'weight_kg' | 'body_fat_pct'
+  >,
+  profile: UserProfileRow,
+): number | null {
+  const scores: Array<number | null> = []
+  const weights: number[] = []
+
+  const bpScore = bpAbsoluteScore(row)
+  scores.push(bpScore)
+  weights.push(3)
+
+  let hrScore: number | null = null
+  if (row.resting_bpm != null && Number.isFinite(row.resting_bpm)) {
+    if (row.resting_bpm < 60) {
+      hrScore = 95
+    } else if (row.resting_bpm < 70) {
+      hrScore = 85
+    } else if (row.resting_bpm < 80) {
+      hrScore = 70
+    } else if (row.resting_bpm < 90) {
+      hrScore = 55
+    } else {
+      hrScore = 40
+    }
+  }
+  scores.push(hrScore)
+  weights.push(2)
+
+  const bodyScore = bodyAbsoluteScore(row, profile)
+  scores.push(bodyScore)
+  weights.push(2)
+
+  return weightedAverage(scores, weights)
 }
 
 function trendScore(currentScore: number, baselineScore: number): number {
@@ -3314,10 +3398,14 @@ function hasInsightMetric(row: DailyMetricRow): boolean {
   return (
     (row.sleep_hours != null && Number.isFinite(row.sleep_hours)) ||
     (row.spo2_pct != null && Number.isFinite(row.spo2_pct)) ||
+    (row.distance_km != null && Number.isFinite(row.distance_km)) ||
+    (row.intake_kcal != null && Number.isFinite(row.intake_kcal)) ||
+    (row.bmr_kcal != null && Number.isFinite(row.bmr_kcal)) ||
     (row.weight_kg != null && Number.isFinite(row.weight_kg)) ||
     (row.body_fat_pct != null && Number.isFinite(row.body_fat_pct)) ||
     (row.blood_systolic != null && Number.isFinite(row.blood_systolic)) ||
     (row.blood_diastolic != null && Number.isFinite(row.blood_diastolic)) ||
+    (row.resting_bpm != null && Number.isFinite(row.resting_bpm)) ||
     (row.steps != null && Number.isFinite(row.steps)) ||
     (row.active_kcal != null && Number.isFinite(row.active_kcal))
   )
@@ -3344,16 +3432,16 @@ function generateInsights(
 
   const currentDomainScores: Record<InsightDomain, number | null> = {
     sleep: sleepAbsoluteScore(todayRow, sleepGoalMinutes),
-    body: bodyAbsoluteScore(todayRow, profile),
-    bp: bpAbsoluteScore(todayRow),
     activity: activityAbsoluteScore(todayRow, stepsGoal),
+    nutrition: nutritionAbsoluteScore(todayRow),
+    condition: conditionAbsoluteScore(todayRow, profile),
   }
 
   const historyCounts: Record<InsightDomain, number> = {
     sleep: historyRows.map((row) => sleepAbsoluteScore(row, sleepGoalMinutes)).filter((score) => score != null).length,
-    body: historyRows.map((row) => bodyAbsoluteScore(row, profile)).filter((score) => score != null).length,
-    bp: historyRows.map((row) => bpAbsoluteScore(row)).filter((score) => score != null).length,
     activity: historyRows.map((row) => activityAbsoluteScore(row, stepsGoal)).filter((score) => score != null).length,
+    nutrition: historyRows.map((row) => nutritionAbsoluteScore(row)).filter((score) => score != null).length,
+    condition: historyRows.map((row) => conditionAbsoluteScore(row, profile)).filter((score) => score != null).length,
   }
 
   const candidates: InsightCandidate[] = []
@@ -3373,34 +3461,39 @@ function generateInsights(
       const severity = Math.max(0, sys - 135) + Math.max(0, dia - 85)
       addCandidate({
         type: 'threshold',
-        domain: 'bp',
+        domain: 'condition',
         text: '今日の血圧は高めでした。塩分を控えて、早めに休みましょう。',
         priority: 120 + severity,
       })
     } else if (sys < 130 && dia < 85) {
       addCandidate({
         type: 'positive',
-        domain: 'bp',
+        domain: 'condition',
         text: '今日の血圧は落ち着いていて、安定した状態を保てています。',
         priority: 55,
       })
     }
   }
 
-  const positiveMessages: Record<InsightDomain, string> = {
+  const positiveMessages: Record<string, string> = {
     sleep: '睡眠の調子がいつもより良く、体をしっかり休められています。',
     body: '体のコンディションがいつもより良い状態です。',
     bp: '血圧の調子がいつもより安定しています。',
     activity: '活動量がいつもよりしっかり確保できています。',
   }
-  const attentionMessages: Record<InsightDomain, string> = {
+  const attentionMessages: Record<string, string> = {
     sleep: '睡眠の調子がいつもより落ちています。今夜は少し早めに休みましょう。',
     body: '体のコンディションがいつもより下がっています。食事と休息を整えましょう。',
     bp: '血圧の調子がいつもより不安定です。無理をせず落ち着いて過ごしましょう。',
     activity: '活動量がいつもより少なめです。短い散歩から戻していきましょう。',
   }
 
-  ;(['sleep', 'body', 'bp', 'activity'] as InsightDomain[]).forEach((domain) => {
+  positiveMessages.nutrition = '食事バランスがいつもより良好です。'
+  positiveMessages.condition = 'コンディションがいつもより良い状態です。'
+  attentionMessages.nutrition = '食事バランスがいつもより崩れています。摂取量を整えましょう。'
+  attentionMessages.condition = 'コンディションがいつもより不安定です。無理をせず体調管理を優先しましょう。'
+
+  ;(['sleep', 'activity', 'nutrition', 'condition'] as InsightDomain[]).forEach((domain) => {
     const score = currentDomainScores[domain]
     const historyCount = historyCounts[domain]
     const domainBaseline = baseline[domain]
@@ -3461,7 +3554,7 @@ function generateInsights(
   ) {
     addCandidate({
       type: 'positive',
-      domain: 'body',
+      domain: 'condition',
       text: '体重が目標に近い位置で安定しています。',
       priority: 64,
     })
@@ -3542,6 +3635,53 @@ function activitySummary(row: Pick<DailyMetricRow, 'steps'> | null, profile: Use
   return '\u6b69\u6570\u304c\u76ee\u6a19\u672a\u9054'
 }
 
+function nutritionSummary(row: Pick<DailyMetricRow, 'intake_kcal' | 'bmr_kcal'> | null): string {
+  if (!row || row.intake_kcal == null || !Number.isFinite(row.intake_kcal)) {
+    return '食事データがありません'
+  }
+  const bmrKcal = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) && row.bmr_kcal > 0 ? row.bmr_kcal : 1500
+  const ratio = row.intake_kcal / bmrKcal
+  if (ratio < 0.8) {
+    return '摂取カロリーがやや少なめです'
+  }
+  if (ratio <= 1.5) {
+    return 'カロリーバランスは良好です'
+  }
+  return '摂取カロリーがやや多めです'
+}
+
+function conditionSummary(
+  row: Pick<DailyMetricRow, 'blood_systolic' | 'blood_diastolic' | 'resting_bpm' | 'weight_kg' | 'body_fat_pct'> | null,
+  profile: UserProfileRow,
+): string {
+  if (!row) {
+    return 'コンディションデータがありません'
+  }
+
+  const totalScore = conditionAbsoluteScore(row, profile)
+  if (totalScore != null && totalScore >= 70) {
+    return 'コンディションは良好です'
+  }
+
+  const bpScore = bpAbsoluteScore(row)
+  const bodyScore = bodyAbsoluteScore(row, profile)
+
+  if (bpScore != null && bodyScore != null) {
+    return bpScore <= bodyScore ? bpSummary(row) : bodySummary(row, profile)
+  }
+  if (bpScore != null) {
+    return bpSummary(row)
+  }
+  if (bodyScore != null) {
+    return bodySummary(row, profile)
+  }
+  if (row.resting_bpm != null && Number.isFinite(row.resting_bpm)) {
+    return row.resting_bpm < 80 ? 'コンディションは良好です' : '安静時心拍がやや高めです'
+  }
+
+  return 'コンディションデータがありません'
+}
+
 async function getScores(db: D1Database, date: string): Promise<Record<string, unknown>> {
   const profile = await getUserProfile(db)
   const startDate = shiftIsoDateByDays(date, -14)
@@ -3567,29 +3707,34 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
   const stepsGoal = profile.steps_goal > 0 ? profile.steps_goal : 8000
 
   const sleepHistoryScores = history.map((row) => sleepAbsoluteScore(row, sleepGoalMinutes))
-  const bodyHistoryScores = history.map((row) => bodyAbsoluteScore(row, profile))
-  const bpHistoryScores = history.map((row) => bpAbsoluteScore(row))
   const activityHistoryScores = history.map((row) => activityAbsoluteScore(row, stepsGoal))
+  const nutritionHistoryScores = history.map((row) => nutritionAbsoluteScore(row))
+  const conditionHistoryScores = history.map((row) => conditionAbsoluteScore(row, profile))
 
   const baselineSleep = clampScore(average(sleepHistoryScores) ?? DEFAULT_BASELINE_SCORE.sleep)
-  const baselineBody = clampScore(average(bodyHistoryScores) ?? DEFAULT_BASELINE_SCORE.body)
-  const baselineBp = clampScore(average(bpHistoryScores) ?? DEFAULT_BASELINE_SCORE.bp)
   const baselineActivity = clampScore(average(activityHistoryScores) ?? DEFAULT_BASELINE_SCORE.activity)
+  const baselineNutrition = clampScore(average(nutritionHistoryScores) ?? DEFAULT_BASELINE_SCORE.nutrition)
+  const baselineCondition = clampScore(average(conditionHistoryScores) ?? DEFAULT_BASELINE_SCORE.condition)
 
   const currentSleepAbs = current == null ? null : sleepAbsoluteScore(current, sleepGoalMinutes)
-  const currentBodyAbs = current == null ? null : bodyAbsoluteScore(current, profile)
-  const currentBpAbs = current == null ? null : bpAbsoluteScore(current)
   const currentActivityAbs = current == null ? null : activityAbsoluteScore(current, stepsGoal)
+  const currentNutritionAbs = current == null ? null : nutritionAbsoluteScore(current)
+  const currentConditionAbs = current == null ? null : conditionAbsoluteScore(current, profile)
 
   const sleepScore =
     currentSleepAbs == null ? null : clampScore(currentSleepAbs * 0.7 + trendScore(currentSleepAbs, baselineSleep) * 0.3)
-  const bodyScore =
-    currentBodyAbs == null ? null : clampScore(currentBodyAbs * 0.7 + trendScore(currentBodyAbs, baselineBody) * 0.3)
-  const bpScore = currentBpAbs == null ? null : clampScore(currentBpAbs * 0.7 + trendScore(currentBpAbs, baselineBp) * 0.3)
   const activityScore =
     currentActivityAbs == null
       ? null
       : clampScore(currentActivityAbs * 0.7 + trendScore(currentActivityAbs, baselineActivity) * 0.3)
+  const nutritionScore =
+    currentNutritionAbs == null
+      ? null
+      : clampScore(currentNutritionAbs * 0.7 + trendScore(currentNutritionAbs, baselineNutrition) * 0.3)
+  const conditionScore =
+    currentConditionAbs == null
+      ? null
+      : clampScore(currentConditionAbs * 0.7 + trendScore(currentConditionAbs, baselineCondition) * 0.3)
 
   const domains = {
     sleep:
@@ -3600,22 +3745,6 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
             color: scoreColor(sleepScore),
             summary: sleepSummary(current, profile),
           },
-    body:
-      bodyScore == null
-        ? null
-        : {
-            score: bodyScore,
-            color: scoreColor(bodyScore),
-            summary: bodySummary(current, profile),
-          },
-    bp:
-      bpScore == null
-        ? null
-        : {
-            score: bpScore,
-            color: scoreColor(bpScore),
-            summary: bpSummary(current),
-          },
     activity:
       activityScore == null
         ? null
@@ -3624,9 +3753,25 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
             color: scoreColor(activityScore),
             summary: activitySummary(current, profile),
           },
+    nutrition:
+      nutritionScore == null
+        ? null
+        : {
+            score: nutritionScore,
+            color: scoreColor(nutritionScore),
+            summary: nutritionSummary(current),
+          },
+    condition:
+      conditionScore == null
+        ? null
+        : {
+            score: conditionScore,
+            color: scoreColor(conditionScore),
+            summary: conditionSummary(current, profile),
+          },
   }
 
-  const overallValue = average([sleepScore, bodyScore, bpScore, activityScore])
+  const overallValue = average([sleepScore, activityScore, nutritionScore, conditionScore])
   const overall =
     overallValue == null
       ? null
@@ -3637,9 +3782,9 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
 
   const baseline: ScoresBaseline = {
     sleep: baselineSleep,
-    body: baselineBody,
-    bp: baselineBp,
     activity: baselineActivity,
+    nutrition: baselineNutrition,
+    condition: baselineCondition,
   }
   const insights = generateInsights(current, rows, baseline, profile)
 

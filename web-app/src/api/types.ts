@@ -240,7 +240,7 @@ export interface HomeEvidence {
   innerTab?: string
 }
 
-export type HomeStatusKey = 'sleep' | 'steps' | 'meal' | 'weight' | 'bp'
+export type HomeStatusKey = 'sleep' | 'activity' | 'nutrition' | 'condition'
 export type HomeStatusTone = 'normal' | 'warning' | 'critical'
 
 export interface HomeStatusItem {
