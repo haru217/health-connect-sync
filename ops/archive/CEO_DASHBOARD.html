@@ -643,7 +643,9 @@
                 { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 }
             ];
 
-            const CEO_APPROVALS = [];
+            const CEO_APPROVALS = [
+                { id: "A-001", screen: "ホーム画面", title: "3専門家のアバター画像作成（Geminiへ依頼）", description: "ユウ先生（医師・男性・穏やか・青緑系）、サキさん（管理栄養士・女性・明るい・オレンジピンク系）、マイコーチ（トレーナー・女性・元気・黄緑系）の3人分。日本のヘルスケアアプリ風のフラットイラスト、円形アバター用、透明背景PNG。あすけん・FiNC等を参考に、清潔感と親しみやすさのあるデザイン。", status: "approved", from: "Gemini" }
+            ];
 
             const SIGNAL_MAP = { ok: "\u{1F7E2}", wip: "\u{1F7E1}", not_started: "\u{1F534}" };
 
