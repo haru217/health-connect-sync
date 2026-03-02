@@ -3751,39 +3751,78 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
       ? null
       : clampScore(currentConditionAbs * 0.7 + trendScore(currentConditionAbs, baselineCondition) * 0.3)
 
+  const sleepValues =
+    current == null || current.sleep_hours == null || !Number.isFinite(current.sleep_hours)
+      ? null
+      : {
+          hours: current.sleep_hours,
+          label: formatSleepLabel(Math.max(0, Math.round(current.sleep_hours * 60))) ?? '0h00m',
+        }
+  const activityValues =
+    current == null || current.steps == null || !Number.isFinite(current.steps)
+      ? null
+      : {
+          steps: current.steps,
+          label: `${Math.round(current.steps).toLocaleString('en-US')}歩`,
+        }
+  const nutritionValues =
+    current == null || current.intake_kcal == null || !Number.isFinite(current.intake_kcal)
+      ? null
+      : {
+          intake_kcal: current.intake_kcal,
+          label: `${Math.round(current.intake_kcal).toLocaleString('en-US')}kcal`,
+        }
+  const conditionValues =
+    current == null ||
+    current.blood_systolic == null ||
+    !Number.isFinite(current.blood_systolic) ||
+    current.blood_diastolic == null ||
+    !Number.isFinite(current.blood_diastolic)
+      ? null
+      : {
+          systolic: current.blood_systolic,
+          diastolic: current.blood_diastolic,
+          label: `${Math.round(current.blood_systolic)}/${Math.round(current.blood_diastolic)}`,
+        }
+
+  const sleepDomain =
+    sleepScore == null
+      ? null
+      : {
+          score: sleepScore,
+          color: scoreColor(sleepScore),
+          summary: sleepSummary(current, profile),
+        }
+  const activityDomain =
+    activityScore == null
+      ? null
+      : {
+          score: activityScore,
+          color: scoreColor(activityScore),
+          summary: activitySummary(current, profile),
+        }
+  const nutritionDomain =
+    nutritionScore == null
+      ? null
+      : {
+          score: nutritionScore,
+          color: scoreColor(nutritionScore),
+          summary: nutritionSummary(current),
+        }
+  const conditionDomain =
+    conditionScore == null
+      ? null
+      : {
+          score: conditionScore,
+          color: scoreColor(conditionScore),
+          summary: conditionSummary(current, profile),
+        }
+
   const domains = {
-    sleep:
-      sleepScore == null
-        ? null
-        : {
-            score: sleepScore,
-            color: scoreColor(sleepScore),
-            summary: sleepSummary(current, profile),
-          },
-    activity:
-      activityScore == null
-        ? null
-        : {
-            score: activityScore,
-            color: scoreColor(activityScore),
-            summary: activitySummary(current, profile),
-          },
-    nutrition:
-      nutritionScore == null
-        ? null
-        : {
-            score: nutritionScore,
-            color: scoreColor(nutritionScore),
-            summary: nutritionSummary(current),
-          },
-    condition:
-      conditionScore == null
-        ? null
-        : {
-            score: conditionScore,
-            color: scoreColor(conditionScore),
-            summary: conditionSummary(current, profile),
-          },
+    sleep: sleepDomain == null ? null : { ...sleepDomain, values: sleepValues },
+    activity: activityDomain == null ? null : { ...activityDomain, values: activityValues },
+    nutrition: nutritionDomain == null ? null : { ...nutritionDomain, values: nutritionValues },
+    condition: conditionDomain == null ? null : { ...conditionDomain, values: conditionValues },
   }
 
   const overallValue = average([sleepScore, activityScore, nutritionScore, conditionScore])
