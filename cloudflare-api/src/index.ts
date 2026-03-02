@@ -2,6 +2,9 @@ interface Env {
   DB: D1Database
   API_KEY?: string
   MOCK_SEED_TOKEN?: string
+  LLM_API_KEY?: string
+  LLM_MODEL?: string
+  LLM_PROVIDER?: string
 }
 
 type ReportType = 'daily' | 'weekly' | 'monthly'
@@ -87,6 +90,42 @@ interface ReportRow {
   prompt_used: string
   content: string
   created_at: string
+}
+
+interface DailyReportRow {
+  date: string
+  headline: string
+  yu_comment: string
+  saki_comment: string
+  mai_comment: string
+  condition_comment: string
+  activity_comment: string
+  meal_comment: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  generated_at: string
+  created_at: string
+}
+
+interface DailyReportGeneratedPayload {
+  headline: string
+  yu_comment: string
+  saki_comment: string
+  mai_comment: string
+  condition_comment: string
+  activity_comment: string
+  meal_comment: string
+}
+
+interface AnthropicMessageResponse {
+  id?: string
+  model?: string
+  content?: Array<{ type?: string; text?: string }>
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+  }
 }
 
 interface HealthRecordRow {
@@ -203,6 +242,10 @@ const DEFAULT_BASELINE_SCORE: Readonly<Record<'sleep' | 'body' | 'bp' | 'activit
   bp: 72,
   activity: 60,
 }
+const DEFAULT_LLM_PROVIDER = 'anthropic'
+const DEFAULT_LLM_MODEL = 'claude-haiku-4-5-20251001'
+const LLM_TIMEOUT_MS = 30_000
+const REPORT_EMOJI_RE = /\p{Extended_Pictographic}/gu
 const RECORD_PERMISSION_MAP: Readonly<Record<string, (typeof HEALTH_CONNECT_REQUIRED_PERMISSIONS)[number]>> = {
   StepsRecord: 'android.permission.health.READ_STEPS',
   WeightRecord: 'android.permission.health.READ_WEIGHT',
@@ -360,6 +403,31 @@ function toNumberOrNull(value: unknown): number | null {
 
 function hasOwn(payload: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(payload, key)
+}
+
+function parseBooleanFlag(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'number') {
+    if (value === 1) {
+      return true
+    }
+    if (value === 0) {
+      return false
+    }
+    return null
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false
+    }
+  }
+  return null
 }
 
 function normalizeLensFlag(value: unknown): 0 | 1 | null {
@@ -3584,6 +3652,412 @@ async function getScores(db: D1Database, date: string): Promise<Record<string, u
   }
 }
 
+async function readOptionalJsonBody(request: Request, maxBytes = 65536): Promise<Record<string, unknown>> {
+  const contentLength = request.headers.get('content-length')
+  if (contentLength) {
+    const parsedLength = Number.parseInt(contentLength, 10)
+    if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
+      throw new Error('Request body too large')
+    }
+    if (Number.isFinite(parsedLength) && parsedLength <= 0) {
+      return {}
+    }
+  }
+
+  const raw = await request.text()
+  if (!raw.trim()) {
+    return {}
+  }
+  if (raw.length > maxBytes) {
+    throw new Error('Request body too large')
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Body must be an object')
+    }
+    return parsed as Record<string, unknown>
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid JSON body'
+    throw new Error(`Invalid request body: ${message}`)
+  }
+}
+
+interface DailyReportTrendRow {
+  date: string
+  steps: number | null
+  sleep_hours: number | null
+  weight_kg: number | null
+  blood_systolic: number | null
+  blood_diastolic: number | null
+  intake_kcal: number | null
+  active_kcal: number | null
+  total_kcal: number | null
+}
+
+interface DailyReportGenerationResult {
+  payload: DailyReportGeneratedPayload
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+}
+
+interface DailyReportPersistInput extends DailyReportGeneratedPayload {
+  date: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  generated_at: string
+}
+
+function stripReportEmoji(value: string): string {
+  return value.replace(REPORT_EMOJI_RE, '')
+}
+
+function normalizeDailyReportText(value: unknown, field: string, minLength = 20, maxLength = 320): string {
+  if (typeof value !== 'string') {
+    throw new Error(`${field} must be a string`)
+  }
+  const normalized = stripReportEmoji(value).replace(/\s+/g, ' ').trim()
+  if (!normalized) {
+    throw new Error(`${field} must not be empty`)
+  }
+  if (normalized.length < minLength || normalized.length > maxLength) {
+    throw new Error(`${field} length is out of range`)
+  }
+  return normalized
+}
+
+function extractJsonObjectCandidate(raw: string): string {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fenced && fenced[1]) {
+    return fenced[1].trim()
+  }
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  if (start === -1 || end === -1 || start >= end) {
+    throw new Error('LLM response did not include a JSON object')
+  }
+  return raw.slice(start, end + 1).trim()
+}
+
+function parseDailyReportGeneratedPayload(raw: string): DailyReportGeneratedPayload {
+  const candidate = extractJsonObjectCandidate(raw)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(candidate)
+  } catch {
+    throw new Error('LLM response is not valid JSON')
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('LLM response JSON must be an object')
+  }
+
+  const root = parsed as Record<string, unknown>
+  const home = root.home
+  const tabs = root.tabs
+  if (!home || typeof home !== 'object' || Array.isArray(home)) {
+    throw new Error('LLM response must include home object')
+  }
+  if (!tabs || typeof tabs !== 'object' || Array.isArray(tabs)) {
+    throw new Error('LLM response must include tabs object')
+  }
+
+  const homeObject = home as Record<string, unknown>
+  const tabsObject = tabs as Record<string, unknown>
+
+  return {
+    headline: normalizeDailyReportText(root.headline, 'headline', 5, 120),
+    yu_comment: normalizeDailyReportText(homeObject.yu, 'home.yu', 20, 320),
+    saki_comment: normalizeDailyReportText(homeObject.saki, 'home.saki', 20, 320),
+    mai_comment: normalizeDailyReportText(homeObject.mai, 'home.mai', 20, 320),
+    condition_comment: normalizeDailyReportText(tabsObject.condition, 'tabs.condition', 20, 320),
+    activity_comment: normalizeDailyReportText(tabsObject.activity, 'tabs.activity', 20, 320),
+    meal_comment: normalizeDailyReportText(tabsObject.meal, 'tabs.meal', 20, 320),
+  }
+}
+
+function buildSeasonContext(date: string): Record<string, string> {
+  const month = Number.parseInt(date.slice(5, 7), 10)
+  if (month >= 3 && month <= 5) {
+    return {
+      season: '春',
+      context: '寒暖差と花粉の影響が出やすい時期です。水分補給と睡眠の質を意識してください。',
+    }
+  }
+  if (month >= 6 && month <= 8) {
+    return {
+      season: '夏',
+      context: '暑さで体力を消耗しやすい時期です。脱水と睡眠不足に注意してください。',
+    }
+  }
+  if (month >= 9 && month <= 11) {
+    return {
+      season: '秋',
+      context: '活動しやすい季節です。運動習慣を定着させる好機です。',
+    }
+  }
+  return {
+    season: '冬',
+    context: '冷えと乾燥で体調が揺らぎやすい時期です。血圧管理と保温を重視してください。',
+  }
+}
+
+function buildTrendSummary(rows: DailyReportTrendRow[]): Record<string, unknown> {
+  const latest = rows[rows.length - 1] ?? null
+  const first = rows[0] ?? null
+  const avgSteps = average(rows.map((row) => row.steps))
+  const avgSleepHours = average(rows.map((row) => row.sleep_hours))
+  const avgIntakeKcal = average(rows.map((row) => row.intake_kcal))
+  const avgActiveKcal = average(rows.map((row) => row.active_kcal))
+  const avgSystolic = average(rows.map((row) => row.blood_systolic))
+  const avgDiastolic = average(rows.map((row) => row.blood_diastolic))
+  const latestWeight = latest?.weight_kg ?? null
+  const firstWeight = first?.weight_kg ?? null
+  const weightDiff =
+    latestWeight != null && firstWeight != null ? Number((latestWeight - firstWeight).toFixed(2)) : null
+
+  return {
+    observed_days: rows.length,
+    latest: latest
+      ? {
+          ...latest,
+        }
+      : null,
+    averages: {
+      steps: avgSteps == null ? null : Math.round(avgSteps),
+      sleep_hours: avgSleepHours == null ? null : Number(avgSleepHours.toFixed(2)),
+      intake_kcal: avgIntakeKcal == null ? null : Math.round(avgIntakeKcal),
+      active_kcal: avgActiveKcal == null ? null : Math.round(avgActiveKcal),
+      blood_pressure: avgSystolic == null || avgDiastolic == null ? null : `${Math.round(avgSystolic)}/${Math.round(avgDiastolic)}`,
+    },
+    change: {
+      steps:
+        latest?.steps != null && first?.steps != null
+          ? Math.round(latest.steps - first.steps)
+          : null,
+      sleep_hours:
+        latest?.sleep_hours != null && first?.sleep_hours != null
+          ? Number((latest.sleep_hours - first.sleep_hours).toFixed(2))
+          : null,
+      weight_kg: weightDiff,
+    },
+  }
+}
+
+function buildDailyReportPrompt(params: {
+  date: string
+  season: Record<string, string>
+  profile: UserProfileRow
+  scores: Record<string, unknown>
+  trendRows: DailyReportTrendRow[]
+}): { systemPrompt: string; userPrompt: string } {
+  const { date, season, profile, scores, trendRows } = params
+  const trendSummary = buildTrendSummary(trendRows)
+  const systemPrompt =
+    'あなたは健康アプリの日本語AIレポート作成アシスタントです。必ずJSONのみを返してください。JSON以外の文章は一切出力しないでください。'
+  const userPrompt = [
+    '次の条件で日次レポートを作成してください。',
+    '- 口調は敬語だが固すぎない',
+    '- 否定語（「ダメ」「やめて」）は使わない',
+    '- 絵文字は使わない',
+    '- 各コメントは80〜150文字程度',
+    '- 理由やデータ根拠を自然に含める',
+    '- ユウ先生は穏やかな医師、サキさんは明るい管理栄養士、マイコーチは前向きなトレーナーとして書く',
+    '',
+    `対象日: ${date}`,
+    `季節情報: ${JSON.stringify(season)}`,
+    `ユーザープロフィール: ${JSON.stringify(profile)}`,
+    `当日のスコアと気づき: ${JSON.stringify(scores)}`,
+    `過去14日トレンド: ${JSON.stringify(trendSummary)}`,
+    '',
+    '返却フォーマットは下記のJSONを厳守してください。',
+    JSON.stringify(
+      {
+        headline: '今日の全体見出し',
+        home: {
+          yu: 'ユウ先生コメント',
+          saki: 'サキさんコメント',
+          mai: 'マイコーチコメント',
+        },
+        tabs: {
+          condition: 'コンディションタブコメント',
+          activity: 'アクティビティタブコメント',
+          meal: '食事タブコメント',
+        },
+      },
+      null,
+      2,
+    ),
+  ].join('\n')
+
+  return { systemPrompt, userPrompt }
+}
+
+async function callAnthropicDailyReport(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<DailyReportGenerationResult> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
+
+  let rawResponse = ''
+  let responseStatus = 0
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1200,
+        temperature: 0.5,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    })
+    responseStatus = response.status
+    rawResponse = await response.text()
+    if (!response.ok) {
+      throw new Error(`Anthropic API error (${responseStatus})`)
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  let parsedResponse: AnthropicMessageResponse
+  try {
+    parsedResponse = JSON.parse(rawResponse) as AnthropicMessageResponse
+  } catch {
+    throw new Error('Anthropic API returned invalid JSON')
+  }
+
+  const textBlocks = (parsedResponse.content ?? [])
+    .filter((item) => item?.type === 'text' && typeof item?.text === 'string')
+    .map((item) => item.text as string)
+  const generatedText = textBlocks.join('\n').trim()
+  if (!generatedText) {
+    throw new Error('Anthropic API returned empty content')
+  }
+
+  const payload = parseDailyReportGeneratedPayload(generatedText)
+  return {
+    payload: { ...payload },
+    model: typeof parsedResponse.model === 'string' ? parsedResponse.model : model,
+    prompt_tokens:
+      typeof parsedResponse.usage?.input_tokens === 'number' ? parsedResponse.usage.input_tokens : null,
+    completion_tokens:
+      typeof parsedResponse.usage?.output_tokens === 'number' ? parsedResponse.usage.output_tokens : null,
+  }
+}
+
+async function getDailyReport(db: D1Database, date: string): Promise<DailyReportRow | null> {
+  const row = await queryFirst<DailyReportRow>(
+    db,
+    `
+    SELECT
+      date, headline, yu_comment, saki_comment, mai_comment,
+      condition_comment, activity_comment, meal_comment,
+      model, prompt_tokens, completion_tokens, generated_at, created_at
+    FROM daily_reports
+    WHERE date = ?
+    LIMIT 1
+    `,
+    [date],
+  )
+  return row ?? null
+}
+
+function toDailyReportResponse(row: DailyReportRow): Record<string, unknown> {
+  return {
+    date: row.date,
+    generated_at: row.generated_at,
+    home: {
+      headline: row.headline,
+      yu: row.yu_comment,
+      saki: row.saki_comment,
+      mai: row.mai_comment,
+    },
+    tabs: {
+      condition: row.condition_comment,
+      activity: row.activity_comment,
+      meal: row.meal_comment,
+    },
+    cached: true,
+  }
+}
+
+async function saveDailyReport(db: D1Database, payload: DailyReportPersistInput): Promise<void> {
+  await execute(
+    db,
+    `
+    INSERT INTO daily_reports(
+      date, headline, yu_comment, saki_comment, mai_comment,
+      condition_comment, activity_comment, meal_comment,
+      model, prompt_tokens, completion_tokens, generated_at
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(date) DO UPDATE SET
+      headline = excluded.headline,
+      yu_comment = excluded.yu_comment,
+      saki_comment = excluded.saki_comment,
+      mai_comment = excluded.mai_comment,
+      condition_comment = excluded.condition_comment,
+      activity_comment = excluded.activity_comment,
+      meal_comment = excluded.meal_comment,
+      model = excluded.model,
+      prompt_tokens = excluded.prompt_tokens,
+      completion_tokens = excluded.completion_tokens,
+      generated_at = excluded.generated_at
+    `,
+    [
+      payload.date,
+      payload.headline,
+      payload.yu_comment,
+      payload.saki_comment,
+      payload.mai_comment,
+      payload.condition_comment,
+      payload.activity_comment,
+      payload.meal_comment,
+      payload.model,
+      payload.prompt_tokens,
+      payload.completion_tokens,
+      payload.generated_at,
+    ],
+  )
+}
+
+async function queryDailyReportTrendRows(db: D1Database, date: string): Promise<DailyReportTrendRow[]> {
+  const startDate = shiftIsoDateByDays(date, -13)
+  return queryAll<DailyReportTrendRow>(
+    db,
+    `
+    SELECT
+      date, steps, sleep_hours, weight_kg, blood_systolic, blood_diastolic, intake_kcal, active_kcal, total_kcal
+    FROM daily_metrics
+    WHERE date BETWEEN ? AND ?
+    ORDER BY date ASC
+    `,
+    [startDate, date],
+  )
+}
+
 async function computeTargets(db: D1Database, date: string): Promise<Record<string, unknown>> {
   const profile = await getUserProfile(db)
   const latestWeight = await queryFirst<{ weight_kg: number | null }>(
@@ -4298,6 +4772,106 @@ async function handleNutritionLog(request: Request, env: Env): Promise<Response>
   return jsonResponse({ ok: true, count: items.length })
 }
 
+async function handleDailyReportGet(url: URL, env: Env): Promise<Response> {
+  const date = url.searchParams.get('date') ?? toIsoDate(new Date())
+  if (!isValidDate(date)) {
+    return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+  }
+
+  const row = await getDailyReport(env.DB, date)
+  if (!row) {
+    return jsonResponse({ detail: 'Report not found' }, 404)
+  }
+  return jsonResponse(toDailyReportResponse(row))
+}
+
+async function handleDailyReportGenerate(request: Request, url: URL, env: Env): Promise<Response> {
+  const apiKey = (env.LLM_API_KEY ?? '').trim()
+  if (!apiKey) {
+    return jsonResponse({ detail: 'LLM API key is not configured' }, 503)
+  }
+
+  const provider = (env.LLM_PROVIDER ?? DEFAULT_LLM_PROVIDER).trim().toLowerCase() || DEFAULT_LLM_PROVIDER
+  if (provider !== DEFAULT_LLM_PROVIDER) {
+    return jsonResponse({ detail: `Unsupported LLM provider: ${provider}` }, 503)
+  }
+
+  let body: Record<string, unknown>
+  try {
+    body = await readOptionalJsonBody(request)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request body'
+    return jsonResponse({ detail: message }, 400)
+  }
+
+  const bodyDate = body.date
+  if (bodyDate != null && typeof bodyDate !== 'string') {
+    return jsonResponse({ detail: 'date must be YYYY-MM-DD' }, 400)
+  }
+  const date = (bodyDate as string | null) ?? url.searchParams.get('date') ?? toIsoDate(new Date())
+  if (!isValidDate(date)) {
+    return jsonResponse({ detail: 'date must be YYYY-MM-DD' }, 400)
+  }
+
+  const forceFromBody = parseBooleanFlag(body.force)
+  const forceFromQuery = parseBooleanFlag(url.searchParams.get('force'))
+  const force = forceFromBody ?? forceFromQuery ?? false
+
+  const cached = await getDailyReport(env.DB, date)
+  if (cached && !force) {
+    return jsonResponse({
+      date,
+      generated: false,
+      cached: true,
+    })
+  }
+
+  await ensureAggregatesUpToDate(env.DB)
+  const [profile, scores, trendRows] = await Promise.all([
+    getUserProfile(env.DB),
+    getScores(env.DB, date),
+    queryDailyReportTrendRows(env.DB, date),
+  ])
+  const season = buildSeasonContext(date)
+  const prompt = buildDailyReportPrompt({
+    date,
+    season: { ...season },
+    profile: { ...profile },
+    scores: { ...scores },
+    trendRows: [...trendRows],
+  })
+
+  const model = (env.LLM_MODEL ?? DEFAULT_LLM_MODEL).trim() || DEFAULT_LLM_MODEL
+
+  let generated: DailyReportGenerationResult
+  try {
+    generated = await callAnthropicDailyReport(apiKey, model, prompt.systemPrompt, prompt.userPrompt)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to generate daily report'
+    if (message.includes('JSON') || message.includes('LLM response')) {
+      console.error(`daily-report-json-parse-error: ${message}`)
+    }
+    return jsonResponse({ detail: message }, 500)
+  }
+
+  const persistPayload: DailyReportPersistInput = {
+    date,
+    model: generated.model,
+    prompt_tokens: generated.prompt_tokens,
+    completion_tokens: generated.completion_tokens,
+    generated_at: nowIso(),
+    ...generated.payload,
+  }
+
+  await saveDailyReport(env.DB, persistPayload)
+
+  return jsonResponse({
+    date,
+    generated: true,
+    cached: false,
+  })
+}
+
 const worker: ExportedHandler<Env> = {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url)
@@ -4350,6 +4924,14 @@ const worker: ExportedHandler<Env> = {
         }
         await ensureAggregatesUpToDate(env.DB)
         return jsonResponse(await getScores(env.DB, date))
+      }
+
+      if (pathname === '/api/report' && method === 'GET') {
+        return handleDailyReportGet(url, env)
+      }
+
+      if (pathname === '/api/report/generate' && method === 'POST') {
+        return handleDailyReportGenerate(request, url, env)
       }
 
       if (pathname === '/api/sync/cursor' && method === 'GET') {
