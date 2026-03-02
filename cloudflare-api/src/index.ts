@@ -1449,6 +1449,34 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     })
   }
 
+  const exerciseRows = await queryAll<{
+    start_time: string | null
+    end_time: string | null
+    payload_json: string
+  }>(
+    db,
+    `SELECT start_time, end_time, payload_json
+     FROM health_records
+     WHERE type = 'ExerciseSessionRecord'
+       AND start_time IS NOT NULL
+     ORDER BY start_time DESC
+     LIMIT 50`,
+  )
+  const exerciseSessions = exerciseRows.map((row) => {
+    const payload = parseJsonObject(row.payload_json)
+    const startMs = row.start_time ? new Date(row.start_time).getTime() : null
+    const endMs = row.end_time ? new Date(row.end_time).getTime() : null
+    const durationMinutes =
+      startMs != null && endMs != null ? Math.round((endMs - startMs) / 60000) : null
+    return {
+      date: (row.start_time ?? '').slice(0, 10),
+      exerciseType: typeof payload['exerciseType'] === 'number' ? (payload['exerciseType'] as number) : 0,
+      title: typeof payload['title'] === 'string' ? (payload['title'] as string) : null,
+      durationMinutes,
+      startTime: row.start_time ?? null,
+    }
+  })
+
   return {
     totalRecords,
     byType,
@@ -1483,7 +1511,7 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     distanceByDate: distanceKmByDate.map((item) => ({ date: item.date, meters: item.km * 1000 })),
     activeCalByDate: activeCaloriesByDate,
     totalCalByDate: totalCaloriesByDate,
-    exerciseSessions: [],
+    exerciseSessions,
     diet,
     insights,
   }

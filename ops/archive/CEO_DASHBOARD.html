@@ -256,6 +256,29 @@
         .decision-opt-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
         .decision-from { font-size: 11px; color: var(--text-muted); }
         .decision-undo { font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+        .decision-freetext-wrap { margin-top: 8px; }
+        .decision-freetext {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-main);
+            font-size: 13px;
+            font-family: "Noto Sans JP", sans-serif;
+            resize: vertical;
+            min-height: 48px;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+        .decision-freetext:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .decision-freetext::placeholder {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
 
         /* CEO View: Approvals */
         .approval-banner {
@@ -507,96 +530,59 @@
             const STATE_LABELS = { todo: "未着手", in_progress: "進行中", blocked: "要対応", done: "完了" };
 
             const TASKS = [
-                { id: "I1-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I1-GEMINI", defaultStatus: "in_progress", track: "iter" },
+                { id: "I1-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I1-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I5-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I5-GEMINI", defaultStatus: "todo", track: "iter" },
 
-                { id: "C-P1-01", defaultStatus: "done", track: "legacy" }, { id: "C-P1-02", defaultStatus: "done", track: "legacy" },
-                { id: "C-P1-03", defaultStatus: "done", track: "legacy" }, { id: "C-P1-04", defaultStatus: "done", track: "legacy" },
-                { id: "C-P1-05", defaultStatus: "done", track: "legacy" }, { id: "C-P1-06", defaultStatus: "done", track: "legacy" },
-                { id: "C-P1-07", defaultStatus: "done", track: "legacy" }, { id: "C-P1-08", defaultStatus: "done", track: "legacy" },
-                { id: "C-P1-09", defaultStatus: "done", track: "legacy" },
-                { id: "C-T01", defaultStatus: "done", track: "legacy" }, { id: "C-T02", defaultStatus: "done", track: "legacy" },
-                { id: "C-T03", defaultStatus: "done", track: "legacy" }, { id: "C-T04", defaultStatus: "done", track: "legacy" },
-                { id: "C-T05", defaultStatus: "done", track: "legacy" }, { id: "C-T06", defaultStatus: "done", track: "legacy" },
-                { id: "C-T07", defaultStatus: "done", track: "legacy" }, { id: "C-T08", defaultStatus: "done", track: "legacy" },
-                { id: "C-T09", defaultStatus: "done", track: "legacy" }, { id: "C-T10", defaultStatus: "done", track: "legacy" },
-                { id: "C-T11", defaultStatus: "done", track: "legacy" }, { id: "C-T12", defaultStatus: "done", track: "legacy" },
-                { id: "C-T13", defaultStatus: "done", track: "legacy" }, { id: "C-T14", defaultStatus: "done", track: "legacy" },
-                { id: "C-T15", defaultStatus: "done", track: "legacy" }, { id: "C-T16", defaultStatus: "done", track: "legacy" },
-                { id: "C-T17", defaultStatus: "done", track: "legacy" }, { id: "C-T18", defaultStatus: "done", track: "legacy" },
-                { id: "C-T19", defaultStatus: "done", track: "legacy" }, { id: "C-T20", defaultStatus: "done", track: "legacy" },
-                { id: "C-T21", defaultStatus: "done", track: "legacy" }, { id: "C-T22", defaultStatus: "done", track: "legacy" },
-
-                { id: "P1-1-1", defaultStatus: "done" }, { id: "P1-1-2", defaultStatus: "done" }, { id: "P1-1-3", defaultStatus: "done" }, { id: "P1-1-4", defaultStatus: "done", defaultStamp: "Codex2 @ 2026-02-27 10:40" },
-                { id: "P1-1-5", defaultStatus: "done", defaultStamp: "Codex2 @ 2026-02-27 10:49" },
                 { id: "P1-2-1", defaultStatus: "todo" }, { id: "P1-2-2", defaultStatus: "todo" }, { id: "P1-2-3", defaultStatus: "todo" },
-                { id: "P2-1-1", defaultStatus: "todo" }, { id: "P2-1-2", defaultStatus: "todo" }, { id: "P2-2-1", defaultStatus: "todo" },
-                { id: "P2-2-2", defaultStatus: "todo" }, { id: "P3-1-1", defaultStatus: "todo" }, { id: "P3-1-2", defaultStatus: "todo" },
-                { id: "P3-1-3", defaultStatus: "todo" }, { id: "P3-2-1", defaultStatus: "todo" }, { id: "P3-2-2", defaultStatus: "todo" },
+                { id: "P2-1-2", defaultStatus: "todo" },
+                { id: "P3-1-1", defaultStatus: "todo" }, { id: "P3-1-2", defaultStatus: "todo" },
+                { id: "P3-2-1", defaultStatus: "todo" }, { id: "P3-2-2", defaultStatus: "todo" },
                 { id: "P3-2-3", defaultStatus: "todo" },
             ];
 
             const TASK_LABELS = {
-                "I1-CODEX": "ホーム画面の要約データを正しく表示できるようにします。",
-                "I1-GEMINI": "ホーム画面を見やすく作り直します。",
-                "I2-CODEX": "コンディション画面に必要な体調データを安定して返せるようにします。",
+                "I1-CODEX": "ホーム画面にスコア表示・気づき・AIレポートを実装します。（Health OS設計準拠）",
+                "I1-GEMINI": "ホーム画面のスコア円・専門家セクションのデザインを作ります。",
+                "I2-CODEX": "コンディション画面のデータ表示を安定させ、AIコメント欄を追加します。",
                 "I2-GEMINI": "コンディションタブの見た目と使い心地を整えます。",
-                "I3-CODEX": "運動データを正しく集計して返せるようにします。",
+                "I3-CODEX": "運動データを正しく集計し、AIコメント欄を追加します。",
                 "I3-GEMINI": "運動画面を使いやすく整えます。",
-                "I4-CODEX": "食事データを集計し、AIコメントを返せるようにします。",
+                "I4-CODEX": "食事データを集計し、AIコメント欄を追加します。",
                 "I4-GEMINI": "食事画面の表示をわかりやすく整えます。",
-                "I5-CODEX": "接続状況と目標設定をプロフィールで確認できるようにします。",
-                "I5-GEMINI": "プロフィール画面を見やすく整えます。",
-                "P1-1-1": "Androidアプリの同期設定を一つのルールにそろえます。",
-                "P1-1-2": "データの受け口を新しいサーバーに一本化します。",
-                "P1-1-3": "主要画面でデータ取得が止まらない状態にします。",
-                "P1-1-4": "ホームの要約情報を新しいサーバーでも返せるようにします。",
-                "P1-1-5": "【最優先】WebアプリにCloudflare APIのデータを表示します。",
+                "I5-CODEX": "マイページにプロフィール・目的レンズ・運動プロフィール設定を実装します。",
+                "I5-GEMINI": "マイページのプロフィール設定画面をデザインします。",
                 "P1-2-1": "プロフィール画面の仮表示を本番表示に置き換えます。",
                 "P1-2-2": "同期状況がひと目でわかる表示を入れます。",
                 "P1-2-3": "旧サーバーを安全に止められる状態にします。",
-                "P2-1-1": "事業の成長を追う指標を3つに絞って定義します。",
-                "P2-1-2": "初回利用の流れを改善する画面仕様を確定します。",
-                "P2-2-1": "異常を早く見つける通知と記録の仕組みを作ります。",
-                "P2-2-2": "トラブルの振り返りを回せる運用ルールを決めます。",
+                "P2-1-2": "初回セットアップアンケート（目的レンズ・運動プロフィール選択）の画面仕様を確定します。",
                 "P3-1-1": "リリース鍵の管理ルールを確定します。",
                 "P3-1-2": "本番用ファイルを安定して作れるようにします。",
-                "P3-1-3": "本番用の鍵運用を固定して事故を防ぎます。",
                 "P3-2-1": "Play Store申請に必要な安全性情報をそろえます。",
                 "P3-2-2": "ストア掲載素材を仕上げて公開準備を完了します。",
                 "P3-2-3": "公開の最終判断と公開手順を確定します。",
             };
 
             const TASK_META = {
-                "I1-CODEX": "担当はCodex-2です。詳細は docs/v3/iter1-codex.md と iter1b-codex.md を見ます。",
-                "I1-GEMINI": "担当はGeminiです。詳細は docs/v3/iter1-gemini.md と iter1b-gemini.md を見ます。",
-                "I2-CODEX": "担当はCodex-2です。詳細は docs/v3/iter2-codex.md を見ます。",
-                "I2-GEMINI": "担当はGeminiです。詳細は docs/v3/iter2-gemini.md を見ます。",
-                "I3-CODEX": "担当はCodex-2です。詳細は docs/v3/iter3-codex.md を見ます。",
-                "I3-GEMINI": "担当はGeminiです。詳細は docs/v3/iter3-gemini.md を見ます。",
-                "I4-CODEX": "担当はCodex-2です。詳細は docs/v3/iter4-codex.md を見ます。",
-                "I4-GEMINI": "担当はGeminiです。詳細は docs/v3/iter4-gemini.md を見ます。",
-                "I5-CODEX": "担当はCodex-2です。詳細は docs/v3/iter5-codex.md を見ます。",
-                "I5-GEMINI": "担当はGeminiです。詳細は docs/v3/iter5-gemini.md を見ます。",
-                "P1-1-1": "担当はCodex-2です。運用を止めずに設定を統一します。",
-                "P1-1-2": "担当はCodex-2です。接続先を一つにそろえて混乱を防ぎます。",
-                "P1-1-3": "担当はCodex-2です。主要画面の安定表示を優先して進めます。",
-                "P1-1-4": "担当はCodex-2です。依頼は requests/codex/20260226-home-summary-cloudflare-api.md を見ます。",
-                "P1-1-5": "担当はCodex-1です。依頼は requests/codex/20260226-web-app-cloudflare-connect.md を見ます。Home/Conditionの最終決裁完了をもって完了とします。",
-                "P1-2-1": "担当はCodex-1です。段階的に本番表示へ置き換えます。",
-                "P1-2-2": "担当はCodex-1です。利用者が迷わない見せ方にします。",
-                "P1-2-3": "担当はCEOとCodex-2です。停止条件を合意してから進めます。",
-                "P2-1-1": "担当はCEOです。指標を先に決めてから実装します。",
-                "P2-1-2": "担当はGeminiです。体験を優先して仕様を固めます。",
-                "P2-2-1": "担当はCodex-2です。通知と記録の土台を整えます。",
-                "P2-2-2": "担当はCEOです。振り返りの運用を先に決めます。",
-                "P3-1-1": "担当はCodex-2です。鍵管理の事故を防ぐ形で固めます。",
-                "P3-1-2": "担当はCodex-2です。公開前に自動生成の安定化を完了します。",
-                "P3-1-3": "担当はCodex-2です。本番運用を固定して変更を抑えます。",
-                "P3-2-1": "担当はCEOとCodex-2です。申請内容と実運用を一致させます。",
+                "I1-CODEX": "担当はCodexです。設計は docs/plans/2026-03-02-health-os-design.md を参照。",
+                "I1-GEMINI": "担当はGeminiです。設計は docs/plans/2026-03-02-health-os-design.md を参照。",
+                "I2-CODEX": "担当はCodexです。AIコメントはユウ先生（医師）が担当。",
+                "I2-GEMINI": "担当はGeminiです。",
+                "I3-CODEX": "担当はCodexです。AIコメントはマイコーチ（トレーナー）が担当。",
+                "I3-GEMINI": "担当はGeminiです。",
+                "I4-CODEX": "担当はCodexです。AIコメントはサキさん（管理栄養士）が担当。",
+                "I4-GEMINI": "担当はGeminiです。",
+                "I5-CODEX": "担当はCodexです。初回セットアップと連動。",
+                "I5-GEMINI": "担当はGeminiです。",
+                "P1-2-1": "担当はCodexです。段階的に本番表示へ置き換えます。",
+                "P1-2-2": "担当はCodexです。利用者が迷わない見せ方にします。",
+                "P1-2-3": "担当はCEOとCodexです。停止条件を合意してから進めます。",
+                "P2-1-2": "担当はGeminiです。Health OS設計の初回セットアップアンケートとして設計。",
+                "P3-1-1": "担当はCodexです。公開前に確定。",
+                "P3-1-2": "担当はCodexです。公開前に自動生成の安定化を完了します。",
+                "P3-2-1": "担当はCEOとCodexです。申請内容と実運用を一致させます。",
                 "P3-2-2": "担当はGeminiです。公開時の見え方を最終調整します。",
                 "P3-2-3": "担当はCEOです。公開判断の条件を先に明文化します。",
             };
@@ -604,132 +590,37 @@
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
             function getTaskMeta(id) { if (TASK_META[id]) return TASK_META[id]; if (id.startsWith("C-")) return "担当はCodexです。詳細は TASK.md を見ます。"; return "担当をこれから決めます。"; }
 
-            const TASK_THREADS = {
-                "I2-CODEX": [
-                    "Geminiより：healthApi.tsにて、Cloudflare等へのAPI通信エラー発生時、モックのダミーデータを返却して画面表示を続ける仕様（Fallback）になっています。UI修正でデータが消えたわけではなく、バックエンド（DB）のエラーが隠蔽されている状態ですが、このままの仕様で進めますか？",
-                ],
-                "P1-1-4": [
-                    "優先度の確認：I5-CODEX（/api/connection-status）が in_progress ですが、P1-1-4 はそれより先に着手してほしいですか？それとも I5 完了後でよいですか？",
-                    "「注目ポイント」の定義：充足度が低い項目を自動抽出する仕様と理解していますが、表示する最大件数や優先順位ルール（例：血圧 &gt; 睡眠 &gt; 歩数）は決まっていますか？",
-                    "充足度数値のソース：pc-server の /api/summary から計算する設計か、cloudflare-api 側で独自に計算しますか？",
-                ],
-                "P1-1-5": [
-                    "Codex-1より：Cloudflare API接続は通っていますが、Homeの初期日付（ローカル基準）とseed日付（UTC基準）がずれると、睡眠/歩数/食事が `-` 表示になります。この表示を許容しますか？それとも日付基準を統一しますか？",
-                    "Codex-1より：HomeScreenは fetch失敗時に `success + 空データ` を返す実装のため、障害が空表示に見えます。決裁前に『明示エラー表示』へ変更してよいですか？",
-                    "Codex-1より：Homeの専門家セクションで `<!--DOCTOR-->` などタグ文字列がそのまま表示されています。決裁条件として、タグ除去の表示整形を今回スコープに含めますか？",
-                    "Codex-2より：本番Cloudflare APIで `/api/summary` は200ですが、`/api/home-summary` と `/api/sleep-data` は404です。Vercel/ローカルを同一DB・同一API窓口で運用する前提に合わせるため、Cloudflare本番APIへのエンドポイント反映を最優先で進めてよいですか？",
-                    "Codex-1より（AIレポート入力拡張）: 1) 就寝/起床時刻をprompt入力へ追加（データ取得済み） 2) 通常心拍（日中平均）を新規実装 3) 運動セッション詳細（同期済み）を指標化してprompt入力へ追加、の方針で進めてよいですか？",
-                ],
-                "P1-2-2": [
-                    "表示場所：MyScreen 上部バナー案 vs SettingsScreen のステータスセクション案、どちらが好みですか？",
-                    "表示粒度：last_sync_at の日時 + has_XXX_data フラグを全部見せる詳細表示か、「同期済み ✓ / 未同期 ✗」のシンプル2択表示か？",
-                    "接続失敗時にユーザーへの再同期アクション（「再同期する」ボタンなど）を表示しますか？",
-                ],
-                "P1-2-3": [
-                    "freeze のトリガー条件：主要4画面（Home / Condition / Exercise / Meal）の実データ確認後に freeze でよいですか？それとも別の条件がありますか？",
-                    "freeze の定義：コード変更禁止（read-only 運用）か、/api/summary など既存エンドポイントのみ維持してそれ以外は削除か？",
-                    "pc-server 停止後、healthApi.ts の catch 節のダミーデータ fallback は残しますか？",
-                ],
-                "P2-1-1": [
-                    "追うべき KPI の最優先3つを教えてください（例：DAU・継続率・データ記録率）。",
-                    "収集手段：Firebase Analytics 追加か、独自ログエンドポイント（cloudflare-api）か、Phase 2 以降に検討か？",
-                    "Play Store の「データの安全性」フォーム（P3-2-1）と収集ポリシーを連動させる予定はありますか？",
-                ],
-                "P2-2-2": [
-                    "インシデントの定義：具体的な閾値（例：同期24時間停止、クラッシュ率 X% 超）は CEO が決めますか？",
-                    "レビューの頻度：週次 / 月次 / 発生時のみ、どれを想定していますか？",
-                    "ポストモーテム管理場所：GitHub Issues・Slack・このリポジトリ内 Markdown、どこにしますか？",
-                ],
-                "P3-2-1": [
-                    "Health Connect データ（歩数・睡眠・体重・血圧）を「収集している」と申告しますか？それとも「端末上のみ処理・共有なし」で申告しますか？",
-                    "Cloudflare Workers へのデータ送信は「第三者への共有」に該当すると判断しますか？",
-                    "保存時の暗号化（D1）についての方針はありますか？",
-                ],
-                "P3-2-3": [
-                    "Go / No-Go 基準：クラッシュ率・画面確認など、リリース OK の条件は何ですか？",
-                    "ロールアウト率：最初から 100% か、段階的（10% → 50% → 100%）か？",
-                    "現状の進捗（Iteration 60% 完了）を踏まえて、いつリリースを目指しますか？",
-                ],
-            };
+            const TASK_THREADS = {};
 
-            const TASK_REPLIES = {
-                "I2-CODEX": [
-                    "この仕様は変えます。通信に失敗したときは失敗したことが分かる表示にして、ダミー値で隠さないようにします。",
-                ],
-                "P1-1-4": [
-                    "P1-1-4を先に進めます。I5は一時停止して、まずホーム要約の穴を埋めます。",
-                    "注目ポイントは最大3件にします。優先順は「安全に関わるもの→変化が大きいもの→未達が続いているもの」で出します。",
-                    "充足度の計算はcloudflare-api側で行います。旧サーバーの計算には依存しません。",
-                ],
-                "P1-2-2": [
-                    "表示はMy画面の上部に出します。設定画面には詳細を置きます。",
-                    "最初は「同期済み / 未同期」のシンプル表示にします。タップ時に日時と内訳を見せます。",
-                    "再同期ボタンを表示します。失敗したときにすぐやり直せるようにします。",
-                ],
-                "P1-2-3": [
-                    "4画面で実データが確認できて、重大な不具合が0件の状態を24時間維持できたらfreezeします。",
-                    "freezeは新機能を止めて不具合修正だけにする運用にします。既存機能の削除はこの段階では行いません。",
-                    "pc-server停止後はダミーデータを返しません。失敗したことが分かる表示に切り替えます。",
-                ],
-                "P2-1-1": [
-                    "最優先の3指標は「週次アクティブ利用者数」「7日後継続率」「同期成功率」にします。",
-                    "Phase 2はFirebase Analyticsを基本にして、不足分だけcloudflare-apiログで補います。",
-                    "連動させます。収集項目を増やす前に、データ安全性の記載を先に更新します。",
-                ],
-                "P2-2-2": [
-                    "同期成功率が90%未満の状態が2時間続いたらインシデントにします。クラッシュ率が1%を超えた日も対象にします。",
-                    "定例は週1回にします。重大障害が出た日は当日中に臨時レビューします。",
-                    "一次管理はこのリポジトリのMarkdownに統一します。必要に応じてGitHub Issueをリンクします。",
-                ],
-                "P3-2-1": [
-                    "申請は「収集あり」で進めます。端末内だけで完結すると見なさない前提で統一します。",
-                    "Cloudflareは委託先として扱い、第三者への販売や提供には当たらない整理で進めます。",
-                    "保存データは暗号化前提で運用します。個人を特定しやすい値はマスクして保存します。",
-                ],
-                "P1-1-5": [
-                    "日付は今日固定で進めます。Homeの専門家コメントはタグを非表示にし、3人（トレーナー・医師・管理栄養士）で分けて表示します。",
-                    "睡眠詳細（就寝/起床、深い/浅い/REM）は取得できる日だけ表示します。未取得日は詳細を出さず、睡眠時間のみ表示します。",
-                    "運用前提は『Android→Cloudflare DB』を単一ソースに統一します。Vercelとローカルは同じCloudflare API窓口を参照し、`/api/home-summary` と `/api/sleep-data` の本番反映を最優先で完了させます。",
-                ],
-                "P3-2-3": [
-                    "公開OKの条件は「重大不具合0件」「主要4画面の実機確認完了」「同期成功率95%以上」にします。",
-                    "段階公開で進めます。10%→50%→100%の順に上げます。",
-                    "目標公開日は2026-03-20にします。遅れる場合は2026-03-13までに新しい日付を出します。",
-                ],
-            };
+            const TASK_REPLIES = {};
 
             const TASK_PRIORITY = {
-                "P1-1-5": "high",
                 "I1-CODEX": "high",
                 "I1-GEMINI": "high",
                 "I2-CODEX": "high",
-                "I2-GEMINI": "high",
-                "P1-1-4": "high",
-                "P1-2-2": "mid",
-                "P1-2-3": "low",
+                "I2-GEMINI": "mid",
+                "I5-CODEX": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "ok", summary: "本番デプロイ完了、全データ表示OK", owner: "Codex-shinsekai", type: "frontend", relatedTasks: ["I1-CODEX","I1-GEMINI","P1-1-3","P1-1-4","P1-1-5"] },
+                { name: "ホーム画面", status: "wip", summary: "現行版は本番稼働中。Health OS設計に基づきスコア表示・AIレポート・レポート履歴導線を追加予定", owner: "未定", type: "frontend", relatedTasks: ["I1-CODEX","I1-GEMINI","P1-1-3","P1-1-4","P1-1-5"] },
                 { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "wip", summary: "Cloudflare APIの主要エンドポイントは稼働中。home-summaryとsleep-dataの本番反映を進行中", owner: "Codex-2", type: "backend", relatedTasks: ["P1-1-2","P1-1-4"] },
+                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。全5タブのデータ取得が正常動作中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
-                { name: "Android同期", status: "ok", summary: "Health Connectとの同期は完了済み", owner: "Codex-2", type: "backend", relatedTasks: ["P1-1-1"] },
+                { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
 
             const CEO_DECISIONS = [
-                { id: "D-001", screen: "健康タブ", question: "通信エラー時にダミーデータを表示する仕様になっています。エラーが起きたことが分かる表示に変更してもいいですか？", options: ["はい、エラー表示に変える", "いいえ、今のままにする"], priority: "high", from: "Gemini", originalThread: "I2-CODEX", answer: 0 },
-                { id: "D-002", screen: "ホーム画面", question: "ホーム画面の専門家コメント欄に不要な記号が表示されています。今回の修正範囲に含めますか？", options: ["はい、今回直す", "いいえ、後で対応"], priority: "high", from: "Codex-1", originalThread: "P1-1-5", answer: null },
-                { id: "D-003", screen: "ホーム画面", question: "データ取得に失敗したとき、今は空白で表示されます。「エラーが起きました」と表示するように変えてもいいですか？", options: ["はい、エラー表示にする", "いいえ、空白のままでいい"], priority: "high", from: "Codex-1", originalThread: "P1-1-5", answer: null },
-                { id: "D-004", screen: "ホーム画面", question: "AIレポートに「就寝・起床時刻」「心拍数」「運動の詳細」を追加する方針で進めていいですか？", options: ["はい、全部追加する", "一部だけ追加する", "今は追加しない"], priority: "medium", from: "Codex-1", originalThread: "P1-1-5", answer: null },
-                { id: "D-005", screen: "マイページ", question: "同期状況の表示をマイページの上に置きます。タップすると詳細を見せる形でいいですか？", options: ["はい、その形でお願いします", "別の場所に置きたい"], priority: "medium", from: "Codex-1", originalThread: "P1-2-2", answer: 0 },
-                { id: "D-006", screen: "全体", question: "旧サーバーを止める条件として「主要4画面で実データ確認 + 不具合0件を24時間維持」でいいですか？", options: ["はい、その条件でお願いします", "条件を変えたい"], priority: "low", from: "Codex-2", originalThread: "P1-2-3", answer: 0 },
-                { id: "D-007", screen: "全体", question: "Play Storeの安全性申告は「データ収集あり」で進めます。Cloudflareは委託先扱いでいいですか？", options: ["はい、その整理で進めてください", "別の整理にしたい"], priority: "medium", from: "Codex-2", originalThread: "P3-2-1", answer: 0 },
-                { id: "D-008", screen: "全体", question: "本番サイトをローカル最新版に同期し、Android APKを再インストールしてエクササイズ権限を追加します。よろしいですか？", options: ["はい進めて", "確認事項がある"], priority: "high", from: "Claude", originalThread: "", answer: null }
+                { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null },
+                { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null },
+                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: null },
+                { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: null },
+                { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: null },
+                { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: null }
             ];
 
             const CEO_APPROVALS = [];
@@ -824,6 +715,10 @@
                     ).join("");
 
                     const undoHtml = d.answer != null ? `<span class="decision-undo" data-did="${d.id}">取り消す</span>` : "";
+                    const freeTextVal = d.freeText || "";
+                    const freeTextHtml = `<div class="decision-freetext-wrap">
+                        <textarea class="decision-freetext" data-did="${d.id}" placeholder="補足・条件・質問があればここに記入" rows="2">${freeTextVal}</textarea>
+                    </div>`;
 
                     card.innerHTML = `
                         <div class="decision-header">
@@ -832,6 +727,7 @@
                         </div>
                         <div class="decision-question">${d.question}</div>
                         <div class="decision-options">${optionsHtml}</div>
+                        ${freeTextHtml}
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span class="decision-from">質問元: ${d.from}</span>
                             ${undoHtml}
@@ -853,7 +749,15 @@
                     if (undo) {
                         const did = undo.dataset.did;
                         const d = CEO_DECISIONS.find(x => x.id === did);
-                        if (d) { d.answer = null; renderDecisions(); refreshCEOMetrics(); }
+                        if (d) { d.answer = null; d.freeText = ""; renderDecisions(); refreshCEOMetrics(); }
+                    }
+                });
+                list.addEventListener("input", (e) => {
+                    const ta = e.target.closest(".decision-freetext");
+                    if (ta) {
+                        const did = ta.dataset.did;
+                        const d = CEO_DECISIONS.find(x => x.id === did);
+                        if (d) { d.freeText = ta.value; }
                     }
                 });
             }
