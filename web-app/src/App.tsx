@@ -267,7 +267,7 @@ function hasSetupData(profile: ProfileResponse | null): boolean {
 
   const hasBasic =
     (typeof profile.age === 'number' && profile.age > 0) ||
-    typeof profile.gender === 'string' ||
+    profile.gender != null ||
     (typeof profile.height_cm === 'number' && profile.height_cm > 0)
   const hasLens =
     profile.lens_weight === 1 ||
@@ -275,9 +275,9 @@ function hasSetupData(profile: ProfileResponse | null): boolean {
     profile.lens_sleep === 1 ||
     profile.lens_performance === 1
   const hasExercise =
-    typeof profile.exercise_freq === 'string' ||
-    typeof profile.exercise_type === 'string' ||
-    typeof profile.exercise_intensity === 'string'
+    (profile.exercise_freq != null && profile.exercise_freq !== 'none') ||
+    (profile.exercise_type != null && profile.exercise_type !== 'none') ||
+    (profile.exercise_intensity != null && profile.exercise_intensity !== 'moderate')
 
   return hasBasic || hasLens || hasExercise
 }

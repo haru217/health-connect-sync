@@ -63,6 +63,9 @@ interface UserProfileRow {
   age: number | null
   gender: SexType | null
   height_cm: number | null
+  goal_weight_kg: number | null
+  sleep_goal_minutes: number
+  steps_goal: number
   weight_goal: WeightGoalType | null
   bp_goal_systolic: number | null
   bp_goal_diastolic: number | null
@@ -143,6 +146,24 @@ const EXERCISE_FREQ_VALUES: readonly ExerciseFreqType[] = ['none', 'weekly12', '
 const EXERCISE_TYPE_VALUES: readonly ExerciseType[] = ['walk', 'gym', 'run', 'bodyweight', 'none'] as const
 const EXERCISE_INTENSITY_VALUES: readonly ExerciseIntensityType[] = ['light', 'moderate', 'high'] as const
 const GENDER_VALUES: readonly SexType[] = ['male', 'female', 'other'] as const
+const USER_PROFILE_PATCH_KEYS = new Set([
+  'age',
+  'gender',
+  'height_cm',
+  'goal_weight_kg',
+  'sleep_goal_minutes',
+  'steps_goal',
+  'weight_goal',
+  'bp_goal_systolic',
+  'bp_goal_diastolic',
+  'lens_weight',
+  'lens_bp',
+  'lens_sleep',
+  'lens_performance',
+  'exercise_freq',
+  'exercise_type',
+  'exercise_intensity',
+])
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const CURSOR_REPAIR_SAFETY_MS = 5 * 60 * 1000
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000
@@ -288,9 +309,21 @@ function isAuthorized(request: Request, env: Env): boolean {
   return provided.trim() === key
 }
 
-async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
+async function readJsonBody(request: Request, maxBytes = 65536): Promise<Record<string, unknown>> {
+  const contentLength = request.headers.get('content-length')
+  if (contentLength) {
+    const parsedLength = Number.parseInt(contentLength, 10)
+    if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
+      throw new Error('Request body too large')
+    }
+  }
+
   try {
-    const parsed = await request.json()
+    const raw = await request.text()
+    if (raw.length > maxBytes) {
+      throw new Error('Request body too large')
+    }
+    const parsed = JSON.parse(raw) as unknown
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error('Body must be an object')
     }
@@ -377,6 +410,9 @@ function emptyUserProfile(): UserProfileRow {
     age: null,
     gender: null,
     height_cm: null,
+    goal_weight_kg: null,
+    sleep_goal_minutes: 420,
+    steps_goal: 8000,
     weight_goal: null,
     bp_goal_systolic: null,
     bp_goal_diastolic: null,
@@ -393,24 +429,54 @@ function emptyUserProfile(): UserProfileRow {
 }
 
 function sanitizeUserProfileRow(row: UserProfileRow | null): UserProfileRow {
+  const safeGender =
+    row?.gender != null && GENDER_VALUES.includes(row.gender)
+      ? row.gender
+      : null
+  const safeWeightGoal =
+    row?.weight_goal != null && WEIGHT_GOAL_VALUES.includes(row.weight_goal)
+      ? row.weight_goal
+      : null
+  const safeExerciseFreq =
+    row?.exercise_freq != null && EXERCISE_FREQ_VALUES.includes(row.exercise_freq)
+      ? row.exercise_freq
+      : null
+  const safeExerciseType =
+    row?.exercise_type != null && EXERCISE_TYPE_VALUES.includes(row.exercise_type)
+      ? row.exercise_type
+      : null
+  const safeExerciseIntensity =
+    row?.exercise_intensity != null && EXERCISE_INTENSITY_VALUES.includes(row.exercise_intensity)
+      ? row.exercise_intensity
+      : null
+
   if (!row) {
     return emptyUserProfile()
   }
   return {
     user_id: row.user_id || PROFILE_USER_ID,
     age: row.age,
-    gender: row.gender,
+    gender: safeGender,
     height_cm: row.height_cm,
-    weight_goal: row.weight_goal,
+    goal_weight_kg: row.goal_weight_kg,
+    sleep_goal_minutes:
+      row.sleep_goal_minutes != null && Number.isInteger(row.sleep_goal_minutes) && row.sleep_goal_minutes > 0
+        ? row.sleep_goal_minutes
+        : 420,
+    steps_goal:
+      row.steps_goal != null && Number.isInteger(row.steps_goal) && row.steps_goal > 0
+        ? row.steps_goal
+        : 8000,
+    weight_goal: safeWeightGoal,
     bp_goal_systolic: row.bp_goal_systolic,
     bp_goal_diastolic: row.bp_goal_diastolic,
     lens_weight: row.lens_weight === 1 ? 1 : 0,
     lens_bp: row.lens_bp === 1 ? 1 : 0,
     lens_sleep: row.lens_sleep === 1 ? 1 : 0,
     lens_performance: row.lens_performance === 1 ? 1 : 0,
-    exercise_freq: row.exercise_freq,
-    exercise_type: row.exercise_type,
-    exercise_intensity: row.exercise_intensity,
+    exercise_freq: safeExerciseFreq,
+    exercise_type: safeExerciseType,
+    exercise_intensity: safeExerciseIntensity,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -1558,10 +1624,7 @@ async function buildSummary(db: D1Database): Promise<Record<string, unknown>> {
     }
   }
 
-  const profile = await queryFirst<Pick<ProfileRow, 'height_cm'>>(
-    db,
-    'SELECT height_cm FROM user_profile WHERE id = 1',
-  )
+  const profile = await getUserProfile(db)
   const heightM = profile?.height_cm != null ? profile.height_cm / 100 : null
   const diet = makeDietSummary(weightByDate)
 
@@ -1774,15 +1837,7 @@ async function buildHomeSummary(db: D1Database, date: string): Promise<Record<st
       `,
       [date],
     ),
-    queryFirst<{ sleep_goal_minutes: number | null; steps_goal: number | null }>(
-      db,
-      `
-      SELECT sleep_goal_minutes, steps_goal
-      FROM user_profile
-      WHERE id = 1
-      LIMIT 1
-      `,
-    ),
+    getUserProfile(db),
     queryFirst<{ content: string; created_at: string }>(
       db,
       `
@@ -2118,7 +2173,8 @@ async function getUserProfile(db: D1Database): Promise<UserProfileRow> {
     db,
     `
     SELECT
-      user_id, age, gender, height_cm, weight_goal, bp_goal_systolic, bp_goal_diastolic,
+      user_id, age, gender, height_cm, goal_weight_kg, sleep_goal_minutes, steps_goal,
+      weight_goal, bp_goal_systolic, bp_goal_diastolic,
       lens_weight, lens_bp, lens_sleep, lens_performance,
       exercise_freq, exercise_type, exercise_intensity,
       created_at, updated_at
@@ -2131,6 +2187,11 @@ async function getUserProfile(db: D1Database): Promise<UserProfileRow> {
 }
 
 function applyUserProfilePatch(base: UserProfileRow, payload: Record<string, unknown>): UserProfileRow {
+  const unknownKeys = Object.keys(payload).filter((key) => !USER_PROFILE_PATCH_KEYS.has(key))
+  if (unknownKeys.length > 0) {
+    throw new ValidationError(`Unknown fields: ${unknownKeys.join(', ')}`)
+  }
+
   const next: UserProfileRow = {
     ...base,
     user_id: PROFILE_USER_ID,
@@ -2144,6 +2205,24 @@ function applyUserProfilePatch(base: UserProfileRow, payload: Record<string, unk
   }
   if (hasOwn(payload, 'height_cm')) {
     next.height_cm = payload.height_cm == null ? null : toValidatedNumber(payload.height_cm, 'height_cm', 80, 250)
+  }
+  if (hasOwn(payload, 'goal_weight_kg')) {
+    next.goal_weight_kg =
+      payload.goal_weight_kg == null
+        ? null
+        : toValidatedNumber(payload.goal_weight_kg, 'goal_weight_kg', 20, 300)
+  }
+  if (hasOwn(payload, 'sleep_goal_minutes')) {
+    next.sleep_goal_minutes =
+      payload.sleep_goal_minutes == null
+        ? 420
+        : toValidatedInteger(payload.sleep_goal_minutes, 'sleep_goal_minutes', 180, 900)
+  }
+  if (hasOwn(payload, 'steps_goal')) {
+    next.steps_goal =
+      payload.steps_goal == null
+        ? 8000
+        : toValidatedInteger(payload.steps_goal, 'steps_goal', 1000, 50000)
   }
   if (hasOwn(payload, 'weight_goal')) {
     next.weight_goal =
@@ -2230,15 +2309,19 @@ async function upsertUserProfile(db: D1Database, payload: Record<string, unknown
     db,
     `
     INSERT INTO user_profiles(
-      user_id, age, gender, height_cm, weight_goal, bp_goal_systolic, bp_goal_diastolic,
+      user_id, age, gender, height_cm, goal_weight_kg, sleep_goal_minutes, steps_goal,
+      weight_goal, bp_goal_systolic, bp_goal_diastolic,
       lens_weight, lens_bp, lens_sleep, lens_performance,
       exercise_freq, exercise_type, exercise_intensity, updated_at
     )
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
       age = excluded.age,
       gender = excluded.gender,
       height_cm = excluded.height_cm,
+      goal_weight_kg = excluded.goal_weight_kg,
+      sleep_goal_minutes = excluded.sleep_goal_minutes,
+      steps_goal = excluded.steps_goal,
       weight_goal = excluded.weight_goal,
       bp_goal_systolic = excluded.bp_goal_systolic,
       bp_goal_diastolic = excluded.bp_goal_diastolic,
@@ -2256,6 +2339,9 @@ async function upsertUserProfile(db: D1Database, payload: Record<string, unknown
       next.age,
       next.gender,
       next.height_cm,
+      next.goal_weight_kg,
+      next.sleep_goal_minutes,
+      next.steps_goal,
       next.weight_goal,
       next.bp_goal_systolic,
       next.bp_goal_diastolic,
@@ -2292,26 +2378,21 @@ function minimum(values: Array<number | null | undefined>): number | null {
 function estimateBmrKcal(
   weightKg: number | null | undefined,
   heightCm: number | null | undefined,
-  birthYear: number | null | undefined,
-  sex: SexType | null | undefined,
+  ageYears: number | null | undefined,
+  gender: SexType | null | undefined,
 ): number | null {
   if (weightKg == null || !Number.isFinite(weightKg) || weightKg <= 0) {
     return null
   }
 
-  const currentYear = new Date().getUTCFullYear()
   const safeHeight = heightCm != null && Number.isFinite(heightCm) && heightCm > 0 ? heightCm : 172
-  const safeBirthYear =
-    birthYear != null && Number.isInteger(birthYear) && birthYear >= 1900 && birthYear <= currentYear
-      ? birthYear
-      : 1985
-  const age = Math.max(15, Math.min(90, currentYear - safeBirthYear))
-  const safeSex: SexType = sex === 'female' || sex === 'other' || sex === 'male' ? sex : 'male'
+  const safeAge = ageYears != null && Number.isFinite(ageYears) ? Math.max(15, Math.min(90, Math.round(ageYears))) : 38
+  const safeSex: SexType = gender === 'female' || gender === 'other' || gender === 'male' ? gender : 'male'
 
   const bmr =
     safeSex === 'female'
-      ? 447.593 + 9.247 * weightKg + 3.098 * safeHeight - 4.33 * age
-      : 88.362 + 13.397 * weightKg + 4.799 * safeHeight - 5.677 * age
+      ? 447.593 + 9.247 * weightKg + 3.098 * safeHeight - 4.33 * safeAge
+      : 88.362 + 13.397 * weightKg + 4.799 * safeHeight - 5.677 * safeAge
 
   return Number.isFinite(bmr) ? bmr : null
 }
@@ -2441,12 +2522,7 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
     [baseDate],
   )
 
-  const profile = await queryFirst<{
-    goal_weight_kg: number | null
-    height_cm: number | null
-    birth_year: number | null
-    sex: SexType | null
-  }>(db, 'SELECT goal_weight_kg, height_cm, birth_year, sex FROM user_profile WHERE id = 1')
+  const profile = await getUserProfile(db)
 
   const currentWeight = latestWeight?.weight_kg ?? null
   const currentBodyFat = normalizeBodyFatPct(latestBodyFat?.body_fat_pct ?? null)
@@ -2464,8 +2540,8 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
         estimateBmrKcal(
           rowWeight ?? fallbackWeight,
           profile?.height_cm ?? null,
-          profile?.birth_year ?? null,
-          profile?.sex ?? null,
+          profile?.age ?? null,
+          profile?.gender ?? null,
         ),
     }
   })
@@ -2475,8 +2551,8 @@ async function getBodyData(db: D1Database, baseDate: string, period: MetricPerio
     estimateBmrKcal(
       currentWeight ?? profile?.goal_weight_kg ?? null,
       profile?.height_cm ?? null,
-      profile?.birth_year ?? null,
-      profile?.sex ?? null,
+      profile?.age ?? null,
+      profile?.gender ?? null,
     )
   const heightM = profile?.height_cm != null && profile.height_cm > 0 ? profile.height_cm / 100 : null
   const currentBmi = heightM != null && currentWeight != null ? currentWeight / (heightM * heightM) : null
@@ -2715,10 +2791,7 @@ async function getSleepData(db: D1Database, baseDate: string, period: MetricPeri
     [baseDate],
   )
 
-  const profile = await queryFirst<{ sleep_goal_minutes: number | null }>(
-    db,
-    'SELECT sleep_goal_minutes FROM user_profile WHERE id = 1',
-  )
+  const profile = await getUserProfile(db)
   const goalMinutes = profile?.sleep_goal_minutes ?? 420
   const latestSleepDate = latestDateOf(series, (item) => item.sleep_minutes != null)
   const latestSleepPoint = latestSleepDate == null ? null : series.find((item) => item.date === latestSleepDate) ?? null
@@ -3029,7 +3102,7 @@ function statusByRule(actual: number | null, target: number, rule: 'range' | 'mi
 }
 
 async function computeTargets(db: D1Database, date: string): Promise<Record<string, unknown>> {
-  const profile = await queryFirst<ProfileRow>(db, 'SELECT * FROM user_profile WHERE id = 1')
+  const profile = await getUserProfile(db)
   const latestWeight = await queryFirst<{ weight_kg: number | null }>(
     db,
     'SELECT weight_kg FROM daily_metrics WHERE weight_kg IS NOT NULL ORDER BY date DESC LIMIT 1',
@@ -3044,10 +3117,9 @@ async function computeTargets(db: D1Database, date: string): Promise<Record<stri
   }
 
   const heightCm = profile?.height_cm ?? 172
-  const birthYear = profile?.birth_year ?? 1985
-  const sex = profile?.sex ?? 'male'
+  const age = profile?.age ?? 38
+  const sex = profile?.gender ?? 'male'
   const weightKg = latestWeight?.weight_kg ?? 70
-  const age = new Date().getUTCFullYear() - birthYear
 
   const bmr =
     sex === 'female'
@@ -3252,16 +3324,26 @@ async function seedMockData(db: D1Database): Promise<Record<string, unknown>> {
   await execute(db, 'DELETE FROM nutrition_events')
   await execute(db, 'DELETE FROM ai_reports')
   await execute(db, 'DELETE FROM daily_metrics')
-  await execute(db, 'DELETE FROM user_profile')
+  await execute(db, 'DELETE FROM user_profiles')
   await execute(db, 'DELETE FROM record_type_counts')
 
   await execute(
     db,
     `
-    INSERT INTO user_profile(id, name, height_cm, birth_year, sex, goal_weight_kg, updated_at)
-    VALUES(1, ?, ?, ?, ?, ?, ?)
+    INSERT INTO user_profiles(
+      user_id, age, gender, height_cm, goal_weight_kg, sleep_goal_minutes, steps_goal, updated_at
+    )
+    VALUES('default', 38, 'male', 172, 72, 420, 8000, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      age = 38,
+      gender = 'male',
+      height_cm = 172,
+      goal_weight_kg = 72,
+      sleep_goal_minutes = 420,
+      steps_goal = 8000,
+      updated_at = excluded.updated_at
     `,
-    ['user', 172, 1988, 'male', 72, nowIso()],
+    [nowIso()],
   )
 
   const today = new Date()
