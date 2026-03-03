@@ -36,6 +36,37 @@
   font-weight: 700;
 }
 
+/* ルールベースアドバイスカード */
+.health-advice-card {
+  display: flex;
+  gap: 12px;
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, rgba(240, 244, 255, 0.5) 0%, rgba(255, 255, 255, 1) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.health-advice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.health-advice-sentence {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
 /* 現在値カード */
 .health-current-card {
   margin: 0 16px;

@@ -1,6 +1,6 @@
 ﻿import type { Env, ExportedHandler } from './types'
 import { isAuthorized, jsonResponse, optionsResponse, textResponse } from './utils'
-import { handleBodyData, handleSleepData, handleVitalsData } from './handlers/health'
+import { handleActivityData, handleBodyData, handleSleepData, handleVitalsData } from './handlers/health'
 import { handleHomeSummary } from './handlers/home-summary'
 import { handleNutritionDay, handleSupplements } from './handlers/nutrition'
 import { handleNutritionLogDelete, handleNutritionLogPost } from './handlers/nutrition-log'
@@ -46,6 +46,7 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/body-data') return handleBodyData(url, env)
       if (key === 'GET /api/sleep-data') return handleSleepData(url, env)
       if (key === 'GET /api/vitals-data') return handleVitalsData(url, env)
+      if (key === 'GET /api/activity-data') return handleActivityData(url, env)
       if (key === 'GET /api/profile') return handleProfileGet(env)
       if (key === 'PUT /api/profile') return handleProfilePut(request, env)
       if (key === 'GET /api/connection-status') return handleConnectionStatus(env)

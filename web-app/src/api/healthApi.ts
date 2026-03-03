@@ -1,5 +1,6 @@
 ﻿import { apiFetch } from './client'
 import type {
+  ActivityDataResponse,
   ConnectionStatusResponse,
   DailyTabReportResponse,
   HomeSummaryResponse,
@@ -123,6 +124,11 @@ export async function fetchSleepData(date: string, period: string): Promise<Slee
 export async function fetchVitalsData(date: string, period: string): Promise<VitalsDataResponse> {
   const query = new URLSearchParams({ date, period }).toString()
   return apiFetch<VitalsDataResponse>(`/api/vitals-data?${query}`)
+}
+
+export async function fetchActivityData(date: string, period: string): Promise<ActivityDataResponse> {
+  const query = new URLSearchParams({ date, period }).toString()
+  return apiFetch<ActivityDataResponse>(`/api/activity-data?${query}`)
 }
 
 export async function fetchScores(date: string): Promise<ScoreData> {

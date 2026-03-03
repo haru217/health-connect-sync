@@ -1,127 +1,21 @@
+/* src/screens/ExerciseScreen.css */
+
 .exercise-container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  padding-bottom: 24px;
 }
 
-.exercise-insight-section {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  margin-top: 4px;
+/* Exercise Sessions Card */
+.exercise-sessions-card {
+  margin-top: 8px;
 }
 
-.exercise-insight-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  background-color: rgba(136, 212, 180, 0.2);
-}
-
-.exercise-insight-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.exercise-insight-bubble {
-  position: relative;
-  background: #f0f7f4;
-  padding: 12px 16px;
-  border-radius: 16px;
-  border-top-left-radius: 0px;
-  flex: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-}
-
-.exercise-insight-bubble::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -8px;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 8px 10px 0;
-  border-color: transparent #f0f7f4 transparent transparent;
-}
-
-.exercise-insight-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent-color);
-  margin-bottom: 4px;
-}
-
-.exercise-insight-text {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.exercise-segment-control {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  background: #e8f2ed;
-  border-radius: 12px;
-  padding: 4px;
-}
-
-.exercise-segment-btn {
-  border: 0;
-  border-radius: 9px;
-  padding: 9px 0;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.exercise-segment-btn.active {
-  background: var(--surface-color);
-  color: var(--accent-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.exercise-title {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.exercise-summary-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.exercise-summary-item {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(136, 212, 180, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.76rem;
-  color: var(--text-muted);
-}
-
-.exercise-summary-item strong {
-  font-size: 1.03rem;
+.exercise-sessions-title {
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  font-family: var(--font-family-num);
-}
-
-.exercise-empty {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  margin-bottom: 14px;
 }
 
 .exercise-session-list {
@@ -129,11 +23,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 0;
+  margin: 0;
 }
 
 .exercise-session-row {
-  border-radius: 12px;
-  background: rgba(136, 212, 180, 0.1);
+  border-radius: 10px;
+  background: rgba(136, 212, 180, 0.08);
   padding: 10px 12px;
 }
 
@@ -145,74 +41,30 @@
 }
 
 .exercise-session-name {
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .exercise-session-time {
-  font-size: 0.78rem;
+  font-family: var(--font-family-num);
+  font-size: 13px;
   color: var(--text-muted);
 }
 
 .exercise-session-sub {
-  margin-top: 4px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.exercise-summary-range {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.exercise-range-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.exercise-range-card {
-  margin: 0;
-  padding: 14px 10px;
-}
-
-.exercise-range-label {
-  font-size: 0.72rem;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 6px;
 }
 
-.exercise-range-value {
+.exercise-session-date {
   font-family: var(--font-family-num);
-  font-size: 0.94rem;
-  font-weight: 700;
 }
 
-.exercise-selected-value {
-  margin-bottom: 8px;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.exercise-container .recharts-wrapper,
-.exercise-container .recharts-surface {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.exercise-container .recharts-wrapper:focus,
-.exercise-container .recharts-surface:focus,
-.exercise-container .recharts-layer:focus,
-.exercise-container .recharts-rectangle:focus {
+/* Rechartsフォーカス枠の消去 */
+.exercise-container .recharts-wrapper :focus {
   outline: none;
-}
-
-@media (max-width: 420px) {
-  .exercise-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .exercise-range-grid {
-    grid-template-columns: 1fr;
-  }
 }

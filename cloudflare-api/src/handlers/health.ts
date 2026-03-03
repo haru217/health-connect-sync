@@ -340,11 +340,18 @@ export async function collectSleepRecordStatsByDay(
 
   const finalizedByDay = new Map<string, SleepRecordDailyStats>()
   for (const [day, stats] of byDay.entries()) {
+    const mergedSleepMinutes = stats.intervals.length > 0 ? mergedIntervalMinutes(stats.intervals) : stats.sleep_minutes
+    const rawStageTotal = stats.deep_min + stats.light_min + stats.rem_min
+    const stageScale =
+      rawStageTotal > 0 && rawStageTotal > mergedSleepMinutes
+        ? mergedSleepMinutes / rawStageTotal
+        : 1
+
     finalizedByDay.set(day, {
-      sleep_minutes: stats.intervals.length > 0 ? mergedIntervalMinutes(stats.intervals) : stats.sleep_minutes,
-      deep_min: stats.deep_min,
-      light_min: stats.light_min,
-      rem_min: stats.rem_min,
+      sleep_minutes: mergedSleepMinutes,
+      deep_min: stats.deep_min * stageScale,
+      light_min: stats.light_min * stageScale,
+      rem_min: stats.rem_min * stageScale,
       bedtime: stats.bedtime,
       wake_time: stats.wake_time,
       latest_end_ms: stats.latest_end_ms,
@@ -669,6 +676,186 @@ export async function getVitalsData(db: D1Database, baseDate: string, period: Me
   }
 }
 
+export async function getActivityData(db: D1Database, baseDate: string, period: MetricPeriod): Promise<Record<string, unknown>> {
+  const labels = metricLabels(baseDate, period)
+  const startDate = period === 'year' ? `${labels[0]}-01` : labels[0]
+
+  const rows = period === 'year'
+    ? await queryAll<{
+        bucket: string
+        steps: number | null
+        distance_km: number | null
+        active_kcal: number | null
+        total_kcal: number | null
+        intake_kcal: number | null
+      }>(
+        db,
+        `
+        SELECT
+          substr(date, 1, 7) AS bucket,
+          AVG(steps) AS steps,
+          SUM(distance_km) AS distance_km,
+          AVG(active_kcal) AS active_kcal,
+          AVG(total_kcal) AS total_kcal,
+          AVG(intake_kcal) AS intake_kcal
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [startDate, baseDate],
+      )
+    : await queryAll<{
+        bucket: string
+        steps: number | null
+        distance_km: number | null
+        active_kcal: number | null
+        total_kcal: number | null
+        intake_kcal: number | null
+      }>(
+        db,
+        `
+        SELECT
+          date AS bucket,
+          steps,
+          distance_km,
+          active_kcal,
+          total_kcal,
+          intake_kcal
+        FROM daily_metrics
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date ASC
+        `,
+        [startDate, baseDate],
+      )
+
+  const latestRow = await queryFirst<{
+    steps: number | null
+    distance_km: number | null
+    active_kcal: number | null
+    total_kcal: number | null
+    intake_kcal: number | null
+    bmr_kcal: number | null
+  }>(
+    db,
+    `
+    SELECT steps, distance_km, active_kcal, total_kcal, intake_kcal, bmr_kcal
+    FROM daily_metrics
+    WHERE date <= ?
+      AND (steps IS NOT NULL OR active_kcal IS NOT NULL)
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [baseDate],
+  )
+
+  const profile = await getUserProfile(db)
+  const rawStepsGoal = profile?.steps_goal
+  const stepsGoal = rawStepsGoal != null && rawStepsGoal > 0 ? rawStepsGoal : 8000
+  const stepsGoalIsCustom = rawStepsGoal != null && rawStepsGoal > 0
+
+  const byBucket = new Map(rows.map((row) => [row.bucket, row]))
+  const series = labels.map((label) => {
+    const row = byBucket.get(label)
+    return {
+      date: label,
+      steps: row?.steps ?? null,
+      distance_km: row?.distance_km ?? null,
+      active_kcal: row?.active_kcal ?? null,
+      total_kcal: row?.total_kcal ?? null,
+      intake_kcal: row?.intake_kcal ?? null,
+    }
+  })
+
+  const stepsSeries = series.map((item) => item.steps)
+  const avgSteps = average(stepsSeries)
+  const totalDistance = series
+    .map((item) => item.distance_km)
+    .filter((value): value is number => value != null && Number.isFinite(value))
+    .reduce((sum, value) => sum + value, 0) || null
+  const avgActiveKcal = average(series.map((item) => item.active_kcal))
+  const avgTotalKcal = average(series.map((item) => item.total_kcal))
+  const avgIntakeKcal = average(series.map((item) => item.intake_kcal))
+  const calorieBalance = (() => {
+    const validItems = series.filter((item) => item.intake_kcal != null && item.total_kcal != null)
+    if (validItems.length === 0) return null
+    return validItems.reduce((sum, item) => sum + (item.intake_kcal as number) - (item.total_kcal as number), 0)
+  })()
+  const goalDays = stepsSeries.filter((value) => value != null && value >= stepsGoal).length
+  const measuredDays = stepsSeries.filter((value) => value != null).length
+
+  const exerciseSessions = period === 'week'
+    ? await queryAll<{
+        date: string
+        exercise_type: number
+        title: string | null
+        duration_minutes: number | null
+        start_time: string | null
+      }>(
+        db,
+        `
+        SELECT
+          substr(COALESCE(start_time, end_time), 1, 10) AS date,
+          CAST(json_extract(payload_json, '$.exerciseType') AS INTEGER) AS exercise_type,
+          json_extract(payload_json, '$.title') AS title,
+          CASE
+            WHEN start_time IS NOT NULL AND end_time IS NOT NULL
+            THEN ROUND((julianday(end_time) - julianday(start_time)) * 1440, 1)
+            ELSE NULL
+          END AS duration_minutes,
+          start_time
+        FROM health_records
+        WHERE type = 'ExerciseSessionRecord'
+          AND substr(COALESCE(start_time, end_time), 1, 10) BETWEEN ? AND ?
+        ORDER BY COALESCE(start_time, end_time) ASC
+        `,
+        [startDate, baseDate],
+      )
+    : []
+
+  const currentBmr = latestRow?.bmr_kcal ??
+    estimateBmrKcal(
+      profile?.goal_weight_kg ?? null,
+      profile?.height_cm ?? null,
+      profile?.age ?? null,
+      profile?.gender ?? null,
+    )
+
+  return {
+    baseDate,
+    period,
+    current: {
+      steps: latestRow?.steps ?? null,
+      distance_km: latestRow?.distance_km ?? null,
+      active_kcal: latestRow?.active_kcal ?? null,
+      total_kcal: latestRow?.total_kcal ?? null,
+      intake_kcal: latestRow?.intake_kcal ?? null,
+      bmr_kcal: currentBmr,
+    },
+    series,
+    periodSummary: {
+      avg_steps: avgSteps,
+      total_distance_km: totalDistance,
+      avg_active_kcal: avgActiveKcal,
+      avg_total_kcal: avgTotalKcal,
+      avg_intake_kcal: avgIntakeKcal,
+      calorie_balance: calorieBalance,
+      goal_days: goalDays,
+      measured_days: measuredDays,
+      points: measuredDays,
+    },
+    exerciseSessions: exerciseSessions.map((row) => ({
+      date: row.date,
+      exerciseType: row.exercise_type,
+      title: row.title,
+      durationMinutes: row.duration_minutes,
+      startTime: row.start_time,
+    })),
+    stepsGoal,
+    stepsGoalIsCustom,
+  }
+}
+
 export function parsePermissionsJson(value: string | null | undefined): string[] {
   if (!value) {
     return []
@@ -782,4 +969,17 @@ export async function handleVitalsData(url: URL, env: Env): Promise<Response> {
   }
   await ensureAggregatesUpToDate(env.DB)
   return jsonResponse(await getVitalsData(env.DB, date, period))
+}
+
+export async function handleActivityData(url: URL, env: Env): Promise<Response> {
+  const date = url.searchParams.get('date')
+  const period = parseMetricPeriod(url.searchParams.get('period'))
+  if (!date || !isValidDate(date)) {
+    return jsonResponse({ detail: 'date query must be YYYY-MM-DD' }, 400)
+  }
+  if (!period) {
+    return jsonResponse({ detail: 'period query must be week | month | year' }, 400)
+  }
+  await ensureAggregatesUpToDate(env.DB)
+  return jsonResponse(await getActivityData(env.DB, date, period))
 }

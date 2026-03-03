@@ -537,7 +537,7 @@
                 { id: "A2-INSIGHT", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03 00:21", track: "iter" },
                 { id: "A3-PROFILE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-02 23:25", track: "iter" },
                 // Phase B: ホーム画面・セットアップ・アバター
-                { id: "B1-HOME", defaultStatus: "in_progress", track: "iter" },
+                { id: "B1-HOME", defaultStatus: "done", defaultStamp: "Gemini + Codex @ 2026-03-03", track: "iter" },
                 { id: "B2-SETUP", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-02 22:39", track: "iter" },
                 { id: "B3-AVATAR", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03 00:12", track: "iter" },
                 // Phase C: AIレポート
@@ -547,9 +547,14 @@
                 { id: "D1-REFACTOR", defaultStatus: "done", defaultStamp: "Claude @ 2026-03-03 14:47", track: "" },
                 { id: "D2-REFACTOR", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03", track: "" },
                 // Phase E: UX改善
-                { id: "E1-ATTENTION", defaultStatus: "in_progress", track: "iter" },
+                { id: "E1-ATTENTION", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-03", track: "iter" },
+                // Phase F: バグ修正
+                { id: "F1-SLEEP-STAGE", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-04", track: "iter" },
                 // タブ強化
                 { id: "I2-CODEX", defaultStatus: "done", defaultStamp: "Claude @ 2026-03-03", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03", track: "iter" },
+                { id: "I2v2-HEALTH", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-03", track: "iter" },
+                { id: "I2v3-ADVICE", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-04 00:19", track: "iter" },
+                { id: "I2v3-UI", defaultStatus: "todo", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
                 // Phase D: マイページ・仕上げ
@@ -591,6 +596,10 @@
                 "D1-REFACTOR": "ExpertCard・TabAiAdviceを共通コンポーネント化し、3画面のAIコメント表示を統一しました。",
                 "D2-REFACTOR": "index.ts（5600行）を機能別ファイルに分割し、各800行以下に整理しました。",
                 "E1-ATTENTION": "ホーム画面「注目のポイント」欄を廃止。スコア→専門家コメントの2層構成に簡素化。",
+                "F1-SLEEP-STAGE": "睡眠ステージの二重カウントを修正。重複セッション日でもチャート高さが異常にならないよう補正。",
+                "I2v2-HEALTH": "からだタブ改修: 内タブ名変更（体重/血圧・心拍/睡眠）、睡眠ステージ独立カード、SpO2サマリー追加、null非表示。",
+                "I2v3-ADVICE": "からだタブにルールベースのアドバイスカードを最上段に配置。BMI・血圧分類・睡眠時間に応じたコメントを自動生成。",
+                "I2v3-UI": "からだタブのアドバイスカードのデザイン改善。状態別カラーリング、SVGアイコン、質感向上。",
             };
 
             const TASK_META = {
@@ -622,7 +631,11 @@
                 "A1v3-VALUES": "担当はCodex-shinsekai。A1v2に実数値を追加。B1ホーム画面が1API呼び出しで完結。",
                 "D1-REFACTOR": "担当はClaude。TabAiAdvice共通コンポーネント抽出、getExpertByTagヘルパー追加。Health/Exercise/Mealの3画面をリファクタリング。",
                 "D2-REFACTOR": "担当はCodex-shinsekai。index.tsをhandlers/*, types, utils, constantsに分割。API仕様変更なし。",
-                "E1-ATTENTION": "担当はCodex-shinsekai。注目のポイント欄をフロント・バックエンド両方から削除。デッドコードクリーンアップ。",
+                "E1-ATTENTION": "担当はCodex。注目のポイント欄をフロント・バックエンド両方から削除。デッドコードクリーンアップ。",
+                "F1-SLEEP-STAGE": "担当はCodex。重複する睡眠セッションがある日のステージ集計を補正し、異常な棒グラフ表示を解消。",
+                "I2v2-HEALTH": "担当はCodex。内タブ名変更、睡眠ステージ独立カード、期間SpO2サマリー、null非表示ロジック追加。",
+                "I2v3-ADVICE": "担当はCodex。LLMコメントをルールベースに置換。各内タブの最上段にデータ即時のアドバイスを表示。",
+                "I2v3-UI": "担当はGemini。Codex実装済みのアドバイスカードの見た目を改善。状態別色分け・SVGアイコン・質感向上。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
@@ -650,34 +663,42 @@
                 "D1-REFACTOR": "low",
                 "D2-REFACTOR": "low",
                 "E1-ATTENTION": "mid",
+                "F1-SLEEP-STAGE": "high",
                 "A1v3-VALUES": "mid",
+                "I2v2-HEALTH": "mid",
+                "I2v3-ADVICE": "mid",
+                "I2v3-UI": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "wip", summary: "スコア表示・専門家アバター配置完了。「注目のポイント」統合サマリー改善を進行中（E1）", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR","E1-ATTENTION"] },
-                { name: "健康タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","D1-REFACTOR"] },
+                { name: "ホーム画面", status: "ok", summary: "スコア表示・専門家アバター配置完了。注目のポイント廃止済み（E1）。スコア→専門家コメントの2層構成", owner: "Gemini / Codex", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR","E1-ATTENTION"] },
+                { name: "健康タブ", status: "ok", summary: "体重・血圧・睡眠の各タブ上部に、データに応じて内容が変わるアドバイス表示を追加。未取得日は表示しない動きに統一。", owner: "Codex", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","I2v2-HEALTH","I2v3-ADVICE","D1-REFACTOR"] },
                 { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
                 { name: "食事タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。モジュール分割済み（D2）。スコアAPI・AIレポート・同期後自動生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR"] },
+                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。モジュール分割済み（D2）。スコアAPI・AIレポート・同期後自動生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
 
             const CEO_DECISIONS = [
-                { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: 0 },
+                { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: 0, freeText: "【解決済み】D1-REFACTORで修正完了" },
                 { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null, freeText: "内容による。エラーがどういう想定なのか詳しく知りたい。ケースごとに対応を決めたい" },
                 { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "【決定済み】日次レポートはClaude Haiku 4.5に決定。本番環境で3モデル動作確認済み: Claude Haiku(3/2), Gemini 2.5 Pro(3/1), GPT-5 mini(2/28)。マルチプロバイダ対応済みのため切替は環境変数のみで可能" },
-                { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: 0, freeText: "日本のヘルスケアアプリで使う想定のデザインで" },
-                { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: 0 },
-                { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 }
+                { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: 0, freeText: "【完了】日本のヘルスケアアプリ風デザインで実装済み（B3-AVATAR）" },
+                { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: 0, freeText: "【完了】スコア表示→AIレポートの順で両方実装済み" },
+                { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 },
+                { id: "D-013", screen: "ホーム画面", question: "「注目のポイント」欄を廃止してスコア→専門家コメントの2層構成にしますか？", options: ["はい、廃止する", "残す"], priority: "high", from: "Claude", originalThread: "E1", answer: 0, freeText: "【決定済み】E1で廃止完了。エージェントアドバイスだけでいい" },
+                { id: "D-014", screen: "健康タブ", question: "からだタブのAIアドバイスをLLM生成からルールベースに変更し、内タブ別（体重/血圧/睡眠）に分けますか？", options: ["はい、ルールベースに変更", "LLMのまま"], priority: "mid", from: "Claude", originalThread: "I2v3", answer: 0, freeText: "【決定済み】ルールベースのコメントでいい。最上段に置く。I2v3で実装完了" },
+                { id: "D-015", screen: "健康タブ", question: "からだタブ内タブ名を「体組成→体重」「バイタル→血圧・心拍」に変更しますか？", options: ["はい、変更する", "現状維持"], priority: "mid", from: "Claude", originalThread: "I2v2", answer: 0, freeText: "【決定済み】案A採用。I2v2で実装完了" }
             ];
 
             const CEO_APPROVALS = [
                 { id: "A-001", screen: "ホーム画面", title: "3専門家のアバター画像作成（Geminiへ依頼）", description: "ユウ先生（医師・男性・穏やか・青緑系）、サキさん（管理栄養士・女性・明るい・オレンジピンク系）、マイコーチ（トレーナー・女性・元気・黄緑系）の3人分。日本のヘルスケアアプリ風のフラットイラスト、円形アバター用、透明背景PNG。あすけん・FiNC等を参考に、清潔感と親しみやすさのあるデザイン。", status: "approved", from: "Gemini" },
-                { id: "A-002", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "総合スコア（大ドーナツ）、ドメイン別スコア（小ドーナツ）、気づきリストを画面上部に新規追加し、既存UI（ステータス・アドバイス等）は下部にそのまま残すデザイン実装", status: "pending", from: "Gemini" },
-                { id: "A-003", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "CTO承認完了: 総合スコア+ドメインカード追加、StatusBar削除、アバター差替", status: "pending", from: "Gemini" }
+                { id: "A-002", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "CTO承認完了: 総合スコア+ドメインカード追加、StatusBar削除、アバター差替。実装完了・本番デプロイ済み", status: "approved", from: "Gemini" },
+                { id: "A-003", screen: "ホーム画面", title: "E1: 注目のポイント廃止", description: "CEO決定: スコア→専門家コメントの2層構成に簡素化。Codex実装完了・本番デプロイ済み", status: "approved", from: "Codex" },
+                { id: "A-004", screen: "健康タブ", title: "I2v3-UI: アドバイスカードのデザイン改善", description: "Codex実装済みのルールベースアドバイスカード（体重/血圧/睡眠）のUI改善をGeminiに依頼。状態別カラーリング・SVGアイコン・質感向上", status: "pending", from: "Gemini" }
             ];
 
             const SIGNAL_MAP = { ok: "\u{1F7E2}", wip: "\u{1F7E1}", not_started: "\u{1F534}" };
@@ -1016,4 +1037,7 @@
 </body>
 
 </html>
+
+
+
 

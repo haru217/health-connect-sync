@@ -4,8 +4,6 @@ import {
 } from 'recharts'
 import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
-import { getExpertByTag } from '../components/ExpertCard'
-import TabAiAdvice from '../components/TabAiAdvice'
 import SegmentSelector from '../components/SegmentSelector'
 import type { Segment } from '../components/SegmentSelector'
 import {
@@ -14,7 +12,6 @@ import {
 import type {
   BodyDataResponse, SleepDataResponse, VitalsDataResponse
 } from '../api/types'
-import { useTabComment } from '../hooks/useTabComment'
 import './HealthScreen.css'
 
 type InnerTab = 'composition' | 'circulation' | 'sleep' | 'vital'
@@ -84,6 +81,151 @@ function monthTickDates(dates: string[], anchorDate: string): string[] {
   return dates.filter((dateStr) => weekDayOfIsoDate(dateStr) === anchorDay)
 }
 
+function normalizePercent(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) return null
+  return value <= 1 ? value * 100 : value
+}
+
+function joinAdviceSentences(sentences: string[]): string | null {
+  const normalized = sentences
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 0)
+    .map((sentence) => sentence.replace(/。+$/u, ''))
+
+  if (normalized.length === 0) return null
+  return `${normalized.join('。')}。`
+}
+
+function formatAdviceKg(value: number): string {
+  return Math.abs(value).toFixed(1)
+}
+
+function generateCompositionAdvice(
+  bmi: number | null,
+  diffWeightKg: number | null,
+  goalDiffKg: number | null,
+  segment: Segment
+): string | null {
+  if (bmi == null || !Number.isFinite(bmi)) return null
+
+  const messages: string[] = []
+  if (bmi < 18.5) {
+    messages.push('BMIが低めです。バランスの良い食事を心がけましょう。')
+  } else if (bmi < 25) {
+    messages.push('BMIは標準範囲内です。この調子を維持しましょう。')
+  } else if (bmi < 30) {
+    messages.push('BMIがやや高めです。食事と運動のバランスを見直してみましょう。')
+  } else {
+    messages.push('BMIが高めです。かかりつけ医への相談もご検討ください。')
+  }
+
+  if (segment === 'week' && diffWeightKg != null && Number.isFinite(diffWeightKg)) {
+    if (diffWeightKg < -0.5) {
+      messages.push(`今週は${formatAdviceKg(diffWeightKg)}kg減少しました。順調です。`)
+    } else if (diffWeightKg > 1.0) {
+      messages.push(`今週は${formatAdviceKg(diffWeightKg)}kg増加しています。食事内容を振り返ってみましょう。`)
+    }
+  }
+
+  if (goalDiffKg != null && Number.isFinite(goalDiffKg) && goalDiffKg <= 2 && goalDiffKg > 0) {
+    messages.push(`目標体重まであと${formatAdviceKg(goalDiffKg)}kgです。もう少しです！`)
+  }
+
+  const text = joinAdviceSentences(messages)
+  return text || null
+}
+
+function generateCirculationAdvice(
+  systolic: number | null,
+  diastolic: number | null,
+  restingHr: number | null,
+  highBpDays: number,
+  segment: Segment
+): string | null {
+  const hasBp = systolic != null && Number.isFinite(systolic) && diastolic != null && Number.isFinite(diastolic)
+  const hasRestingHr = restingHr != null && Number.isFinite(restingHr)
+  if (!hasBp && !hasRestingHr) return null
+
+  const messages: string[] = []
+  if (hasBp) {
+    if (systolic >= 145 || diastolic >= 90) {
+      messages.push('血圧が高い状態です。かかりつけ医への相談をおすすめします。')
+    } else if (systolic >= 135 || diastolic >= 85) {
+      messages.push('血圧が高い状態が続いています。生活習慣の改善を検討しましょう。')
+    } else if (systolic >= 125 || diastolic >= 75) {
+      messages.push('血圧がやや高めです。塩分の摂りすぎに注意しましょう。')
+    } else {
+      messages.push('血圧は正常範囲です。引き続き健康的な生活を。')
+    }
+  }
+
+  if (hasRestingHr) {
+    if (restingHr < 60) {
+      messages.push('安静時心拍が低めです。体調に変化がないか確認しましょう。')
+    } else if (restingHr >= 80) {
+      messages.push('安静時心拍がやや高めです。リラックスする時間を作りましょう。')
+    }
+  }
+
+  if (segment !== 'week' && highBpDays >= 3) {
+    messages.push(`期間中に高血圧判定が${highBpDays}日ありました。経過を注視しましょう。`)
+  }
+
+  const text = joinAdviceSentences(messages)
+  return text || null
+}
+
+function generateSleepAdvice(
+  sleepMinutes: number | null,
+  deepSleepRatio: number | null,
+  avgSpo2: number | null
+): string | null {
+  const messages: string[] = []
+  if (sleepMinutes != null && Number.isFinite(sleepMinutes)) {
+    if (sleepMinutes >= 420) {
+      messages.push('十分な睡眠が取れています。この調子を維持しましょう。')
+    } else if (sleepMinutes >= 360) {
+      messages.push('睡眠がやや短めです。もう少し早めの就寝を心がけてみましょう。')
+    } else {
+      messages.push('睡眠時間が不足しています。睡眠の質と量の改善を意識しましょう。')
+    }
+  }
+
+  const deepRatioPercent = normalizePercent(deepSleepRatio)
+  if (deepRatioPercent != null && deepRatioPercent < 15) {
+    messages.push('深い睡眠の割合が少なめです。就寝前のスマホ利用を控えると改善されることがあります。')
+  }
+
+  if (avgSpo2 != null && Number.isFinite(avgSpo2) && avgSpo2 < 95) {
+    messages.push('血中酸素濃度が低めです。気になる場合は医師に相談してください。')
+  }
+
+  const text = joinAdviceSentences(messages)
+  return text || null
+}
+
+function HealthAdviceCard({ advice }: { advice: string | null }) {
+  if (!advice) return null
+
+  // 「。」で分割して複数行に（最大2文まで）
+  const sentences = advice
+    .split('。')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .slice(0, 2)
+    .map(s => s + '。')
+
+  return (
+    <div className="health-advice-card">
+      <div className="health-advice-content">
+        {sentences.map((s, idx) => (
+          <p key={idx} className="health-advice-sentence">{s}</p>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // InnerTabBar Component
 function InnerTabBar({ tab, onTabChange }: { tab: InnerTab, onTabChange: (t: InnerTab) => void }) {
   return (
@@ -142,9 +284,12 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
     if (last.weight_kg != null && first.weight_kg != null) diffWeight = last.weight_kg - first.weight_kg
     if (last.body_fat_pct != null && first.body_fat_pct != null) diffFat = last.body_fat_pct - first.body_fat_pct
   }
+  const goalDiffKg = hasGoalWeightMetric && hasWeightMetric ? Math.abs(displayWeight - goalWeight) : null
+  const adviceResult = generateCompositionAdvice(displayBmi, diffWeight, goalDiffKg, segment)
 
   return (
     <div className="tab-content">
+      <HealthAdviceCard advice={adviceResult} />
       {hasCurrentCard ? (
         <div className="health-current-card">
           {hasWeightMetric ? (
@@ -273,9 +418,17 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
     else if (displaySystolic >= 135 || displayDiastolic >= 85) { bpStatus = 'I度高血圧'; bpClass = 'warning' }
     else if (displaySystolic >= 125 || displayDiastolic >= 75) { bpStatus = '高値血圧'; bpClass = 'warning' }
   }
+  const adviceResult = generateCirculationAdvice(
+    displaySystolic,
+    displayDiastolic,
+    displayRestingHr,
+    data.periodSummary.high_bp_points,
+    segment
+  )
 
   return (
     <div className="tab-content">
+      <HealthAdviceCard advice={adviceResult} />
       {hasCurrentCard ? (
         <div className="health-current-card">
           {hasBpMetric ? (
@@ -396,6 +549,13 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
   const hasCurrentCard = hasSleepMinuteMetric || hasSleepTiming || hasSleepSpo2Metric
   const hasSleepStages = stages.deep_min != null || stages.light_min != null || stages.rem_min != null
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
+  const weekStageTotal = (stages.deep_min ?? 0) + (stages.light_min ?? 0) + (stages.rem_min ?? 0)
+  const periodStageTotal = (data.periodSummary.avg_deep_min ?? 0) + (data.periodSummary.avg_light_min ?? 0) + (data.periodSummary.avg_rem_min ?? 0)
+  const deepSleepRatio = isWeek
+    ? (stages.deep_min != null && weekStageTotal > 0 ? stages.deep_min / weekStageTotal : null)
+    : (data.periodSummary.deep_ratio ?? (data.periodSummary.avg_deep_min != null && periodStageTotal > 0 ? data.periodSummary.avg_deep_min / periodStageTotal : null))
+  const adviceSpo2 = isWeek ? current.avg_spo2 : (data.periodSummary.avg_spo2 ?? current.avg_spo2)
+  const adviceResult = generateSleepAdvice(displaySleepMinutes, deepSleepRatio, adviceSpo2)
 
   const formatHours = (min: number | null | undefined) => {
     if (min == null) return '-'
@@ -419,7 +579,6 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
     if (displaySleepMinutes >= 420) { sleepStatus = '良好'; sleepClass = 'good' }
     else if (displaySleepMinutes >= 360) { sleepStatus = 'やや短め'; sleepClass = 'warning' }
   }
-  const weekStageTotal = (stages.deep_min ?? 0) + (stages.light_min ?? 0) + (stages.rem_min ?? 0)
   const stageRows = isWeek
     ? [
       {
@@ -483,6 +642,7 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
 
   return (
     <div className="tab-content">
+      <HealthAdviceCard advice={adviceResult} />
       {hasCurrentCard ? (
         <div className="health-current-card">
           {hasSleepMinuteMetric ? (
@@ -593,8 +753,6 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
   const { activeDate } = useDateContext()
   const [tab, setTab] = useState<InnerTab>(initialTab)
   const [segment, setSegment] = useState<Segment>('week')
-  const { comment, loading } = useTabComment(activeDate, 'condition')
-  const doctorConfig = getExpertByTag('doctor')
 
   return (
     <div className="health-container">
@@ -604,7 +762,6 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
       {tab === 'composition' && <CompositionTab date={activeDate} segment={segment} />}
       {tab === 'circulation' && <CirculationTab date={activeDate} segment={segment} />}
       {tab === 'sleep' && <SleepTab date={activeDate} segment={segment} />}
-      <TabAiAdvice comment={comment} loading={loading} expert={doctorConfig} />
     </div>
   )
 }

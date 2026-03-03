@@ -418,7 +418,53 @@ export interface VitalsDataResponse {
   }
 }
 
-// ���� /api/scores ����
+// --- /api/activity-data ---
+export interface ActivityDataPoint {
+  date: string
+  steps: number | null
+  distance_km: number | null
+  active_kcal: number | null
+  total_kcal: number | null
+  intake_kcal: number | null
+}
+
+export interface ActivityExerciseSession {
+  date: string
+  exerciseType: number
+  title: string | null
+  durationMinutes: number | null
+  startTime: string | null
+}
+
+export interface ActivityDataResponse {
+  baseDate: string
+  period: 'week' | 'month' | 'year'
+  current: {
+    steps: number | null
+    distance_km: number | null
+    active_kcal: number | null
+    total_kcal: number | null
+    intake_kcal: number | null
+    bmr_kcal: number | null
+  }
+  series: ActivityDataPoint[]
+  periodSummary: {
+    avg_steps: number | null
+    total_distance_km: number | null
+    avg_active_kcal: number | null
+    avg_total_kcal: number | null
+    avg_intake_kcal: number | null
+    calorie_balance: number | null
+    goal_days: number
+    measured_days: number
+    points: number
+  }
+  exerciseSessions: ActivityExerciseSession[]
+  stepsGoal: number
+  stepsGoalIsCustom: boolean
+}
+
+// --- /api/scores ---
 export interface ScoreDomain {
   score: number
   color: 'green' | 'yellow' | 'red'
