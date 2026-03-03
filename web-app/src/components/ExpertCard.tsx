@@ -93,7 +93,14 @@ export default function ExpertCard({
         </div>
         <div className="expert-text">
           <span className="expert-role" style={{ color: borderColor }}>{role}</span>
-          <p className="expert-body">{content}</p>
+          <p className="expert-body">
+            {content.split(/(?<=。)/).filter(Boolean).map((sentence, i, arr) => (
+              <span key={i}>
+                {sentence}
+                {i < arr.length - 1 ? <br /> : null}
+              </span>
+            ))}
+          </p>
         </div>
       </div>
     </div>

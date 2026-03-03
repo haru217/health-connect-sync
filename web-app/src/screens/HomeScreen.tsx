@@ -81,7 +81,7 @@ interface HomeReport {
   mai: string | null
 }
 
-function ExpertSection({ home, headline }: { home: HomeReport; headline: string | null }) {
+function ExpertSection({ home }: { home: HomeReport }) {
   const sectionMap: Record<ExpertTag, string | null> = {
     doctor: home.yu ?? null,
     nutritionist: home.saki ?? null,
@@ -101,9 +101,6 @@ function ExpertSection({ home, headline }: { home: HomeReport; headline: string 
           <span>今日のひとこと</span>
         </div>
       </div>
-      {headline ? (
-        <p className="expert-headline">{headline}</p>
-      ) : null}
       <div className="expert-cards-list">
         {EXPERT_CONFIG.map((cfg) => {
           const text = sectionMap[cfg.tag]
@@ -322,10 +319,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
           {/* Expert Reports */}
           {content.hasReport ? (
-            <ExpertSection
-              home={content.summary.report!.home}
-              headline={content.summary.report!.headline}
-            />
+            <ExpertSection home={content.summary.report!.home} />
           ) : null}
 
           {!content.hasSomeData ? <EmptyState /> : null}

@@ -393,17 +393,6 @@
   color: var(--text-muted);
 }
 
-.expert-headline {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 16px 14px;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(139, 92, 246, 0.04));
-  border-radius: 10px;
-  line-height: 1.5;
-}
-
 .expert-body {
   font-size: 13.5px;
   line-height: 1.75;
