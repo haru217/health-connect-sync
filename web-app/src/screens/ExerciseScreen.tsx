@@ -11,7 +11,8 @@ import {
   YAxis,
 } from 'recharts'
 import { fetchSummary } from '../api/healthApi'
-import ExpertCard, { EXPERT_CONFIG } from '../components/ExpertCard'
+import { getExpertByTag } from '../components/ExpertCard'
+import TabAiAdvice from '../components/TabAiAdvice'
 import { useDateContext } from '../context/DateContext'
 import { useTabComment } from '../hooks/useTabComment'
 import type { ExerciseSessionItem, RequestState, SummaryResponse } from '../api/types'
@@ -175,7 +176,7 @@ export default function ExerciseScreen() {
   const [activeCaloriesIndex, setActiveCaloriesIndex] = useState<number | null>(null)
   const [activeDistanceIndex, setActiveDistanceIndex] = useState<number | null>(null)
   const { comment, loading } = useTabComment(activeDate, 'activity')
-  const trainerConfig = EXPERT_CONFIG[2]
+  const trainerConfig = getExpertByTag('trainer')
 
   useEffect(() => {
     let alive = true
@@ -519,25 +520,7 @@ export default function ExerciseScreen() {
         </>
       )}
 
-      {!loading && comment ? (
-        <section
-          className="expert-section"
-          style={{
-            borderTop: '1px solid var(--border-color)',
-            marginTop: 16,
-            paddingTop: 16,
-          }}
-        >
-          <div className="expert-section-header">
-            <div className="expert-section-title">
-              <span>AIアドバイス</span>
-            </div>
-          </div>
-          <div className="expert-cards-list">
-            <ExpertCard {...{ ...trainerConfig, content: comment }} />
-          </div>
-        </section>
-      ) : null}
+      <TabAiAdvice comment={comment} loading={loading} expert={trainerConfig} />
     </div>
   )
 }

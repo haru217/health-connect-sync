@@ -61,6 +61,12 @@ type ExpertCardProps = {
   hasDecoration?: boolean
 }
 
+export function getExpertByTag(tag: ExpertTag): ExpertConfigItem {
+  const found = EXPERT_CONFIG.find((c) => c.tag === tag)
+  if (!found) throw new Error(`Unknown expert tag: ${tag}`)
+  return found
+}
+
 export default function ExpertCard({
   name,
   role,

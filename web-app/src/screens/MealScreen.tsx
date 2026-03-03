@@ -7,7 +7,8 @@ import {
   fetchSupplements,
   logNutrition,
 } from '../api/healthApi'
-import ExpertCard, { EXPERT_CONFIG } from '../components/ExpertCard'
+import { getExpertByTag } from '../components/ExpertCard'
+import TabAiAdvice from '../components/TabAiAdvice'
 import { useDateContext } from '../context/DateContext'
 import { useTabComment } from '../hooks/useTabComment'
 import type {
@@ -169,7 +170,7 @@ export default function MealScreen() {
   const [state, setState] = useState<RequestState<MealScreenData>>({ status: 'loading' })
   const [actionError, setActionError] = useState<string | null>(null)
   const { comment, loading } = useTabComment(activeDate, 'meal')
-  const nutritionistConfig = EXPERT_CONFIG[1]
+  const nutritionistConfig = getExpertByTag('nutritionist')
 
   const loadData = useCallback(async () => {
     setState({ status: 'loading' })
@@ -532,25 +533,7 @@ export default function MealScreen() {
           )}
         </div>
 
-        {!loading && comment ? (
-          <section
-            className="expert-section"
-            style={{
-              borderTop: '1px solid var(--border-color)',
-              marginTop: 16,
-              paddingTop: 16,
-            }}
-          >
-            <div className="expert-section-header">
-              <div className="expert-section-title">
-                <span>AIアドバイス</span>
-              </div>
-            </div>
-            <div className="expert-cards-list">
-              <ExpertCard {...{ ...nutritionistConfig, content: comment }} />
-            </div>
-          </section>
-        ) : null}
+        <TabAiAdvice comment={comment} loading={loading} expert={nutritionistConfig} />
       </div>
 
       {activeTab === 'log' && (
