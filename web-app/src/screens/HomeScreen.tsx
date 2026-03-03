@@ -75,114 +75,33 @@ const DOMAIN_CONFIG: ReadonlyArray<{
     },
   ]
 
-type ExpertMarkerTag = 'DOCTOR' | 'TRAINER' | 'NUTRITIONIST'
-
-function markerRegex(): RegExp {
-  return /<!--\s*(\/?\s*(?:DOCTOR|TRAINER|NUTRITIONIST)|END)\s*-->/gi
+interface HomeReport {
+  yu: string | null
+  saki: string | null
+  mai: string | null
 }
 
-function extractAgentSections(content: string): {
-  doctor: string | null
-  trainer: string | null
-  nutritionist: string | null
-} {
-  const byTag: Record<ExpertMarkerTag, string[]> = {
-    DOCTOR: [],
-    TRAINER: [],
-    NUTRITIONIST: [],
-  }
-
-  let currentTag: ExpertMarkerTag | null = null
-  let cursor = 0
-  const matcher = markerRegex()
-  let matched = matcher.exec(content)
-
-  while (matched) {
-    const start = matched.index
-    const rawToken = (matched[1] ?? '').replace(/\s+/g, '').toUpperCase()
-    const slice = content.slice(cursor, start).trim()
-    if (currentTag && slice) {
-      byTag[currentTag].push(slice)
-    }
-
-    if (rawToken === 'END') {
-      currentTag = null
-    } else if (rawToken.startsWith('/')) {
-      const closing = rawToken.slice(1) as ExpertMarkerTag
-      if (currentTag === closing) {
-        currentTag = null
-      }
-    } else if (rawToken === 'DOCTOR' || rawToken === 'TRAINER' || rawToken === 'NUTRITIONIST') {
-      currentTag = rawToken
-    }
-
-    cursor = matcher.lastIndex
-    matched = matcher.exec(content)
-  }
-
-  const tail = content.slice(cursor).trim()
-  if (currentTag && tail) {
-    byTag[currentTag].push(tail)
-  }
-
-  const normalize = (parts: string[]): string | null => {
-    if (parts.length === 0) {
-      return null
-    }
-    const merged = parts.join('\n').trim()
-    return merged.length > 0 ? merged : null
-  }
-
-  return {
-    doctor: normalize(byTag.DOCTOR),
-    trainer: normalize(byTag.TRAINER),
-    nutritionist: normalize(byTag.NUTRITIONIST),
-  }
-}
-
-function stripTags(raw: string): string {
-  return raw
-    .replace(markerRegex(), '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function ExpertSection({ content }: { content: string }) {
-  const sections = extractAgentSections(content)
+function ExpertSection({ home }: { home: HomeReport }) {
   const sectionMap: Record<ExpertTag, string | null> = {
-    doctor: sections.doctor,
-    trainer: sections.trainer,
-    nutritionist: sections.nutritionist,
+    doctor: home.yu ?? null,
+    nutritionist: home.saki ?? null,
+    trainer: home.mai ?? null,
   }
 
-  const hasAny = Boolean(sections.doctor || sections.trainer || sections.nutritionist)
-  const sectionHeader = (
-    <div className="expert-section-header">
-      <div className="expert-section-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-          <line x1="9" y1="21" x2="15" y2="21" />
-        </svg>
-        <span>AIコーチングレポート</span>
-      </div>
-    </div>
-  )
-
-  if (!hasAny) {
-    const fallback = EXPERT_CONFIG[0]
-    return (
-      <section className="expert-section">
-        {sectionHeader}
-        <div className="expert-cards-list">
-          <ExpertCard {...fallback} content={stripTags(content)} />
-        </div>
-      </section>
-    )
-  }
+  const hasAny = Boolean(home.yu || home.saki || home.mai)
+  if (!hasAny) return null
 
   return (
     <section className="expert-section">
-      {sectionHeader}
+      <div className="expert-section-header">
+        <div className="expert-section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+            <line x1="9" y1="21" x2="15" y2="21" />
+          </svg>
+          <span>AIコーチングレポート</span>
+        </div>
+      </div>
       <div className="expert-cards-list">
         {EXPERT_CONFIG.map((cfg) => {
           const text = sectionMap[cfg.tag]
@@ -401,7 +320,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
           {/* Expert Reports */}
           {content.hasReport ? (
-            <ExpertSection content={content.summary.report!.content} />
+            <ExpertSection home={content.summary.report!.home} />
           ) : null}
 
           {!content.hasSomeData ? <EmptyState /> : null}

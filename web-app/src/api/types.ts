@@ -287,7 +287,7 @@ export interface AttentionPoint {
 
 export interface PreviousReportLink {
   date: string
-  created_at: string
+  generated_at: string
 }
 
 export interface HomeSufficiency {
@@ -300,7 +300,15 @@ export interface HomeSufficiency {
 
 export interface HomeSummaryResponse {
   date: string
-  report: { content: string; created_at: string } | null
+  report: {
+    headline: string | null
+    home: {
+      yu: string | null
+      saki: string | null
+      mai: string | null
+    }
+    generated_at: string
+  } | null
   sufficiency: HomeSufficiency
   evidences?: HomeEvidence[]
   statusItems?: HomeStatusItem[]
@@ -329,7 +337,7 @@ export interface ConnectionStatusResponse {
   health_connect_permissions?: HealthConnectPermissionStatus
 }
 
-// „Ÿ„Ÿ /api/body-data „Ÿ„Ÿ
+// ï¿½ï¿½ï¿½ï¿½ /api/body-data ï¿½ï¿½ï¿½ï¿½
 export interface BodyDataPoint {
   date: string
   weight_kg: number | null
@@ -356,7 +364,7 @@ export interface BodyDataResponse {
   }
 }
 
-// „Ÿ„Ÿ /api/sleep-data „Ÿ„Ÿ
+// ï¿½ï¿½ï¿½ï¿½ /api/sleep-data ï¿½ï¿½ï¿½ï¿½
 export interface SleepDataPoint {
   date: string
   sleep_minutes: number | null
@@ -398,7 +406,7 @@ export interface SleepDataResponse {
   }
 }
 
-// „Ÿ„Ÿ /api/vitals-data „Ÿ„Ÿ
+// ï¿½ï¿½ï¿½ï¿½ /api/vitals-data ï¿½ï¿½ï¿½ï¿½
 export interface VitalsDataPoint {
   date: string
   systolic: number | null
@@ -426,7 +434,7 @@ export interface VitalsDataResponse {
   }
 }
 
-// „Ÿ„Ÿ /api/scores „Ÿ„Ÿ
+// ï¿½ï¿½ï¿½ï¿½ /api/scores ï¿½ï¿½ï¿½ï¿½
 export interface ScoreDomain {
   score: number
   color: 'green' | 'yellow' | 'red'

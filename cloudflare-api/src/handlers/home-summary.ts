@@ -116,26 +116,29 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
       [date],
     ),
     getUserProfile(db),
-    queryFirst<{ content: string; created_at: string }>(
+    queryFirst<{
+      headline: string | null
+      yu_comment: string | null
+      saki_comment: string | null
+      mai_comment: string | null
+      generated_at: string
+    }>(
       db,
       `
-      SELECT content, created_at
-      FROM ai_reports
-      WHERE report_date = ?
-        AND report_type = 'daily'
-      ORDER BY created_at DESC
+      SELECT headline, yu_comment, saki_comment, mai_comment, generated_at
+      FROM daily_reports
+      WHERE date = ?
       LIMIT 1
       `,
       [date],
     ),
-    queryFirst<{ report_date: string; created_at: string }>(
+    queryFirst<{ date: string; generated_at: string }>(
       db,
       `
-      SELECT report_date, created_at
-      FROM ai_reports
-      WHERE report_type = 'daily'
-        AND report_date < ?
-      ORDER BY report_date DESC, created_at DESC
+      SELECT date, generated_at
+      FROM daily_reports
+      WHERE date < ?
+      ORDER BY date DESC
       LIMIT 1
       `,
       [date],
@@ -325,8 +328,13 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     date,
     report: reportRow
       ? {
-          content: reportRow.content,
-          created_at: reportRow.created_at,
+          headline: reportRow.headline,
+          home: {
+            yu: reportRow.yu_comment,
+            saki: reportRow.saki_comment,
+            mai: reportRow.mai_comment,
+          },
+          generated_at: reportRow.generated_at,
         }
       : null,
     sufficiency,
@@ -335,8 +343,8 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     attentionPoints,
     previousReport: previousReportRow
       ? {
-          date: previousReportRow.report_date,
-          created_at: previousReportRow.created_at,
+          date: previousReportRow.date,
+          generated_at: previousReportRow.generated_at,
         }
       : null,
   }
