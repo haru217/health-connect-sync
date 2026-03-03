@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary, fetchScores } from '../api/healthApi'
 import type {
@@ -267,7 +267,17 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
                     <span className="insight-heading">注目のポイント</span>
                   </div>
                   <p className="insight-text-body">
-                    {content.attentionPoints.map((p) => p.message).join(' ')}
+                    {(() => {
+                      const text = content.summary.attentionSummary
+                        ?? content.attentionPoints.map((p) => p.message).join(' ')
+                      const sentences = text.split('。').filter(Boolean)
+                      return sentences.map((sentence, i) => (
+                        <React.Fragment key={i}>
+                          {sentence}。
+                          {i < sentences.length - 1 && <br />}
+                        </React.Fragment>
+                      ))
+                    })()}
                   </p>
                 </div>
               </div>

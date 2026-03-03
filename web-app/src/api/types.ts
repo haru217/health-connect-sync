@@ -314,6 +314,7 @@ export interface HomeSummaryResponse {
   evidences?: HomeEvidence[]
   statusItems?: HomeStatusItem[]
   attentionPoints?: AttentionPoint[]
+  attentionSummary?: string
   previousReport?: PreviousReportLink | null
 }
 

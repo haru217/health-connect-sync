@@ -53,6 +53,26 @@ export function formatRoundedWithUnit(value: number | null, unit: string): strin
   return `${Math.round(value).toLocaleString('ja-JP')}${unit}`
 }
 
+function buildAttentionSummary(points: HomeAttentionPointPayload[]): string {
+  const positive = points.filter(p => p.severity === 'positive')
+  const nonPositive = points.filter(p => p.severity !== 'positive')
+
+  const parts: string[] = []
+
+  if (positive.length >= 2) {
+    const labels = positive.map(p => p.dataSource === 'sleep' ? '睡眠' : p.dataSource === 'steps' ? '歩数' : p.dataSource).join('・')
+    parts.push(`${labels}は目標達成できています`)
+  } else if (positive.length === 1) {
+    parts.push(positive[0].message)
+  }
+
+  for (const p of nonPositive) {
+    parts.push(p.message)
+  }
+
+  return parts.join('。')
+}
+
 export async function buildHomeSummary(db: D1Database, date: string): Promise<Record<string, unknown>> {
   const [
     dayRow,
@@ -293,6 +313,8 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     })
   }
 
+  const attentionSummary = buildAttentionSummary(attentionPoints)
+
   const severityWeight: Record<HomeAttentionSeverity, number> = {
     critical: 4,
     warning: 3,
@@ -344,6 +366,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     evidences,
     statusItems,
     attentionPoints,
+    attentionSummary,
     previousReport: previousReportRow
       ? {
           date: previousReportRow.date,
