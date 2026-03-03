@@ -131,6 +131,7 @@ function computeDiff(scores: ScoreData): number | null {
   )
   if (baselineValues.length === 0) return null
   const avg = Math.round(baselineValues.reduce((a, b) => a + b, 0) / baselineValues.length)
+  if (!scores.overall) return null
   return scores.overall.score - avg
 }
 
