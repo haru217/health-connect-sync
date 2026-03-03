@@ -1,6 +1,6 @@
 ﻿import { CURSOR_REPAIR_SAFETY_MS, HEALTH_CONNECT_REQUIRED_PERMISSIONS, RECORD_PERMISSION_MAP } from '../constants'
 import type { Env, ExecutionContext, SyncRecordInput, SyncRequestInput } from '../types'
-import { clampCursorMillisForRepair, execute, isSmokeDeviceId, jsonResponse, normalizeStringArray, nowIso, parseBooleanFlag, parseIsoToMillis, queryFirst, readJsonBody, toIsoDate } from '../utils'
+import { clampCursorMillisForRepair, execute, isSmokeDeviceId, jsonResponse, normalizeStringArray, nowIso, parseBooleanFlag, parseIsoToMillis, queryFirst, readJsonBody, shiftIsoDateByDays, toIsoDate } from '../utils'
 import { computeRecordKey, stableStringify } from './sync-parsers'
 import { generateDailyReportIfNeeded } from './report'
 import { rebuildAggregatesFromHealthRecords } from './sync-aggregate'
@@ -187,11 +187,11 @@ export async function handleSync(request: Request, env: Env, ctx: ExecutionConte
     }
   }
 
-  const today = toIsoDate(new Date())
+  const yesterday = shiftIsoDateByDays(toIsoDate(new Date()), -1)
   const llmApiKey = (env.LLM_API_KEY ?? '').trim()
   if (llmApiKey && ctx) {
     ctx.waitUntil(
-      generateDailyReportIfNeeded(env, today).catch((err: unknown) =>
+      generateDailyReportIfNeeded(env, yesterday).catch((err: unknown) =>
         console.error('Auto report generation failed:', err)
       ),
     )
