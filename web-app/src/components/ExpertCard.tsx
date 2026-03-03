@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { useRef, useState, useEffect } from 'react'
 
 export type ExpertTag = 'doctor' | 'nutritionist' | 'trainer'
 
@@ -67,6 +68,22 @@ export function getExpertByTag(tag: ExpertTag): ExpertConfigItem {
   return found
 }
 
+const COLLAPSED_LINES = 3
+
+function SentenceText({ content, collapsed }: { content: string; collapsed: boolean }) {
+  const sentences = content.split(/(?<=。)/).filter(Boolean)
+  return (
+    <p className={`expert-body ${collapsed ? 'expert-body--collapsed' : ''}`}>
+      {sentences.map((sentence, i, arr) => (
+        <span key={i}>
+          {sentence}
+          {i < arr.length - 1 ? <br /> : null}
+        </span>
+      ))}
+    </p>
+  )
+}
+
 export default function ExpertCard({
   name,
   role,
@@ -78,6 +95,18 @@ export default function ExpertCard({
   content,
   hasDecoration,
 }: ExpertCardProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const p = el.querySelector('.expert-body')
+    if (!p) return
+    setOverflows(p.scrollHeight > p.clientHeight + 2)
+  }, [content])
+
   return (
     <div className="expert-card" style={{ borderLeftColor: borderColor }}>
       {hasDecoration ? <div className="expert-card-decor"></div> : null}
@@ -91,16 +120,18 @@ export default function ExpertCard({
           </div>
           <span className="expert-name-badge" style={{ color: borderColor }}>{name}</span>
         </div>
-        <div className="expert-text">
+        <div className="expert-text" ref={bodyRef}>
           <span className="expert-role" style={{ color: borderColor }}>{role}</span>
-          <p className="expert-body">
-            {content.split(/(?<=。)/).filter(Boolean).map((sentence, i, arr) => (
-              <span key={i}>
-                {sentence}
-                {i < arr.length - 1 ? <br /> : null}
-              </span>
-            ))}
-          </p>
+          <SentenceText content={content} collapsed={!expanded} />
+          {(overflows || expanded) ? (
+            <button
+              className="expert-expand-btn"
+              style={{ color: borderColor }}
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? '閉じる' : '…続きを読む'}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

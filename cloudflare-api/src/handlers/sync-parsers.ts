@@ -119,15 +119,15 @@ export function dayInOffset(isoValue: string | null | undefined, offsetSeconds: 
 }
 
 export function sleepBucketDay(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): string | null {
+  const startOffset = parseZoneOffsetSeconds(payload.startZoneOffset)
+  if (startOffset != null) {
+    return dayInOffset(startIso, startOffset)
+  }
   const endOffset = parseZoneOffsetSeconds(payload.endZoneOffset)
   if (endOffset != null) {
     return dayInOffset(endIso, endOffset)
   }
-  const startOffset = parseZoneOffsetSeconds(payload.startZoneOffset)
-  if (startOffset != null) {
-    return dayInOffset(endIso, startOffset)
-  }
-  return localDayFromIso(endIso) ?? localDayFromIso(startIso)
+  return localDayFromIso(startIso) ?? localDayFromIso(endIso)
 }
 
 export function toStageInt(value: unknown): number | null {

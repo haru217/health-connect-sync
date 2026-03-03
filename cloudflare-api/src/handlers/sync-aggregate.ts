@@ -1,7 +1,7 @@
 ﻿import { DETAILED_RETENTION_DAYS, LAST_AGGREGATED_AT_MS_KEY, MILLIS_PER_DAY, PRUNABLE_RECORD_TYPES } from '../constants'
 import type { D1Database, HealthRecordRow } from '../types'
 import { execute, parseIsoToMillis, parseJsonObject, queryAll, queryFirst } from '../utils'
-import { addBySource, collapseDaySourceMax, dayInOffset, extractBloodPressure, extractBmrKcal, extractDistanceKm, extractEnergyKcal, extractSleepMinutes, findNumber, isoDateFromMillis, localDayFromIso, normalizeBmrKcal, setLatestValue, sleepBucketDay, toPercent } from './sync-parsers'
+import { addBySource, collapseDaySourceMax, dayInOffset, extractBloodPressure, extractBmrKcal, extractDistanceKm, extractEnergyKcal, findNumber, isoDateFromMillis, localDayFromIso, mergedIntervalMinutes, normalizeBmrKcal, setLatestValue, sleepBucketDay, toPercent } from './sync-parsers'
 
 export async function pruneDetailedHealthRecords(db: D1Database): Promise<void> {
   const cutoffIso = new Date(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY).toISOString()
@@ -42,7 +42,7 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
   const distanceByDaySource = new Map<string, number>()
   const activeByDaySource = new Map<string, number>()
   const totalByDaySource = new Map<string, number>()
-  const sleepMinutesByDay = new Map<string, number>()
+  const sleepIntervalsByDay = new Map<string, Array<[number, number]>>()
 
   const weightByDay = new Map<string, { ts: number; value: number }>()
   const bodyFatByDay = new Map<string, { ts: number; value: number }>()
@@ -134,9 +134,12 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
         recordDay = day
       } else if (row.type === 'SleepSessionRecord') {
         const day = sleepBucketDay(row.start_time, row.end_time, payload)
-        const minutes = extractSleepMinutes(row.start_time, row.end_time, payload)
-        if (day && minutes > 0) {
-          sleepMinutesByDay.set(day, (sleepMinutesByDay.get(day) ?? 0) + minutes)
+        const startMs = parseIsoToMillis(row.start_time)
+        const endMs = parseIsoToMillis(row.end_time)
+        if (day && startMs != null && endMs != null && endMs > startMs) {
+          const intervals = sleepIntervalsByDay.get(day) ?? []
+          intervals.push([startMs, endMs])
+          sleepIntervalsByDay.set(day, intervals)
         }
         recordDay = day
       } else if (row.type === 'WeightRecord') {
@@ -228,7 +231,7 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
     distanceByDay,
     activeByDay,
     totalByDay,
-    sleepMinutesByDay,
+    sleepIntervalsByDay,
     weightByDay,
     bodyFatByDay,
     restingByDay,
@@ -266,7 +269,8 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
       const floor = active + bmr
       total = total == null ? floor : Math.max(total, floor)
     }
-    const sleepMinutes = sleepMinutesByDay.get(day) ?? null
+    const sleepIntervals = sleepIntervalsByDay.get(day)
+    const sleepMinutes = sleepIntervals ? mergedIntervalMinutes(sleepIntervals) : null
     const bp = bloodPressureByDay.get(day) ?? null
     await execute(
       db,
