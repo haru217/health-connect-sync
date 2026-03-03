@@ -11,6 +11,9 @@ import {
   YAxis,
 } from 'recharts'
 import { fetchSummary } from '../api/healthApi'
+import ExpertCard, { EXPERT_CONFIG } from '../components/ExpertCard'
+import { useDateContext } from '../context/DateContext'
+import { useTabComment } from '../hooks/useTabComment'
 import type { ExerciseSessionItem, RequestState, SummaryResponse } from '../api/types'
 import advisorTrainer from '../assets/advisor_trainer.png'
 import './ExerciseScreen.css'
@@ -165,11 +168,14 @@ function formatTime(value: string | null | undefined): string {
 }
 
 export default function ExerciseScreen() {
+  const { activeDate } = useDateContext()
   const [period, setPeriod] = useState<PeriodType>('today')
   const [state, setState] = useState<RequestState<SummaryResponse>>({ status: 'loading' })
   const [activeStepsIndex, setActiveStepsIndex] = useState<number | null>(null)
   const [activeCaloriesIndex, setActiveCaloriesIndex] = useState<number | null>(null)
   const [activeDistanceIndex, setActiveDistanceIndex] = useState<number | null>(null)
+  const { comment, loading } = useTabComment(activeDate, 'activity')
+  const trainerConfig = EXPERT_CONFIG[2]
 
   useEffect(() => {
     let alive = true
@@ -512,6 +518,26 @@ export default function ExerciseScreen() {
           </section>
         </>
       )}
+
+      {!loading && comment ? (
+        <section
+          className="expert-section"
+          style={{
+            borderTop: '1px solid var(--border-color)',
+            marginTop: 16,
+            paddingTop: 16,
+          }}
+        >
+          <div className="expert-section-header">
+            <div className="expert-section-title">
+              <span>AIアドバイス</span>
+            </div>
+          </div>
+          <div className="expert-cards-list">
+            <ExpertCard {...{ ...trainerConfig, content: comment }} />
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

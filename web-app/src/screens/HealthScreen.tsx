@@ -4,6 +4,7 @@ import {
 } from 'recharts'
 import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
+import ExpertCard, { EXPERT_CONFIG } from '../components/ExpertCard'
 import SegmentSelector from '../components/SegmentSelector'
 import type { Segment } from '../components/SegmentSelector'
 import {
@@ -12,6 +13,7 @@ import {
 import type {
   BodyDataResponse, SleepDataResponse, VitalsDataResponse
 } from '../api/types'
+import { useTabComment } from '../hooks/useTabComment'
 import './HealthScreen.css'
 
 type InnerTab = 'composition' | 'circulation' | 'sleep'
@@ -471,6 +473,8 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
   const { activeDate } = useDateContext()
   const [tab, setTab] = useState<InnerTab>(initialTab)
   const [segment, setSegment] = useState<Segment>('week')
+  const { comment, loading } = useTabComment(activeDate, 'condition')
+  const doctorConfig = EXPERT_CONFIG[0]
 
   return (
     <div className="health-container">
@@ -480,6 +484,25 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
       {tab === 'composition' && <CompositionTab date={activeDate} segment={segment} />}
       {tab === 'circulation' && <CirculationTab date={activeDate} segment={segment} />}
       {tab === 'sleep' && <SleepTab date={activeDate} segment={segment} />}
+      {!loading && comment ? (
+        <section
+          className="expert-section"
+          style={{
+            borderTop: '1px solid var(--border-color)',
+            marginTop: 16,
+            paddingTop: 16,
+          }}
+        >
+          <div className="expert-section-header">
+            <div className="expert-section-title">
+              <span>AIアドバイス</span>
+            </div>
+          </div>
+          <div className="expert-cards-list">
+            <ExpertCard {...{ ...doctorConfig, content: comment }} />
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

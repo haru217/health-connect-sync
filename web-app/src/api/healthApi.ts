@@ -1,6 +1,7 @@
 ﻿import { apiFetch } from './client'
 import type {
   ConnectionStatusResponse,
+  DailyTabReportResponse,
   HomeSummaryResponse,
   NutrientTargetsResponse,
   NutritionDayResponse,
@@ -16,6 +17,7 @@ import type {
   BodyDataResponse,
   SleepDataResponse,
   VitalsDataResponse,
+  ScoreData,
 } from './types'
 
 export async function fetchConnectionStatus(): Promise<ConnectionStatusResponse> {
@@ -69,8 +71,26 @@ export async function fetchReports(reportType: ReportType): Promise<ReportsListR
   return apiFetch<ReportsListResponse>(`/api/reports?${query}`)
 }
 
-export async function fetchReport(reportId: number): Promise<ReportDetailResponse> {
-  return apiFetch<ReportDetailResponse>(`/api/reports/${reportId}`)
+function isApiNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('API 404:')
+}
+
+export async function fetchReport(reportId: number): Promise<ReportDetailResponse>
+export async function fetchReport(date: string): Promise<DailyTabReportResponse | null>
+export async function fetchReport(value: number | string): Promise<ReportDetailResponse | DailyTabReportResponse | null> {
+  if (typeof value === 'number') {
+    return apiFetch<ReportDetailResponse>(`/api/reports/${value}`)
+  }
+
+  const query = new URLSearchParams({ date: value }).toString()
+  try {
+    return await apiFetch<DailyTabReportResponse>(`/api/report?${query}`)
+  } catch (error) {
+    if (isApiNotFoundError(error)) {
+      return null
+    }
+    throw error
+  }
 }
 
 export async function saveReport(payload: SaveReportRequest): Promise<ReportDetailResponse> {
@@ -103,4 +123,9 @@ export async function fetchSleepData(date: string, period: string): Promise<Slee
 export async function fetchVitalsData(date: string, period: string): Promise<VitalsDataResponse> {
   const query = new URLSearchParams({ date, period }).toString()
   return apiFetch<VitalsDataResponse>(`/api/vitals-data?${query}`)
+}
+
+export async function fetchScores(date: string): Promise<ScoreData> {
+  const query = new URLSearchParams({ date }).toString()
+  return apiFetch<ScoreData>(`/api/scores?${query}`)
 }

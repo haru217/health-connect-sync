@@ -215,6 +215,21 @@ export interface ReportDetailResponse {
   created_at: string
 }
 
+export type ReportTabKey = 'condition' | 'activity' | 'meal'
+
+export interface DailyTabReportResponse {
+  date: string
+  generated_at: string
+  home?: {
+    headline?: string | null
+    yu?: string | null
+    saki?: string | null
+    mai?: string | null
+  }
+  tabs?: Partial<Record<ReportTabKey, string | null>>
+  cached?: boolean
+}
+
 export interface PromptResponse {
   type: ReportType
   prompt: string
@@ -408,5 +423,36 @@ export interface VitalsDataResponse {
     avg_resting_hr: number | null
     avg_heart_hr: number | null
     high_bp_points: number
+  }
+}
+
+// ── /api/scores ──
+export interface ScoreDomain {
+  score: number
+  color: 'green' | 'yellow' | 'red'
+  summary?: string
+  values?: {
+    label?: string
+    [key: string]: unknown
+  } | null
+}
+
+export interface ScoreData {
+  date: string
+  overall: {
+    score: number
+    color: 'green' | 'yellow' | 'red'
+  }
+  domains: {
+    sleep: ScoreDomain | null
+    activity: ScoreDomain | null
+    nutrition: ScoreDomain | null
+    condition: ScoreDomain | null
+  }
+  baseline?: {
+    sleep?: number | null
+    activity?: number | null
+    nutrition?: number | null
+    condition?: number | null
   }
 }
