@@ -88,8 +88,8 @@ function monthTickDates(dates: string[], anchorDate: string): string[] {
 function InnerTabBar({ tab, onTabChange }: { tab: InnerTab, onTabChange: (t: InnerTab) => void }) {
   return (
     <div className="inner-tab-bar">
-      <button type="button" className={`inner-tab ${tab === 'composition' ? 'active' : ''}`} onClick={() => onTabChange('composition')}>体組成</button>
-      <button type="button" className={`inner-tab ${tab === 'circulation' ? 'active' : ''}`} onClick={() => onTabChange('circulation')}>バイタル</button>
+      <button type="button" className={`inner-tab ${tab === 'composition' ? 'active' : ''}`} onClick={() => onTabChange('composition')}>体重</button>
+      <button type="button" className={`inner-tab ${tab === 'circulation' ? 'active' : ''}`} onClick={() => onTabChange('circulation')}>血圧・心拍</button>
       <button type="button" className={`inner-tab ${tab === 'sleep' ? 'active' : ''}`} onClick={() => onTabChange('sleep')}>睡眠</button>
     </div>
   )
@@ -123,6 +123,12 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   const displayBmr = useAverageCard
     ? (avgBmr.length > 0 ? avgBmr.reduce((sum, value) => sum + value, 0) / avgBmr.length : current.bmr_kcal)
     : current.bmr_kcal
+  const hasWeightMetric = displayWeight != null
+  const hasBodyFatMetric = displayBodyFat != null
+  const hasBmiMetric = displayBmi != null
+  const hasGoalWeightMetric = data.goalWeight != null
+  const hasBmrMetric = displayBmr != null
+  const hasCurrentCard = hasWeightMetric || hasBodyFatMetric || hasBmiMetric || hasGoalWeightMetric || hasBmrMetric
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   // 週次変化の計算 (for week segment)
@@ -132,37 +138,49 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   if (isWeek && data.series.length > 0) {
     const first = data.series[0]
     const last = data.series[data.series.length - 1]
-    if (last.weight_kg && first.weight_kg) diffWeight = last.weight_kg - first.weight_kg
-    if (last.body_fat_pct && first.body_fat_pct) diffFat = last.body_fat_pct - first.body_fat_pct
+    if (last.weight_kg != null && first.weight_kg != null) diffWeight = last.weight_kg - first.weight_kg
+    if (last.body_fat_pct != null && first.body_fat_pct != null) diffFat = last.body_fat_pct - first.body_fat_pct
   }
 
   return (
     <div className="tab-content">
-      <div className="health-current-card">
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均体重' : '体重'}</span>
-          <span className="health-metric-value">{displayWeight?.toFixed(1) ?? '-'} kg</span>
+      {hasCurrentCard ? (
+        <div className="health-current-card">
+          {hasWeightMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均体重' : '体重'}</span>
+              <span className="health-metric-value">{displayWeight.toFixed(1)} kg</span>
+            </div>
+          ) : null}
+          {hasBodyFatMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均体脂肪' : '体脂肪'}</span>
+              <span className="health-metric-value">{displayBodyFat.toFixed(1)} %</span>
+            </div>
+          ) : null}
+          {hasBmiMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均BMI' : 'BMI'}</span>
+              <span className="health-metric-value">
+                <span className={`status-badge ${displayBmi < 25 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayBmi < 25 ? '標準' : '軽度肥満'}</span>
+                {displayBmi.toFixed(1)}
+              </span>
+            </div>
+          ) : null}
+          {hasGoalWeightMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">目標体重</span>
+              <span className="health-metric-value">{data.goalWeight.toFixed(1)} kg</span>
+            </div>
+          ) : null}
+          {hasBmrMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均基礎代謝' : '基礎代謝'}</span>
+              <span className="health-metric-value">{Math.round(displayBmr)} kcal/日</span>
+            </div>
+          ) : null}
         </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均体脂肪' : '体脂肪'}</span>
-          <span className="health-metric-value">{displayBodyFat?.toFixed(1) ?? '-'} %</span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均BMI' : 'BMI'}</span>
-          <span className="health-metric-value">
-            {displayBmi != null && <span className={`status-badge ${displayBmi < 25 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayBmi < 25 ? '標準' : '軽度肥満'}</span>}
-            {displayBmi?.toFixed(1) ?? '-'}
-          </span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">目標体重</span>
-          <span className="health-metric-value">{data.goalWeight?.toFixed(1) ?? '-'} kg</span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均基礎代謝' : '基礎代謝'}</span>
-          <span className="health-metric-value">{displayBmr != null ? Math.round(displayBmr) : '-'} kcal/日</span>
-        </div>
-      </div>
+      ) : null}
 
       <div className="health-chart-container">
         <div className="health-chart-title">体重と体脂肪の推移</div>
@@ -239,44 +257,59 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
   const displayDiastolic = useAverageCard ? (data.periodSummary.avg_diastolic ?? current.diastolic) : current.diastolic
   const displayRestingHr = useAverageCard ? (data.periodSummary.avg_resting_hr ?? current.resting_hr) : current.resting_hr
   const displayHeartHr = useAverageCard ? (data.periodSummary.avg_heart_hr ?? current.heart_hr) : current.heart_hr
+  const hasBpMetric = displaySystolic != null && displayDiastolic != null
+  const hasRestingHrMetric = displayRestingHr != null
+  const hasHeartHrMetric = displayHeartHr != null
+  const hasHighBpMetric = data.periodSummary.high_bp_points != null
+  const hasCurrentCard = hasBpMetric || hasRestingHrMetric || hasHeartHrMetric || hasHighBpMetric
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   let bpStatus = '正常'
   let bpClass = 'good'
-  if (displaySystolic && displayDiastolic) {
-    if (displaySystolic >= 140 || displayDiastolic >= 90) { bpStatus = '要確認'; bpClass = 'danger' }
-    else if (displaySystolic >= 130 || displayDiastolic >= 85) { bpStatus = '注意'; bpClass = 'warning' }
+  if (displaySystolic != null && displayDiastolic != null) {
+    if (displaySystolic >= 135 || displayDiastolic >= 85) { bpStatus = '高血圧'; bpClass = 'danger' }
+    else if (displaySystolic >= 125 || displayDiastolic >= 75) { bpStatus = '正常高値'; bpClass = 'warning' }
   }
 
   return (
     <div className="tab-content">
-      <div className="health-current-card">
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均血圧' : '血圧'}</span>
-          <span className="health-metric-value">
-            {displaySystolic != null && <span className={`status-badge ${bpClass}`} style={{ marginRight: 8 }}>{bpStatus}</span>}
-            {formatRounded(displaySystolic)}/{formatRounded(displayDiastolic)} mmHg
-          </span>
+      {hasCurrentCard ? (
+        <div className="health-current-card">
+          {hasBpMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均血圧' : '血圧'}</span>
+              <span className="health-metric-value">
+                <span className={`status-badge ${bpClass}`} style={{ marginRight: 8 }}>{bpStatus}</span>
+                {formatRounded(displaySystolic)}/{formatRounded(displayDiastolic)} mmHg
+              </span>
+            </div>
+          ) : null}
+          {hasRestingHrMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均安静時心拍' : '安静時心拍'}</span>
+              <span className="health-metric-value">
+                <span className={`status-badge ${displayRestingHr < 80 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayRestingHr < 80 ? '良好' : '高め'}</span>
+                {formatRounded(displayRestingHr)} bpm
+              </span>
+            </div>
+          ) : null}
+          {hasHeartHrMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均通常心拍' : '通常心拍'}</span>
+              <span className="health-metric-value">
+                <span className={`status-badge ${displayHeartHr < 100 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayHeartHr < 100 ? '標準' : '高め'}</span>
+                {formatRounded(displayHeartHr)} bpm
+              </span>
+            </div>
+          ) : null}
+          {hasHighBpMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{segment === 'week' ? '今週の高血圧判定日' : '期間内の高血圧判定日'}</span>
+              <span className="health-metric-value">{data.periodSummary.high_bp_points} 日</span>
+            </div>
+          ) : null}
         </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均安静時心拍' : '安静時心拍'}</span>
-          <span className="health-metric-value">
-            {displayRestingHr != null && <span className={`status-badge ${displayRestingHr < 80 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayRestingHr < 80 ? '良好' : '高め'}</span>}
-            {formatRounded(displayRestingHr)} bpm
-          </span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均通常心拍' : '通常心拍'}</span>
-          <span className="health-metric-value">
-            {displayHeartHr != null && <span className={`status-badge ${displayHeartHr < 100 ? 'good' : 'warning'}`} style={{ marginRight: 8 }}>{displayHeartHr < 100 ? '標準' : '高め'}</span>}
-            {formatRounded(displayHeartHr)} bpm
-          </span>
-        </div>
-        <div className="health-metric-row">
-          <span className="health-metric-label">{segment === 'week' ? '今週の高血圧判定日' : '期間内の高血圧判定日'}</span>
-          <span className="health-metric-value">{data.periodSummary.high_bp_points} 日</span>
-        </div>
-      </div>
+      ) : null}
 
       <div className="health-chart-container">
         <div className="health-chart-title">血圧の推移</div>
@@ -293,7 +326,7 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
               <XAxis dataKey="date" ticks={monthTicks} interval={segment === 'month' ? 0 : undefined} tickFormatter={(v) => formatXLabel(v, segment)} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} />
               <YAxis domain={['dataMin - 10', 'auto']} tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
               <Tooltip labelFormatter={(v) => formatTooltipLabel(v as string, segment)} formatter={(val: number | undefined) => typeof val === 'number' ? val.toFixed(1) : val} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <ReferenceLine y={130} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '130', position: 'right', fontSize: 10 }} />
+              <ReferenceLine y={135} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '135', position: 'right', fontSize: 10 }} />
               <ReferenceLine y={85} stroke="#3b82f6" strokeDasharray="3 3" label={{ value: '85', position: 'right', fontSize: 10 }} />
               <Line type="monotone" dataKey="systolic" name="収縮期" stroke="#EF9A9A" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
               <Line type="monotone" dataKey="diastolic" name="拡張期" stroke="#90CAF9" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
@@ -350,10 +383,14 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
   const current = data.current
   const stages = data.stages
   const useAverageCard = segment !== 'week'
+  const isWeek = segment === 'week'
   const displaySleepMinutes = useAverageCard ? (data.periodSummary.avg_sleep_min ?? current.sleep_minutes) : current.sleep_minutes
   const displayAvgSpo2 = useAverageCard ? (data.periodSummary.avg_spo2 ?? current.avg_spo2) : current.avg_spo2
   const displayMinSpo2 = useAverageCard ? (data.periodSummary.min_spo2 ?? current.min_spo2) : current.min_spo2
-  const hasSleepTiming = !useAverageCard && (current.bedtime != null || current.wake_time != null)
+  const hasSleepTiming = isWeek && (current.bedtime != null || current.wake_time != null)
+  const hasSleepMinuteMetric = displaySleepMinutes != null
+  const hasSleepSpo2Metric = displayAvgSpo2 != null || displayMinSpo2 != null
+  const hasCurrentCard = hasSleepMinuteMetric || hasSleepTiming || hasSleepSpo2Metric
   const hasSleepStages = stages.deep_min != null || stages.light_min != null || stages.rem_min != null
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
@@ -363,22 +400,70 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
     const m = Math.floor(min % 60)
     return `${h}時間${m}分`
   }
+  const toPercentLabel = (ratio: number | null | undefined) => {
+    if (ratio == null || !Number.isFinite(ratio)) return null
+    const normalized = ratio <= 1 ? ratio * 100 : ratio
+    return `${Math.round(normalized)}%`
+  }
+  const formatStageMetric = (minutes: number, ratio: number | null | undefined) => {
+    const ratioLabel = toPercentLabel(ratio)
+    return `${Math.round(minutes)}分${ratioLabel ? ` (${ratioLabel})` : ''}`
+  }
 
   let sleepStatus = '短め'
   let sleepClass = 'danger'
-  if (displaySleepMinutes) {
+  if (displaySleepMinutes != null) {
     if (displaySleepMinutes >= 420) { sleepStatus = '良好'; sleepClass = 'good' }
     else if (displaySleepMinutes >= 360) { sleepStatus = 'やや短め'; sleepClass = 'warning' }
   }
-  const deepRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.deep_min != null
-    ? Math.round((stages.deep_min / displaySleepMinutes) * 100)
-    : null
-  const lightRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.light_min != null
-    ? Math.round((stages.light_min / displaySleepMinutes) * 100)
-    : null
-  const remRatio = displaySleepMinutes != null && displaySleepMinutes > 0 && stages.rem_min != null
-    ? Math.round((stages.rem_min / displaySleepMinutes) * 100)
-    : null
+  const weekStageTotal = (stages.deep_min ?? 0) + (stages.light_min ?? 0) + (stages.rem_min ?? 0)
+  const stageRows = isWeek
+    ? [
+      {
+        key: 'deep',
+        label: '深い睡眠',
+        minutes: stages.deep_min,
+        ratio: stages.deep_min != null && weekStageTotal > 0 ? stages.deep_min / weekStageTotal : null
+      },
+      {
+        key: 'light',
+        label: '浅い睡眠',
+        minutes: stages.light_min,
+        ratio: stages.light_min != null && weekStageTotal > 0 ? stages.light_min / weekStageTotal : null
+      },
+      {
+        key: 'rem',
+        label: 'レム睡眠',
+        minutes: stages.rem_min,
+        ratio: stages.rem_min != null && weekStageTotal > 0 ? stages.rem_min / weekStageTotal : null
+      }
+    ]
+    : [
+      {
+        key: 'deep',
+        label: '深い睡眠',
+        minutes: data.periodSummary.avg_deep_min ?? null,
+        ratio: data.periodSummary.deep_ratio ?? null
+      },
+      {
+        key: 'light',
+        label: '浅い睡眠',
+        minutes: data.periodSummary.avg_light_min ?? null,
+        ratio: data.periodSummary.light_ratio ?? null
+      },
+      {
+        key: 'rem',
+        label: 'レム睡眠',
+        minutes: data.periodSummary.avg_rem_min ?? null,
+        ratio: data.periodSummary.rem_ratio ?? null
+      }
+    ]
+  const visibleStageRows = stageRows.filter((row) => row.minutes != null)
+  const hasSleepStageCard = visibleStageRows.length > 0
+  const showPeriodSpo2Summary = !isWeek
+  const hasSummaryAvgSpo2 = showPeriodSpo2Summary && data.periodSummary.avg_spo2 != null
+  const hasSummaryMinSpo2 = showPeriodSpo2Summary && data.periodSummary.min_spo2 != null
+  const hasSummaryList = hasSummaryAvgSpo2 || hasSummaryMinSpo2
 
   // Convert minutes to hours for display
   const chartData = data.series.map(d => ({
@@ -391,35 +476,34 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
 
   return (
     <div className="tab-content">
-      <div className="health-current-card">
-        <div className="health-metric-row">
-          <span className="health-metric-label">{useAverageCard ? '平均睡眠' : '睡眠'}</span>
-          <span className="health-metric-value">
-            {displaySleepMinutes != null && <span className={`status-badge ${sleepClass}`} style={{ marginRight: 8 }}>{sleepStatus}</span>}
-            {formatHours(displaySleepMinutes)}
-          </span>
+      {hasCurrentCard ? (
+        <div className="health-current-card">
+          {hasSleepMinuteMetric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">{useAverageCard ? '平均睡眠' : '睡眠'}</span>
+              <span className="health-metric-value">
+                <span className={`status-badge ${sleepClass}`} style={{ marginRight: 8 }}>{sleepStatus}</span>
+                {formatHours(displaySleepMinutes)}
+              </span>
+            </div>
+          ) : null}
+          {hasSleepTiming ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">就寝 / 起床</span>
+              <span className="health-metric-value">{`${current.bedtime ?? '-'} / ${current.wake_time ?? '-'}`}</span>
+            </div>
+          ) : null}
+          {hasSleepSpo2Metric ? (
+            <div className="health-metric-row">
+              <span className="health-metric-label">血中酸素</span>
+              <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
+                {displayAvgSpo2 != null ? <span>平均: {formatRounded(displayAvgSpo2)}%</span> : null}
+                {displayMinSpo2 != null ? <span>最低: {formatRounded(displayMinSpo2)}%</span> : null}
+              </span>
+            </div>
+          ) : null}
         </div>
-        {hasSleepTiming ? (
-          <div className="health-metric-row">
-            <span className="health-metric-label">就寝 / 起床</span>
-            <span className="health-metric-value">{`${current.bedtime ?? '-'} / ${current.wake_time ?? '-'}`}</span>
-          </div>
-        ) : null}
-        {hasSleepStages ? (
-          <div className="health-metric-row">
-            <span className="health-metric-label">ステージ</span>
-            <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
-              深い: {stages.deep_min ?? '-'}分{deepRatio != null ? ` (${deepRatio}%)` : ''}  浅い: {stages.light_min ?? '-'}分{lightRatio != null ? ` (${lightRatio}%)` : ''}  レム睡眠: {stages.rem_min ?? '-'}分{remRatio != null ? ` (${remRatio}%)` : ''}
-            </span>
-          </div>
-        ) : null}
-        <div className="health-metric-row">
-          <span className="health-metric-label">血中酸素</span>
-          <span className="health-metric-value" style={{ fontSize: '13px', fontWeight: 600 }}>
-            平均: {formatRounded(displayAvgSpo2)}%  最低: {formatRounded(displayMinSpo2)}%
-          </span>
-        </div>
-      </div>
+      ) : null}
 
       <div className="health-chart-container">
         <div className="health-chart-title">睡眠時間の推移</div>
@@ -451,21 +535,34 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
         </div>
       </div>
 
-      <div className="health-list-container">
-        <div className="health-list-item">
-          <span className="health-list-item-label">平均睡眠</span>
-          <span className="health-list-item-value">{formatHours(data.periodSummary.avg_sleep_min)}</span>
+      {hasSleepStageCard ? (
+        <div className="health-current-card health-stage-card">
+          <div className="health-stage-card-title">{isWeek ? '睡眠ステージ' : '平均睡眠ステージ'}</div>
+          {visibleStageRows.map((row) => (
+            <div className="health-metric-row" key={row.key}>
+              <span className="health-metric-label">{row.label}</span>
+              <span className="health-metric-value">{formatStageMetric(row.minutes as number, row.ratio)}</span>
+            </div>
+          ))}
         </div>
-        <div className="health-list-item">
-          <span className="health-list-item-label">目標達成日</span>
-          <span className="health-list-item-value">
-            {data.periodSummary.goal_days}
-            {data.periodSummary.measured_days != null ? ` / ${data.periodSummary.measured_days}` : ''}
-            {' '}日
-            {data.periodSummary.goal_rate != null ? ` (${Math.round(data.periodSummary.goal_rate * 100)}%)` : ''}
-          </span>
+      ) : null}
+
+      {hasSummaryList ? (
+        <div className="health-list-container">
+          {hasSummaryAvgSpo2 ? (
+            <div className="health-list-item">
+              <span className="health-list-item-label">平均血中酸素</span>
+              <span className="health-list-item-value">{formatRounded(data.periodSummary.avg_spo2)}%</span>
+            </div>
+          ) : null}
+          {hasSummaryMinSpo2 ? (
+            <div className="health-list-item">
+              <span className="health-list-item-label">最低血中酸素</span>
+              <span className="health-list-item-value">{formatRounded(data.periodSummary.min_spo2)}%</span>
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

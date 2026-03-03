@@ -196,9 +196,9 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
 
   let bpTone: HomeStatusTone = 'normal'
   if (hasBp && bpSystolic != null && bpDiastolic != null) {
-    if (bpSystolic >= 140 || bpDiastolic >= 90) {
+    if (bpSystolic >= 135 || bpDiastolic >= 85) {
       bpTone = 'critical'
-    } else if (bpSystolic >= 130 || bpDiastolic >= 85) {
+    } else if (bpSystolic >= 125 || bpDiastolic >= 75) {
       bpTone = 'warning'
     }
   }

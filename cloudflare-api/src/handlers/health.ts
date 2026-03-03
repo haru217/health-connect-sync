@@ -239,6 +239,8 @@ interface SleepRecordDailyStatsAccumulator extends SleepRecordDailyStats {
   intervals: Array<[number, number]>
 }
 
+const MIN_SLEEP_TIMING_DURATION_MS = 30 * 60 * 1000
+
 export async function collectSleepRecordStatsByDay(
   db: D1Database,
   startDate: string,
@@ -284,19 +286,23 @@ export async function collectSleepRecordStatsByDay(
     const fallbackSleepMinutes = extractSleepMinutes(row.start_time, row.end_time, payload)
     const totalSleepMinutes = breakdown.total_minutes > 0 ? breakdown.total_minutes : fallbackSleepMinutes
 
-    const bed = extractIsoClockHHmm(row.start_time)
-    const wake = extractIsoClockHHmm(row.end_time)
-    const bedMin = parseClockMinutes(bed)
-    const wakeMin = parseClockMinutes(wake)
-    if (bedMin != null) {
-      bedtimeMinutes.push(bedMin)
-    }
-    if (wakeMin != null) {
-      wakeMinutes.push(wakeMin)
-    }
-
     const startMs = parseIsoToMillis(row.start_time)
     const endMs = parseIsoToMillis(row.end_time) ?? startMs ?? 0
+    const isTimingCandidate = startMs != null && endMs - startMs >= MIN_SLEEP_TIMING_DURATION_MS
+
+    const bed = extractIsoClockHHmm(row.start_time)
+    const wake = extractIsoClockHHmm(row.end_time)
+    if (isTimingCandidate) {
+      const bedMin = parseClockMinutes(bed)
+      const wakeMin = parseClockMinutes(wake)
+      if (bedMin != null) {
+        bedtimeMinutes.push(bedMin)
+      }
+      if (wakeMin != null) {
+        wakeMinutes.push(wakeMin)
+      }
+    }
+
     const sleepInterval =
       startMs != null && endMs > startMs
         ? ([startMs, endMs] as [number, number])
@@ -308,8 +314,8 @@ export async function collectSleepRecordStatsByDay(
         deep_min: breakdown.deep_min,
         light_min: breakdown.light_min,
         rem_min: breakdown.rem_min,
-        bedtime: bed,
-        wake_time: wake,
+        bedtime: isTimingCandidate ? bed : null,
+        wake_time: isTimingCandidate ? wake : null,
         latest_end_ms: endMs,
         intervals: sleepInterval == null ? [] : [sleepInterval],
       })
@@ -322,8 +328,10 @@ export async function collectSleepRecordStatsByDay(
     existing.rem_min += breakdown.rem_min
     if (endMs >= existing.latest_end_ms) {
       existing.latest_end_ms = endMs
-      existing.bedtime = bed
-      existing.wake_time = wake
+      if (isTimingCandidate) {
+        existing.bedtime = bed
+        existing.wake_time = wake
+      }
     }
     if (sleepInterval != null) {
       existing.intervals.push(sleepInterval)
@@ -655,7 +663,7 @@ export async function getVitalsData(db: D1Database, baseDate: string, period: Me
         if (item.systolic == null || item.diastolic == null) {
           return false
         }
-        return item.systolic >= 130 || item.diastolic >= 85
+        return item.systolic >= 135 || item.diastolic >= 85
       }).length,
     },
   }
