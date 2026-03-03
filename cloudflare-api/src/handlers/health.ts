@@ -2,7 +2,7 @@
 import type { D1Database, DailyMetricRow, Env, MetricPeriod, SexType } from '../types'
 import { average, isValidDate, jsonResponse, normalizeStringArray, parseJsonObject, parseIsoToDate, parseIsoToMillis, parseMetricPeriod, queryAll, queryFirst, shiftIsoDateByDays, shiftYearMonth, toYearMonth } from '../utils'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
-import { averageClockMinutes, dayInOffset, extractIsoClockHHmm, extractSleepMinutes, extractSleepStageBreakdown, formatClockMinutes, localDayFromIso, normalizeBmrKcal, parseClockMinutes, sleepBucketDay, toPercent } from './sync-parsers'
+import { averageClockMinutes, dayInOffset, extractIsoClockHHmm, extractSleepMinutes, extractSleepStageBreakdown, formatClockMinutes, localDayFromIso, mergedIntervalMinutes, normalizeBmrKcal, parseClockMinutes, sleepBucketDay, toPercent } from './sync-parsers'
 import { getUserProfile } from './profile'
 
 
@@ -235,6 +235,10 @@ interface SleepBucketStats extends SleepRecordDailyStats {
   day_count: number
 }
 
+interface SleepRecordDailyStatsAccumulator extends SleepRecordDailyStats {
+  intervals: Array<[number, number]>
+}
+
 export async function collectSleepRecordStatsByDay(
   db: D1Database,
   startDate: string,
@@ -265,7 +269,7 @@ export async function collectSleepRecordStatsByDay(
     [queryStart, queryEnd, queryStart, queryEnd],
   )
 
-  const byDay = new Map<string, SleepRecordDailyStats>()
+  const byDay = new Map<string, SleepRecordDailyStatsAccumulator>()
   const bedtimeMinutes: number[] = []
   const wakeMinutes: number[] = []
 
@@ -291,7 +295,12 @@ export async function collectSleepRecordStatsByDay(
       wakeMinutes.push(wakeMin)
     }
 
-    const endMs = parseIsoToMillis(row.end_time) ?? parseIsoToMillis(row.start_time) ?? 0
+    const startMs = parseIsoToMillis(row.start_time)
+    const endMs = parseIsoToMillis(row.end_time) ?? startMs ?? 0
+    const sleepInterval =
+      startMs != null && endMs > startMs
+        ? ([startMs, endMs] as [number, number])
+        : null
     const existing = byDay.get(day)
     if (!existing) {
       byDay.set(day, {
@@ -302,6 +311,7 @@ export async function collectSleepRecordStatsByDay(
         bedtime: bed,
         wake_time: wake,
         latest_end_ms: endMs,
+        intervals: sleepInterval == null ? [] : [sleepInterval],
       })
       continue
     }
@@ -315,12 +325,28 @@ export async function collectSleepRecordStatsByDay(
       existing.bedtime = bed
       existing.wake_time = wake
     }
+    if (sleepInterval != null) {
+      existing.intervals.push(sleepInterval)
+    }
+  }
+
+  const finalizedByDay = new Map<string, SleepRecordDailyStats>()
+  for (const [day, stats] of byDay.entries()) {
+    finalizedByDay.set(day, {
+      sleep_minutes: stats.intervals.length > 0 ? mergedIntervalMinutes(stats.intervals) : stats.sleep_minutes,
+      deep_min: stats.deep_min,
+      light_min: stats.light_min,
+      rem_min: stats.rem_min,
+      bedtime: stats.bedtime,
+      wake_time: stats.wake_time,
+      latest_end_ms: stats.latest_end_ms,
+    })
   }
 
   const avgBedtimeMin = averageClockMinutes(bedtimeMinutes)
   const avgWakeMin = averageClockMinutes(wakeMinutes)
   return {
-    by_day: byDay,
+    by_day: finalizedByDay,
     avg_bedtime: avgBedtimeMin == null ? null : formatClockMinutes(avgBedtimeMin),
     avg_wake_time: avgWakeMin == null ? null : formatClockMinutes(avgWakeMin),
   }
