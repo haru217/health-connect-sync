@@ -17,7 +17,7 @@ import type {
 import { useTabComment } from '../hooks/useTabComment'
 import './HealthScreen.css'
 
-type InnerTab = 'composition' | 'circulation' | 'sleep'
+type InnerTab = 'composition' | 'circulation' | 'sleep' | 'vital'
 
 function formatXLabel(dateStr: string, segment: Segment): string {
   const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -215,7 +215,7 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
 
 // CirculationTab Component
 function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
-    const [data, setData] = useState<VitalsDataResponse | null>(null)
+  const [data, setData] = useState<VitalsDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -329,7 +329,7 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
 
 // SleepTab Component
 function SleepTab({ date, segment }: { date: string, segment: Segment }) {
-    const [data, setData] = useState<SleepDataResponse | null>(null)
+  const [data, setData] = useState<SleepDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

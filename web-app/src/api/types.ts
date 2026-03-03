@@ -1,4 +1,4 @@
-ï»¿export interface InsightItem {
+export interface InsightItem {
   level: string
   message: string
 }
@@ -264,7 +264,7 @@ export interface HomeStatusItem {
   value: string | null
   ok: boolean
   tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
-  innerTab?: 'composition' | 'vital' | 'sleep'
+  innerTab?: 'composition' | 'vital' | 'sleep' | 'circulation'
   tone?: HomeStatusTone
   progress?: number
 }
@@ -280,7 +280,7 @@ export interface AttentionPoint {
   category: AttentionCategory
   navigateTo: {
     tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
-    subTab?: 'composition' | 'vital' | 'sleep'
+    subTab?: 'composition' | 'vital' | 'sleep' | 'circulation'
   }
   dataSource: string
 }
@@ -329,7 +329,7 @@ export interface ConnectionStatusResponse {
   health_connect_permissions?: HealthConnectPermissionStatus
 }
 
-// â”€â”€ /api/body-data â”€â”€
+// „Ÿ„Ÿ /api/body-data „Ÿ„Ÿ
 export interface BodyDataPoint {
   date: string
   weight_kg: number | null
@@ -356,7 +356,7 @@ export interface BodyDataResponse {
   }
 }
 
-// â”€â”€ /api/sleep-data â”€â”€
+// „Ÿ„Ÿ /api/sleep-data „Ÿ„Ÿ
 export interface SleepDataPoint {
   date: string
   sleep_minutes: number | null
@@ -398,7 +398,7 @@ export interface SleepDataResponse {
   }
 }
 
-// â”€â”€ /api/vitals-data â”€â”€
+// „Ÿ„Ÿ /api/vitals-data „Ÿ„Ÿ
 export interface VitalsDataPoint {
   date: string
   systolic: number | null
@@ -426,7 +426,7 @@ export interface VitalsDataResponse {
   }
 }
 
-// â”€â”€ /api/scores â”€â”€
+// „Ÿ„Ÿ /api/scores „Ÿ„Ÿ
 export interface ScoreDomain {
   score: number
   color: 'green' | 'yellow' | 'red'
@@ -456,3 +456,4 @@ export interface ScoreData {
     condition?: number | null
   }
 }
+

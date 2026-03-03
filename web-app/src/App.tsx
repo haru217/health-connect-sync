@@ -24,7 +24,7 @@ type BeforeInstallPromptEvent = Event & {
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home')
-  const [healthInitialTab, setHealthInitialTab] = useState<'composition' | 'circulation' | 'sleep'>('composition')
+  const [healthInitialTab, setHealthInitialTab] = useState<'composition' | 'circulation' | 'sleep' | 'vital'>('composition')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showInstallHint, setShowInstallHint] = useState(false)
@@ -177,11 +177,7 @@ function App() {
         <header className="header">
           <div className="header-title">{isSetupActive ? '初回セットアップ' : 'Health AI Advisor'}</div>
           <div className="header-settings">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", color: 'var(--text-muted)' }}>person</span>
           </div>
         </header>
 
@@ -194,13 +190,14 @@ function App() {
         {!isSetupActive ? (
           <nav className="bottom-nav">
             <NavItem
-              icon="health_and_safety"
+              icon="favorite"
               label="からだ"
               isActive={currentScreen === 'health'}
+              alwaysFill
               onClick={() => setCurrentScreen('health')}
             />
             <NavItem
-              icon="directions_run"
+              icon="vital_signs"
               label="アクティビティ"
               isActive={currentScreen === 'exercise'}
               onClick={() => setCurrentScreen('exercise')}
@@ -221,6 +218,7 @@ function App() {
               icon="person"
               label="プロフィール"
               isActive={currentScreen === 'my'}
+              alwaysFill
               onClick={() => setCurrentScreen('my')}
             />
           </nav>
@@ -310,13 +308,13 @@ function InstallBanner({
   )
 }
 
-function NavItem({ icon, label, isActive, onClick }: { icon: string, label: string, isActive: boolean, onClick: () => void }) {
+function NavItem({ icon, label, isActive, alwaysFill, onClick }: { icon: string, label: string, isActive: boolean, alwaysFill?: boolean, onClick: () => void }) {
   return (
     <div className={`nav-item ${isActive ? 'active' : ''}`} onClick={onClick}>
       <span
         className="nav-item-icon material-symbols-outlined"
         style={{
-          fontVariationSettings: `'FILL' ${isActive ? 1 : 0}, 'wght' ${isActive ? 500 : 400}, 'GRAD' 0, 'opsz' 24`
+          fontVariationSettings: `'FILL' ${isActive || alwaysFill ? 1 : 0}, 'wght' ${isActive ? 500 : 400}, 'GRAD' 0, 'opsz' 24`
         }}
       >
         {icon}

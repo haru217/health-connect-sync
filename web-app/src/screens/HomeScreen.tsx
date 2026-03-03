@@ -15,7 +15,7 @@ import './HomeScreen.css'
 
 export type HomeNavigateTarget = {
   tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
-  innerTab?: 'composition' | 'vital' | 'sleep'
+  innerTab?: 'composition' | 'vital' | 'sleep' | 'circulation'
 }
 
 type DomainKey = 'sleep' | 'activity' | 'nutrition' | 'condition'
