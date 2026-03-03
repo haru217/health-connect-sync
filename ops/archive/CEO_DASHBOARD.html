@@ -646,7 +646,7 @@
                 { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
                 { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。全5タブのデータ取得+AIレポート生成が正常動作中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT"] },
+                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。スコアAPI（4ドメイン+実数値）、AIレポート（3プロバイダ動作確認済み）、同期後自動レポート生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
@@ -654,7 +654,7 @@
             const CEO_DECISIONS = [
                 { id: "D-002", screen: "ホーム画面", question: "専門家コメント欄に不要な記号が表示されています。次の画面改修で一緒に直しますか？", options: ["はい、次の改修で直す", "後で対応"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: 0 },
                 { id: "D-003", screen: "全体", question: "データ取得に失敗したとき、空白ではなく「エラーが起きました」と表示するようにしてよいですか？", options: ["はい、エラー表示にする", "空白のままでいい"], priority: "medium", from: "Claude", originalThread: "P1-1-5", answer: null, freeText: "内容による。エラーがどういう想定なのか詳しく知りたい。ケースごとに対応を決めたい" },
-                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "【決定済み】5モデル比較検証の結果、日次レポートはClaude Haiku 4.5に決定。Gemini 2.5 Proは品質最高だがコスト高。週次・月次レポートには別モデルを検討予定。マルチプロバイダ対応済みのため切替は環境変数のみで可能" },
+                { id: "D-009", screen: "全体", question: "AIレポート生成に使うモデルを選ぶ必要があります。コスト重視（安い・速い・品質そこそこ）か品質重視（高い・遅い・高品質）か、どちらを優先しますか？", options: ["コスト重視で始める", "品質重視で始める", "両方試してから決めたい"], priority: "high", from: "Claude", originalThread: "", answer: 2, freeText: "【決定済み】日次レポートはClaude Haiku 4.5に決定。本番環境で3モデル動作確認済み: Claude Haiku(3/2), Gemini 2.5 Pro(3/1), GPT-5 mini(2/28)。マルチプロバイダ対応済みのため切替は環境変数のみで可能" },
                 { id: "D-010", screen: "ホーム画面", question: "3人の専門家（ユウ先生・サキさん・マイコーチ）にアバター画像を付けますか？テキストだけでも機能しますが、親しみやすさは画像があった方が上です。", options: ["画像を付ける（Geminiに依頼）", "テキストのみで十分"], priority: "medium", from: "Claude", originalThread: "", answer: 0, freeText: "日本のヘルスケアアプリで使う想定のデザインで" },
                 { id: "D-011", screen: "全体", question: "Health OS設計の実装順を決めたいです。まずスコア表示（ルールベースで動く部分）から始めるか、AIレポートの強化（LLM連携）から始めるか、どちらがいいですか？", options: ["スコア表示から（AIなしでも動く）", "AIレポートから（体験インパクトが大きい）"], priority: "high", from: "Claude", originalThread: "", answer: 0 },
                 { id: "D-012", screen: "マイページ", question: "初回セットアップで目的レンズ（ダイエット・血圧改善・睡眠改善等）と運動プロフィールを聞くアンケート画面を新規に作ります。よろしいですか？", options: ["はい、作ってください", "まだ早い"], priority: "high", from: "Claude", originalThread: "", answer: 0 }
