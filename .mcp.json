@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "codex-shinsekai": {
+      "command": "node",
+      "args": ["C:\\Users\\senta\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js", "mcp-server"],
+      "env": {
+        "CODEX_HOME": "C:\\Users\\senta\\.codex-shinsekai",
+        "PATH": "C:\\Users\\senta\\AppData\\Roaming\\npm;C:\\Program Files\\nodejs;C:\\WINDOWS\\system32;C:\\WINDOWS"
+      }
+    }
+  }
+}

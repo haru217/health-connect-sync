@@ -544,7 +544,12 @@
                 { id: "C1-REPORT", defaultStatus: "done", defaultStamp: "Codex-shinsekai + Claude @ 2026-03-03", track: "iter" },
                 { id: "C1v2-TRIGGER", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03", track: "iter" },
                 // Phase D: 各タブ強化（スコアUI完成後）
-                { id: "I2-CODEX", defaultStatus: "in_progress", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "in_progress", track: "iter" },
+                { id: "D1-REFACTOR", defaultStatus: "done", defaultStamp: "Claude @ 2026-03-03 14:47", track: "" },
+                { id: "D2-REFACTOR", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-03", track: "" },
+                // Phase E: UX改善
+                { id: "E1-ATTENTION", defaultStatus: "in_progress", track: "iter" },
+                // タブ強化
+                { id: "I2-CODEX", defaultStatus: "done", defaultStamp: "Claude @ 2026-03-03", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
                 // Phase D: マイページ・仕上げ
@@ -583,6 +588,9 @@
                 "A1v3-VALUES": "スコアAPIに実数値（睡眠時間・歩数・カロリー・血圧値）を追加。フロントが1つのAPIで完結します。",
                 "C1-REPORT": "AIが毎日の健康データを分析し、3人の専門家視点でコメントを生成するAPIを作りました。",
                 "C1v2-TRIGGER": "データ同期が完了したら自動でAIレポートを生成する仕組みを追加します。",
+                "D1-REFACTOR": "ExpertCard・TabAiAdviceを共通コンポーネント化し、3画面のAIコメント表示を統一しました。",
+                "D2-REFACTOR": "index.ts（5600行）を機能別ファイルに分割し、各800行以下に整理しました。",
+                "E1-ATTENTION": "ホーム画面「注目のポイント」を自然な統合サマリー文に改善します。",
             };
 
             const TASK_META = {
@@ -612,6 +620,9 @@
                 "C1-REPORT": "担当はCodex-shinsekai + Claude(CTO)。LLMモデル選定（Haiku 4.5に決定）とマルチプロバイダ対応はClaude担当。",
                 "C1v2-TRIGGER": "担当はCodex-shinsekai。同期後にバックグラウンドで自動生成。当日分のみ。",
                 "A1v3-VALUES": "担当はCodex-shinsekai。A1v2に実数値を追加。B1ホーム画面が1API呼び出しで完結。",
+                "D1-REFACTOR": "担当はClaude。TabAiAdvice共通コンポーネント抽出、getExpertByTagヘルパー追加。Health/Exercise/Mealの3画面をリファクタリング。",
+                "D2-REFACTOR": "担当はCodex-shinsekai。index.tsをhandlers/*, types, utils, constantsに分割。API仕様変更なし。",
+                "E1-ATTENTION": "担当はCodex-shinsekai。バックエンドでattentionSummary文を生成、フロントで「。」改行表示。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
@@ -636,17 +647,20 @@
                 "A1v2-SCORE": "high",
                 "C1-REPORT": "high",
                 "C1v2-TRIGGER": "mid",
+                "D1-REFACTOR": "low",
+                "D2-REFACTOR": "low",
+                "E1-ATTENTION": "mid",
                 "A1v3-VALUES": "mid",
             };
             const PRIORITY_LABELS = { high: "🔴 高", mid: "🟡 中", low: "🔵 低" };
 
             const SCREEN_STATUS = [
-                { name: "ホーム画面", status: "ok", summary: "3専門家のアバター画像（アニメ調・フェイスショット版）を確定し、アプリ内に配置完了", owner: "Gemini", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR"] },
-                { name: "健康タブ", status: "wip", summary: "体調データの表示を整備中。API通信エラー時の表示改善を進めています", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI"] },
-                { name: "運動タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI"] },
-                { name: "食事タブ", status: "not_started", summary: "まだ着手していません", owner: "Codex-2 / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI"] },
+                { name: "ホーム画面", status: "wip", summary: "スコア表示・専門家アバター配置完了。「注目のポイント」統合サマリー改善を進行中（E1）", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR","E1-ATTENTION"] },
+                { name: "健康タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","D1-REFACTOR"] },
+                { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
+                { name: "食事タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。スコアAPI（4ドメイン+実数値）、AIレポート（3プロバイダ動作確認済み）、同期後自動レポート生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES"] },
+                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。モジュール分割済み（D2）。スコアAPI・AIレポート・同期後自動生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
@@ -676,7 +690,9 @@
                 { id: "foundation", name: "基盤（Phase A）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("A")) },
                 { id: "home", name: "ホーム画面（Phase B）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("B")) },
                 { id: "ai", name: "AIレポート（Phase C）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("C")) },
-                { id: "tabs", name: "タブ強化（Phase D）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("I")) },
+                { id: "quality", name: "品質改善（Phase D）", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("D")) },
+                { id: "ux", name: "UX改善（Phase E）", isUrgent: true, tasks: TASKS.filter(t => t.id.startsWith("E")) },
+                { id: "tabs", name: "タブ強化", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("I")) },
                 { id: "mypage", name: "マイページ・仕上げ", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P1-")) },
                 { id: "release", name: "公開準備", isUrgent: false, tasks: TASKS.filter(t => t.id.startsWith("P3-")) },
             ];
