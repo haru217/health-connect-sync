@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/HomeScreen'
-import type { HomeNavigateTarget } from './screens/HomeScreen'
 import MealScreen from './screens/MealScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 import HealthScreen from './screens/HealthScreen'
@@ -33,16 +32,6 @@ function App() {
   const [setupGate, setSetupGate] = useState<SetupGate>('checking')
   const [setupProfile, setSetupProfile] = useState<ProfileResponse | null>(null)
 
-  const onHomeNavigate = (target: HomeNavigateTarget) => {
-    if (target.tab === 'health' && target.innerTab) {
-      if (target.innerTab === 'vital') {
-        setHealthInitialTab('circulation')
-      } else {
-        setHealthInitialTab(target.innerTab)
-      }
-    }
-    setCurrentScreen(target.tab)
-  }
 
   useEffect(() => {
     let mounted = true
@@ -148,7 +137,12 @@ function App() {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen onNavigate={onHomeNavigate} />
+        return <HomeScreen onNavigate={(t) => {
+          if (t.tab === 'health' && t.innerTab) {
+            setHealthInitialTab(t.innerTab)
+          }
+          setCurrentScreen(t.tab as ScreenType)
+        }} />
       case 'meal':
         return <MealScreen />
       case 'exercise':
@@ -158,7 +152,7 @@ function App() {
       case 'my':
         return <MyScreen />
       default:
-        return <HomeScreen onNavigate={onHomeNavigate} />
+        return <HomeScreen />
     }
   }
 
@@ -200,55 +194,31 @@ function App() {
         {!isSetupActive ? (
           <nav className="bottom-nav">
             <NavItem
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-              }
-              label="コンディション"
+              icon="health_and_safety"
+              label="からだ"
               isActive={currentScreen === 'health'}
               onClick={() => setCurrentScreen('health')}
             />
             <NavItem
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                </svg>
-              }
+              icon="directions_run"
               label="アクティビティ"
               isActive={currentScreen === 'exercise'}
               onClick={() => setCurrentScreen('exercise')}
             />
             <NavItem
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-              }
+              icon="home"
               label="ホーム"
               isActive={currentScreen === 'home'}
               onClick={() => setCurrentScreen('home')}
             />
             <NavItem
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                  <path d="M7 2v20"></path>
-                  <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-                </svg>
-              }
+              icon="restaurant"
               label="食事"
               isActive={currentScreen === 'meal'}
               onClick={() => setCurrentScreen('meal')}
             />
             <NavItem
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              }
+              icon="person"
               label="プロフィール"
               isActive={currentScreen === 'my'}
               onClick={() => setCurrentScreen('my')}
@@ -340,10 +310,17 @@ function InstallBanner({
   )
 }
 
-function NavItem({ icon, label, isActive, onClick }: { icon: React.ReactNode, label: string, isActive: boolean, onClick: () => void }) {
+function NavItem({ icon, label, isActive, onClick }: { icon: string, label: string, isActive: boolean, onClick: () => void }) {
   return (
     <div className={`nav-item ${isActive ? 'active' : ''}`} onClick={onClick}>
-      <span className="nav-item-icon">{icon}</span>
+      <span
+        className="nav-item-icon material-symbols-outlined"
+        style={{
+          fontVariationSettings: `'FILL' ${isActive ? 1 : 0}, 'wght' ${isActive ? 500 : 400}, 'GRAD' 0, 'opsz' 24`
+        }}
+      >
+        {icon}
+      </span>
       <span className="nav-item-label">{label}</span>
     </div>
   )

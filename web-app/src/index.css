@@ -2,18 +2,24 @@
   /* Pastel color palette for Health AI Advisor UI */
   --bg-color: #F9FDF5;
   --surface-color: #FFFFFF;
-  --accent-color: #88D4B4;
-  --accent-color-hover: #6BCB9F;
-  --good-color: #A5D6A7;
-  --warning-color: #FFCC80;
-  --danger-color: #EF9A9A;
+  --accent-color: #2D8B6F;
+  --accent-color-hover: #226D56;
+  --good-color: #38A169;
+  --warning-color: #FFB74D;
+  --danger-color: #EF5350;
   --text-primary: #333333;
   --text-muted: #5A7367;
   --text-inverse: #FFFFFF;
 
   /* Fonts */
-  --font-family-body: 'Zen Maru Gothic', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family-body: 'Noto Sans JP', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-family-num: 'Inter', system-ui, sans-serif;
+
+  /* Domain accent colors */
+  --accent-yellow: #d69e2e;
+  --accent-red: #e53e3e;
+  --accent-blue: #3182ce;
+  --accent-indigo: #5a67d8;
 
   /* Shadows for glass/soft UI */
   --shadow-sm: 0 4px 12px rgba(136, 212, 180, 0.15);

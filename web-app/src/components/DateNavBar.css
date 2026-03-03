@@ -1,11 +1,13 @@
 .date-nav-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 16px;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin: 8px 16px 0;
   background: var(--surface-color);
-  border-bottom: 1px solid rgba(136, 212, 180, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .date-nav-label {
@@ -26,11 +28,12 @@
   padding: 4px 8px;
   border-radius: 6px;
   line-height: 1;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 
 .date-nav-btn:hover:not(.disabled) {
-  background: rgba(136, 212, 180, 0.1);
+  color: var(--accent-color);
+  background: rgba(136, 212, 180, 0.08);
 }
 
 .date-nav-btn.disabled,
