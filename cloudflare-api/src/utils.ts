@@ -1,5 +1,5 @@
 ﻿import { CORS_HEADERS, CURSOR_REPAIR_SAFETY_MS, DATE_RE, EXERCISE_FREQ_VALUES, EXERCISE_INTENSITY_VALUES, EXERCISE_TYPE_VALUES, GENDER_VALUES, PROFILE_USER_ID, RECORD_TYPE_META_PREFIX, WEIGHT_GOAL_VALUES } from './constants'
-import type { D1Database, Env, UserProfileRow } from './types'
+import type { D1Database, Env, MetricPeriod, UserProfileRow } from './types'
 
 export function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -268,8 +268,6 @@ export function isValidDate(value: unknown): value is string {
   return typeof value === 'string' && DATE_RE.test(value)
 }
 
-type MetricPeriod = 'week' | 'month' | 'year'
-
 export function parseMetricPeriod(value: unknown): MetricPeriod | null {
   if (value === 'week' || value === 'month' || value === 'year') {
     return value
@@ -400,5 +398,51 @@ export function parseIsoToDate(value: string | null | undefined): Date | null {
     return null
   }
   return new Date(ms)
+}
+
+export function average(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  if (valid.length === 0) {
+    return null
+  }
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length
+}
+
+export function weightedAverage(
+  values: Array<number | null | undefined>,
+  weights: Array<number | null | undefined>,
+): number | null {
+  let weightedSum = 0
+  let weightTotal = 0
+
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index]
+    const weight = weights[index]
+    if (
+      typeof value !== 'number' ||
+      !Number.isFinite(value) ||
+      typeof weight !== 'number' ||
+      !Number.isFinite(weight) ||
+      weight <= 0
+    ) {
+      continue
+    }
+    weightedSum += value * weight
+    weightTotal += weight
+  }
+
+  if (weightTotal <= 0) {
+    return null
+  }
+  return weightedSum / weightTotal
+}
+
+export function formatSleepLabel(sleepMinutes: number | null): string | null {
+  if (sleepMinutes == null || sleepMinutes <= 0) {
+    return null
+  }
+  const hours = Math.floor(sleepMinutes / 60)
+  const minutes = sleepMinutes % 60
+  return `${hours}h${String(minutes).padStart(2, '0')}m`
 }
 

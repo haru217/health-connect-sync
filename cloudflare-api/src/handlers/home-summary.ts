@@ -1,5 +1,5 @@
 ﻿import { getUserProfile } from './profile'
-import { isValidDate, jsonResponse, queryFirst, toIsoDate } from '../utils'
+import { formatSleepLabel, isValidDate, jsonResponse, queryFirst, toIsoDate } from '../utils'
 import type { D1Database, Env } from '../types'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
 
@@ -44,15 +44,6 @@ export function progressByTarget(actual: number | null | undefined, target: numb
     return 0
   }
   return clampPercent((actual / target) * 100)
-}
-
-export function formatSleepLabel(sleepMinutes: number | null): string | null {
-  if (sleepMinutes == null || sleepMinutes <= 0) {
-    return null
-  }
-  const hours = Math.floor(sleepMinutes / 60)
-  const minutes = sleepMinutes % 60
-  return `${hours}h${String(minutes).padStart(2, '0')}m`
 }
 
 export function formatRoundedWithUnit(value: number | null, unit: string): string | null {

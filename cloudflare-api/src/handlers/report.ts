@@ -1,9 +1,8 @@
 ﻿import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER, LLM_TIMEOUT_MS, REPORT_EMOJI_RE } from '../constants'
 import type { AnthropicMessageResponse, D1Database, DailyReportGeneratedPayload, DailyReportRow, Env, GeminiResponse, OpenAICompatibleResponse, UserProfileRow } from '../types'
-import { execute, isValidDate, jsonResponse, nowIso, parseBooleanFlag, queryAll, queryFirst, shiftIsoDateByDays, toIsoDate } from '../utils'
+import { average, execute, isValidDate, jsonResponse, nowIso, parseBooleanFlag, queryAll, queryFirst, shiftIsoDateByDays, toIsoDate } from '../utils'
 import { getUserProfile } from './profile'
 import { getScores } from './scores'
-import { average } from './health'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
 
 export async function readOptionalJsonBody(request: Request, maxBytes = 65536): Promise<Record<string, unknown>> {

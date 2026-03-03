@@ -1,49 +1,12 @@
 ﻿import { DEFAULT_BMR_KCAL, HEALTH_CONNECT_REQUIRED_PERMISSIONS, RECORD_PERMISSION_MAP } from '../constants'
-import type { D1Database, DailyMetricRow, Env, SexType } from '../types'
-import { isValidDate, jsonResponse, normalizeStringArray, parseJsonObject, parseIsoToDate, parseIsoToMillis, parseMetricPeriod, queryAll, queryFirst, shiftIsoDateByDays, shiftYearMonth, toYearMonth } from '../utils'
+import type { D1Database, DailyMetricRow, Env, MetricPeriod, SexType } from '../types'
+import { average, isValidDate, jsonResponse, normalizeStringArray, parseJsonObject, parseIsoToDate, parseIsoToMillis, parseMetricPeriod, queryAll, queryFirst, shiftIsoDateByDays, shiftYearMonth, toYearMonth } from '../utils'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
 import { averageClockMinutes, dayInOffset, extractIsoClockHHmm, extractSleepMinutes, extractSleepStageBreakdown, formatClockMinutes, localDayFromIso, normalizeBmrKcal, parseClockMinutes, sleepBucketDay, toPercent } from './sync-parsers'
 import { getUserProfile } from './profile'
 
 
-export type MetricPeriod = 'week' | 'month' | 'year'
-
-export function average(values: Array<number | null | undefined>): number | null {
-  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-  if (valid.length === 0) {
-    return null
-  }
-  return valid.reduce((sum, value) => sum + value, 0) / valid.length
-}
-
-export function weightedAverage(
-  values: Array<number | null | undefined>,
-  weights: Array<number | null | undefined>,
-): number | null {
-  let weightedSum = 0
-  let weightTotal = 0
-
-  for (let index = 0; index < values.length; index += 1) {
-    const value = values[index]
-    const weight = weights[index]
-    if (
-      typeof value !== 'number' ||
-      !Number.isFinite(value) ||
-      typeof weight !== 'number' ||
-      !Number.isFinite(weight) ||
-      weight <= 0
-    ) {
-      continue
-    }
-    weightedSum += value * weight
-    weightTotal += weight
-  }
-
-  if (weightTotal <= 0) {
-    return null
-  }
-  return weightedSum / weightTotal
-}
+export type { MetricPeriod } from '../types'
 
 export function minimum(values: Array<number | null | undefined>): number | null {
   const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))

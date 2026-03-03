@@ -193,6 +193,8 @@ export interface SyncRequestInput {
   grantedPermissions?: string[]
 }
 
+export type MetricPeriod = 'week' | 'month' | 'year'
+
 export interface CatalogItem {
   alias: string
   label: string

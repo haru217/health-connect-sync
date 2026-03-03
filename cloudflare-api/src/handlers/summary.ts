@@ -227,59 +227,6 @@ export async function buildSummary(db: D1Database): Promise<Record<string, unkno
   }
 }
 
-type HomeStatusTab = 'home' | 'health' | 'exercise' | 'meal' | 'my'
-type HomeInnerTab = 'composition' | 'vital' | 'sleep'
-type HomeStatusTone = 'normal' | 'warning' | 'critical'
-type HomeStatusKey = 'sleep' | 'activity' | 'nutrition' | 'condition'
-type ScoreColor = 'green' | 'yellow' | 'red'
-type InsightType = 'positive' | 'attention' | 'threshold'
-type InsightDomain = 'sleep' | 'activity' | 'nutrition' | 'condition'
-type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
-type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
-type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
-
-interface ScoreInsight {
-  type: InsightType
-  domain: InsightDomain
-  text: string
-}
-
-interface ScoresBaseline {
-  sleep: number
-  activity: number
-  nutrition: number
-  condition: number
-}
-
-interface InsightCandidate extends ScoreInsight {
-  priority: number
-}
-
-interface HomeStatusItemPayload {
-  key: HomeStatusKey
-  label: string
-  value: string | null
-  ok: boolean
-  tab: HomeStatusTab
-  innerTab?: HomeInnerTab
-  tone?: HomeStatusTone
-  progress?: number
-}
-
-interface HomeAttentionPointPayload {
-  id: string
-  icon: HomeAttentionIcon
-  message: string
-  severity: HomeAttentionSeverity
-  category: HomeAttentionCategory
-  navigateTo: {
-    tab: HomeStatusTab
-    subTab?: HomeInnerTab
-  }
-  dataSource: string
-}
-
-
 export async function handleSummary(env: Env): Promise<Response> {
   await ensureAggregatesUpToDate(env.DB)
   return jsonResponse(await buildSummary(env.DB))

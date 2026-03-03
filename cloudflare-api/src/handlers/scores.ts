@@ -1,10 +1,8 @@
 ﻿import { DEFAULT_BASELINE_SCORE, DEFAULT_BMR_KCAL } from '../constants'
 import type { D1Database, DailyMetricRow, Env, UserProfileRow } from '../types'
-import { isValidDate, jsonResponse, queryAll, queryFirst, shiftIsoDateByDays, toIsoDate } from '../utils'
+import { average, formatSleepLabel, isValidDate, jsonResponse, queryAll, queryFirst, shiftIsoDateByDays, toIsoDate, weightedAverage } from '../utils'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
 import { getUserProfile } from './profile'
-import { average, weightedAverage } from './health'
-import { formatSleepLabel } from './home-summary'
 
 export type ScoreColor = 'green' | 'yellow' | 'red'
 type InsightType = 'positive' | 'attention' | 'threshold'
