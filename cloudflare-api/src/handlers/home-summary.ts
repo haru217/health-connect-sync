@@ -115,7 +115,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
       `
       SELECT date, headline, yu_comment, saki_comment, mai_comment, generated_at
       FROM daily_reports
-      WHERE date = date(?, '-1 day')
+      WHERE date = ?
       LIMIT 1
       `,
       [date],
@@ -125,7 +125,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
       `
       SELECT date, generated_at
       FROM daily_reports
-      WHERE date < date(?, '-1 day')
+      WHERE date < ?
       ORDER BY date DESC
       LIMIT 1
       `,
