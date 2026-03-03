@@ -269,22 +269,6 @@ export interface HomeStatusItem {
   progress?: number
 }
 
-export type AttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
-export type AttentionCategory = 'threshold' | 'trend' | 'achievement'
-
-export interface AttentionPoint {
-  id: string
-  icon: 'warning' | 'down' | 'up' | 'check' | 'alert'
-  message: string
-  severity: AttentionSeverity
-  category: AttentionCategory
-  navigateTo: {
-    tab: 'home' | 'health' | 'exercise' | 'meal' | 'my'
-    subTab?: 'composition' | 'vital' | 'sleep' | 'circulation'
-  }
-  dataSource: string
-}
-
 export interface PreviousReportLink {
   date: string
   generated_at: string
@@ -313,8 +297,6 @@ export interface HomeSummaryResponse {
   sufficiency: HomeSufficiency
   evidences?: HomeEvidence[]
   statusItems?: HomeStatusItem[]
-  attentionPoints?: AttentionPoint[]
-  attentionSummary?: string
   previousReport?: PreviousReportLink | null
 }
 

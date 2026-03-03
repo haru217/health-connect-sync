@@ -590,7 +590,7 @@
                 "C1v2-TRIGGER": "データ同期が完了したら自動でAIレポートを生成する仕組みを追加します。",
                 "D1-REFACTOR": "ExpertCard・TabAiAdviceを共通コンポーネント化し、3画面のAIコメント表示を統一しました。",
                 "D2-REFACTOR": "index.ts（5600行）を機能別ファイルに分割し、各800行以下に整理しました。",
-                "E1-ATTENTION": "ホーム画面「注目のポイント」を自然な統合サマリー文に改善します。",
+                "E1-ATTENTION": "ホーム画面「注目のポイント」欄を廃止。スコア→専門家コメントの2層構成に簡素化。",
             };
 
             const TASK_META = {
@@ -622,7 +622,7 @@
                 "A1v3-VALUES": "担当はCodex-shinsekai。A1v2に実数値を追加。B1ホーム画面が1API呼び出しで完結。",
                 "D1-REFACTOR": "担当はClaude。TabAiAdvice共通コンポーネント抽出、getExpertByTagヘルパー追加。Health/Exercise/Mealの3画面をリファクタリング。",
                 "D2-REFACTOR": "担当はCodex-shinsekai。index.tsをhandlers/*, types, utils, constantsに分割。API仕様変更なし。",
-                "E1-ATTENTION": "担当はCodex-shinsekai。バックエンドでattentionSummary文を生成、フロントで「。」改行表示。",
+                "E1-ATTENTION": "担当はCodex-shinsekai。注目のポイント欄をフロント・バックエンド両方から削除。デッドコードクリーンアップ。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }

@@ -7,9 +7,6 @@ type HomeStatusTab = 'home' | 'health' | 'exercise' | 'meal' | 'my'
 type HomeInnerTab = 'composition' | 'vital' | 'sleep'
 type HomeStatusTone = 'normal' | 'warning' | 'critical'
 type HomeStatusKey = 'sleep' | 'activity' | 'nutrition' | 'condition'
-type HomeAttentionSeverity = 'critical' | 'warning' | 'info' | 'positive'
-type HomeAttentionCategory = 'threshold' | 'trend' | 'achievement'
-type HomeAttentionIcon = 'warning' | 'down' | 'up' | 'check' | 'alert'
 
 interface HomeStatusItemPayload {
   key: HomeStatusKey
@@ -20,16 +17,6 @@ interface HomeStatusItemPayload {
   innerTab?: HomeInnerTab
   tone: HomeStatusTone
   progress: number
-}
-
-interface HomeAttentionPointPayload {
-  id: string
-  icon: HomeAttentionIcon
-  message: string
-  severity: HomeAttentionSeverity
-  category: HomeAttentionCategory
-  navigateTo: { tab: HomeStatusTab; subTab?: HomeInnerTab }
-  dataSource: string
 }
 
 export function clampPercent(value: number | null | undefined): number {
@@ -51,26 +38,6 @@ export function formatRoundedWithUnit(value: number | null, unit: string): strin
     return null
   }
   return `${Math.round(value).toLocaleString('ja-JP')}${unit}`
-}
-
-function buildAttentionSummary(points: HomeAttentionPointPayload[]): string {
-  const positive = points.filter(p => p.severity === 'positive')
-  const nonPositive = points.filter(p => p.severity !== 'positive')
-
-  const parts: string[] = []
-
-  if (positive.length >= 2) {
-    const labels = positive.map(p => p.dataSource === 'sleep' ? '睡眠' : p.dataSource === 'steps' ? '歩数' : p.dataSource).join('・')
-    parts.push(`${labels}は目標達成できています`)
-  } else if (positive.length === 1) {
-    parts.push(positive[0].message)
-  }
-
-  for (const p of nonPositive) {
-    parts.push(p.message)
-  }
-
-  return parts.join('。')
 }
 
 export async function buildHomeSummary(db: D1Database, date: string): Promise<Record<string, unknown>> {
@@ -196,8 +163,12 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
 
   let bpTone: HomeStatusTone = 'normal'
   if (hasBp && bpSystolic != null && bpDiastolic != null) {
-    if (bpSystolic >= 135 || bpDiastolic >= 85) {
+    if (bpSystolic >= 160 || bpDiastolic >= 100) {
       bpTone = 'critical'
+    } else if (bpSystolic >= 145 || bpDiastolic >= 90) {
+      bpTone = 'critical'
+    } else if (bpSystolic >= 135 || bpDiastolic >= 85) {
+      bpTone = 'warning'
     } else if (bpSystolic >= 125 || bpDiastolic >= 75) {
       bpTone = 'warning'
     }
@@ -244,100 +215,6 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     },
   ]
 
-  const attentionPoints: HomeAttentionPointPayload[] = []
-  if (hasBp && bpSystolic != null && bpDiastolic != null) {
-    if (bpTone === 'critical') {
-      attentionPoints.push({
-        id: `bp-critical-${date}`,
-        icon: 'alert',
-        message: `\u8840\u5727\u304c\u9ad8\u3081\u3067\u3059\uff08${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}\uff09`,
-        severity: 'critical',
-        category: 'threshold',
-        navigateTo: { tab: 'health', subTab: 'vital' },
-        dataSource: 'blood_pressure',
-      })
-    } else if (bpTone === 'warning') {
-      attentionPoints.push({
-        id: `bp-warning-${date}`,
-        icon: 'warning',
-        message: `\u8840\u5727\u304c\u3084\u3084\u9ad8\u3081\u3067\u3059\uff08${Math.round(bpSystolic)}/${Math.round(bpDiastolic)}\uff09`,
-        severity: 'warning',
-        category: 'threshold',
-        navigateTo: { tab: 'health', subTab: 'vital' },
-        dataSource: 'blood_pressure',
-      })
-    }
-  }
-
-  if (sleepMinutes != null && sleepMinutes > 0 && sleepMinutes < sleepGoalMinutes * 0.7) {
-    attentionPoints.push({
-      id: `sleep-low-${date}`,
-      icon: 'down',
-      message: `\u7761\u7720\u6642\u9593\u304c\u77ed\u3081\u3067\u3059\uff08${formatSleepLabel(sleepMinutes)}\uff09`,
-      severity: 'warning',
-      category: 'trend',
-      navigateTo: { tab: 'health', subTab: 'sleep' },
-      dataSource: 'sleep',
-    })
-  } else if (sleepMinutes != null && sleepMinutes >= sleepGoalMinutes) {
-    attentionPoints.push({
-      id: `sleep-good-${date}`,
-      icon: 'check',
-      message: '\u7761\u7720\u76ee\u6a19\u3092\u9054\u6210\u3067\u304d\u3066\u3044\u307e\u3059',
-      severity: 'positive',
-      category: 'achievement',
-      navigateTo: { tab: 'health', subTab: 'sleep' },
-      dataSource: 'sleep',
-    })
-  }
-
-  if (steps != null && steps > 0 && steps < stepsGoal * 0.5) {
-    attentionPoints.push({
-      id: `steps-low-${date}`,
-      icon: 'down',
-      message: '\u6d3b\u52d5\u91cf\u304c\u4f4e\u3044\u65e5\u3067\u3059\u3002\u8efd\u3044\u904b\u52d5\u3092\u304a\u3059\u3059\u3081\u3057\u307e\u3059',
-      severity: 'info',
-      category: 'trend',
-      navigateTo: { tab: 'exercise' },
-      dataSource: 'steps',
-    })
-  } else if (steps != null && steps >= stepsGoal) {
-    attentionPoints.push({
-      id: `steps-good-${date}`,
-      icon: 'check',
-      message: '\u6b69\u6570\u76ee\u6a19\u3092\u9054\u6210\u3067\u304d\u3066\u3044\u307e\u3059',
-      severity: 'positive',
-      category: 'achievement',
-      navigateTo: { tab: 'exercise' },
-      dataSource: 'steps',
-    })
-  }
-
-  const attentionSummary = buildAttentionSummary(attentionPoints)
-
-  const severityWeight: Record<HomeAttentionSeverity, number> = {
-    critical: 4,
-    warning: 3,
-    info: 2,
-    positive: 1,
-  }
-  const categoryWeight: Record<HomeAttentionCategory, number> = {
-    threshold: 1,
-    trend: 2,
-    achievement: 3,
-  }
-  attentionPoints.sort((a, b) => {
-    const severityDiff = severityWeight[b.severity] - severityWeight[a.severity]
-    if (severityDiff !== 0) {
-      return severityDiff
-    }
-    const categoryDiff = categoryWeight[a.category] - categoryWeight[b.category]
-    if (categoryDiff !== 0) {
-      return categoryDiff
-    }
-    return a.id.localeCompare(b.id)
-  })
-
   const evidences = statusItems
     .filter((item) => item.value != null && item.ok)
     .map((item) => ({
@@ -365,8 +242,6 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     sufficiency,
     evidences,
     statusItems,
-    attentionPoints,
-    attentionSummary,
     previousReport: previousReportRow
       ? {
           date: previousReportRow.date,

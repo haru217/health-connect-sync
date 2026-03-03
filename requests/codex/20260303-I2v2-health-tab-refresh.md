@@ -1,7 +1,7 @@
 # Request: からだタブ改修 v2（I2v2）
 
 - Date: 2026-03-03
-- Owner: Codex-shinsekai
+- Owner: Codex
 - Status: `todo`
 - Phase: I（タブ強化）
 - Depends on: なし

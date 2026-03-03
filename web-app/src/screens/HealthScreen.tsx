@@ -126,7 +126,8 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   const hasWeightMetric = displayWeight != null
   const hasBodyFatMetric = displayBodyFat != null
   const hasBmiMetric = displayBmi != null
-  const hasGoalWeightMetric = data.goalWeight != null
+  const goalWeight = data.goalWeight
+  const hasGoalWeightMetric = goalWeight != null
   const hasBmrMetric = displayBmr != null
   const hasCurrentCard = hasWeightMetric || hasBodyFatMetric || hasBmiMetric || hasGoalWeightMetric || hasBmrMetric
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
@@ -170,7 +171,7 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
           {hasGoalWeightMetric ? (
             <div className="health-metric-row">
               <span className="health-metric-label">目標体重</span>
-              <span className="health-metric-value">{data.goalWeight.toFixed(1)} kg</span>
+              <span className="health-metric-value">{goalWeight.toFixed(1)} kg</span>
             </div>
           ) : null}
           {hasBmrMetric ? (
@@ -267,8 +268,10 @@ function CirculationTab({ date, segment }: { date: string, segment: Segment }) {
   let bpStatus = '正常'
   let bpClass = 'good'
   if (displaySystolic != null && displayDiastolic != null) {
-    if (displaySystolic >= 135 || displayDiastolic >= 85) { bpStatus = '高血圧'; bpClass = 'danger' }
-    else if (displaySystolic >= 125 || displayDiastolic >= 75) { bpStatus = '正常高値'; bpClass = 'warning' }
+    if (displaySystolic >= 160 || displayDiastolic >= 100) { bpStatus = 'III度高血圧'; bpClass = 'danger' }
+    else if (displaySystolic >= 145 || displayDiastolic >= 90) { bpStatus = 'II度高血圧'; bpClass = 'danger' }
+    else if (displaySystolic >= 135 || displayDiastolic >= 85) { bpStatus = 'I度高血圧'; bpClass = 'warning' }
+    else if (displaySystolic >= 125 || displayDiastolic >= 75) { bpStatus = '高値血圧'; bpClass = 'warning' }
   }
 
   return (
@@ -385,11 +388,11 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
   const useAverageCard = segment !== 'week'
   const isWeek = segment === 'week'
   const displaySleepMinutes = useAverageCard ? (data.periodSummary.avg_sleep_min ?? current.sleep_minutes) : current.sleep_minutes
-  const displayAvgSpo2 = useAverageCard ? (data.periodSummary.avg_spo2 ?? current.avg_spo2) : current.avg_spo2
-  const displayMinSpo2 = useAverageCard ? (data.periodSummary.min_spo2 ?? current.min_spo2) : current.min_spo2
+  const displayAvgSpo2 = current.avg_spo2
+  const displayMinSpo2 = current.min_spo2
   const hasSleepTiming = isWeek && (current.bedtime != null || current.wake_time != null)
   const hasSleepMinuteMetric = displaySleepMinutes != null
-  const hasSleepSpo2Metric = displayAvgSpo2 != null || displayMinSpo2 != null
+  const hasSleepSpo2Metric = isWeek && (displayAvgSpo2 != null || displayMinSpo2 != null)
   const hasCurrentCard = hasSleepMinuteMetric || hasSleepTiming || hasSleepSpo2Metric
   const hasSleepStages = stages.deep_min != null || stages.light_min != null || stages.rem_min != null
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
@@ -460,10 +463,14 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
     ]
   const visibleStageRows = stageRows.filter((row) => row.minutes != null)
   const hasSleepStageCard = visibleStageRows.length > 0
-  const showPeriodSpo2Summary = !isWeek
+  const showPeriodSummary = !isWeek
+  const hasSummaryAverageSleep = showPeriodSummary && data.periodSummary.avg_sleep_min != null
+  const hasSummaryGoalDays = showPeriodSummary && (data.periodSummary.measured_days ?? 0) > 0
+  const goalRateLabel = hasSummaryGoalDays ? toPercentLabel(data.periodSummary.goal_rate ?? null) : null
+  const showPeriodSpo2Summary = showPeriodSummary
   const hasSummaryAvgSpo2 = showPeriodSpo2Summary && data.periodSummary.avg_spo2 != null
   const hasSummaryMinSpo2 = showPeriodSpo2Summary && data.periodSummary.min_spo2 != null
-  const hasSummaryList = hasSummaryAvgSpo2 || hasSummaryMinSpo2
+  const hasSummaryList = hasSummaryAverageSleep || hasSummaryGoalDays || hasSummaryAvgSpo2 || hasSummaryMinSpo2
 
   // Convert minutes to hours for display
   const chartData = data.series.map(d => ({
@@ -549,6 +556,21 @@ function SleepTab({ date, segment }: { date: string, segment: Segment }) {
 
       {hasSummaryList ? (
         <div className="health-list-container">
+          {hasSummaryAverageSleep ? (
+            <div className="health-list-item">
+              <span className="health-list-item-label">平均睡眠</span>
+              <span className="health-list-item-value">{formatHours(data.periodSummary.avg_sleep_min)}</span>
+            </div>
+          ) : null}
+          {hasSummaryGoalDays ? (
+            <div className="health-list-item">
+              <span className="health-list-item-label">目標達成日</span>
+              <span className="health-list-item-value">
+                {formatRounded(data.periodSummary.goal_days)}日
+                {goalRateLabel ? ` (${goalRateLabel})` : ''}
+              </span>
+            </div>
+          ) : null}
           {hasSummaryAvgSpo2 ? (
             <div className="health-list-item">
               <span className="health-list-item-label">平均血中酸素</span>

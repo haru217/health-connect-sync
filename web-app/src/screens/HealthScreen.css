@@ -46,6 +46,17 @@
   box-shadow: 0 4px 12px rgba(136, 212, 180, 0.05);
 }
 
+.health-stage-card {
+  margin-top: 8px;
+}
+
+.health-stage-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
 .health-metric-row {
   display: flex;
   justify-content: space-between;
@@ -150,8 +161,8 @@
 }
 
 .status-badge.warning {
-  background: rgba(255, 204, 128, 0.2);
-  color: #E65100;
+  background: rgba(255, 235, 59, 0.22);
+  color: #F9A825;
 }
 
 .status-badge.danger {

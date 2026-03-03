@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary, fetchScores } from '../api/healthApi'
 import type {
@@ -189,7 +189,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     if (state.status !== 'success') return null
 
     const { summary, scores } = state.data
-    const attentionPoints = summary.attentionPoints ?? []
     const sufficiency = summary.sufficiency
     const hasSomeData = Boolean(sufficiency.sleep || sufficiency.steps || sufficiency.weight || sufficiency.meal || sufficiency.bp)
     const hasReport = summary.report != null
@@ -199,7 +198,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     return {
       summary,
       scores,
-      attentionPoints,
       hasSomeData,
       hasReport,
       diff,
@@ -252,37 +250,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               )}
             </div>
           </section>
-
-          {/* Attention Points — Stich order: hero → attention → domains */}
-          {content.attentionPoints.length > 0 ? (
-            <section className="home-insights-section">
-              <div className="insight-card-teal">
-                <div className="insight-icon-wrapper">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </div>
-                <div className="insight-text-content">
-                  <div className="insight-header-row">
-                    <span className="insight-heading">注目のポイント</span>
-                  </div>
-                  <p className="insight-text-body">
-                    {(() => {
-                      const text = content.summary.attentionSummary
-                        ?? content.attentionPoints.map((p) => p.message).join(' ')
-                      const sentences = text.split('。').filter(Boolean)
-                      return sentences.map((sentence, i) => (
-                        <React.Fragment key={i}>
-                          {sentence}。
-                          {i < sentences.length - 1 && <br />}
-                        </React.Fragment>
-                      ))
-                    })()}
-                  </p>
-                </div>
-              </div>
-            </section>
-          ) : null}
 
           {/* Domain Cards 2x2 */}
           <section className="home-domain-scores">
