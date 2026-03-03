@@ -220,3 +220,10 @@ Legacy note:
 - Result: `/api/home-summary`, `/api/body-data`, `/api/sleep-data`, `/api/vitals-data` の契約をコード実装と実レスポンス採取で確定し、`/api/summary` 依存有無を明記。主要エラー（400/404/500、認証条件）とギャップ一覧を handoff に整理。`P1-1-5` は in_progress 維持で、ダッシュボード状態は変更していない。
 - Files: `handoff/incoming/20260226-codex2-home-condition-api-contract.md`, `ops/WORKLOG.md`
 - Risk/Follow-up: `latestSleepDate` が API 実レスポンスに存在する一方で `web-app/src/api/types.ts` の `SleepDataResponse` に未定義。必要なら型へ追随させる。
+
+### 2026-03-03 (6)
+- Owner: Codex-shinsekai
+- Scope: D2 APIサーバー内部のモジュール分割（挙動変更なし）
+- Result: 入口を軽量化し、機能単位で分割。各ファイルを800行以下に整理し、ローカル起動・型チェック・ドライランを通過。
+- Files: APIサーバーの入口/共通処理/機能別分割、ハンドオフ追記、作業ログ更新
+- Risk/Follow-up: ダッシュボード側の対象タスクIDが未登録で自動更新不可。ID登録後に完了反映が必要。
