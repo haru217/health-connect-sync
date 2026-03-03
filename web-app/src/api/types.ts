@@ -301,6 +301,7 @@ export interface HomeSufficiency {
 export interface HomeSummaryResponse {
   date: string
   report: {
+    reportDate: string
     headline: string | null
     home: {
       yu: string | null

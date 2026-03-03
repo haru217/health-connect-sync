@@ -117,6 +117,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     ),
     getUserProfile(db),
     queryFirst<{
+      date: string
       headline: string | null
       yu_comment: string | null
       saki_comment: string | null
@@ -125,9 +126,10 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     }>(
       db,
       `
-      SELECT headline, yu_comment, saki_comment, mai_comment, generated_at
+      SELECT date, headline, yu_comment, saki_comment, mai_comment, generated_at
       FROM daily_reports
-      WHERE date = ?
+      WHERE date <= ?
+      ORDER BY date DESC
       LIMIT 1
       `,
       [date],
@@ -328,6 +330,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     date,
     report: reportRow
       ? {
+          reportDate: reportRow.date,
           headline: reportRow.headline,
           home: {
             yu: reportRow.yu_comment,

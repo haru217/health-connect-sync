@@ -81,7 +81,7 @@ interface HomeReport {
   mai: string | null
 }
 
-function ExpertSection({ home }: { home: HomeReport }) {
+function ExpertSection({ home, headline }: { home: HomeReport; headline: string | null }) {
   const sectionMap: Record<ExpertTag, string | null> = {
     doctor: home.yu ?? null,
     nutritionist: home.saki ?? null,
@@ -96,12 +96,14 @@ function ExpertSection({ home }: { home: HomeReport }) {
       <div className="expert-section-header">
         <div className="expert-section-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-            <line x1="9" y1="21" x2="15" y2="21" />
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          <span>AIコーチングレポート</span>
+          <span>今日のひとこと</span>
         </div>
       </div>
+      {headline ? (
+        <p className="expert-headline">{headline}</p>
+      ) : null}
       <div className="expert-cards-list">
         {EXPERT_CONFIG.map((cfg) => {
           const text = sectionMap[cfg.tag]
@@ -320,7 +322,10 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
           {/* Expert Reports */}
           {content.hasReport ? (
-            <ExpertSection home={content.summary.report!.home} />
+            <ExpertSection
+              home={content.summary.report!.home}
+              headline={content.summary.report!.headline}
+            />
           ) : null}
 
           {!content.hasSomeData ? <EmptyState /> : null}
