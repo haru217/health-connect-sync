@@ -68,8 +68,6 @@ export function getExpertByTag(tag: ExpertTag): ExpertConfigItem {
   return found
 }
 
-const COLLAPSED_LINES = 3
-
 function SentenceText({ content, collapsed }: { content: string; collapsed: boolean }) {
   const sentences = content.split(/(?<=。)/).filter(Boolean)
   return (
