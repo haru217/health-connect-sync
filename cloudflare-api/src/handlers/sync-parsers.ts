@@ -119,13 +119,17 @@ export function dayInOffset(isoValue: string | null | undefined, offsetSeconds: 
 }
 
 export function sleepBucketDay(startIso: string | null, endIso: string | null, payload: Record<string, unknown>): string | null {
+  // Assign sleep to the wake-up date using endTime + best available offset.
+  // For non-DST timezones (e.g. JST) startOffset == endOffset, so using
+  // startOffset with endIso is safe when endOffset is missing.
   const endOffset = parseZoneOffsetSeconds(payload.endZoneOffset)
-  if (endOffset != null) {
-    return dayInOffset(endIso, endOffset)
-  }
   const startOffset = parseZoneOffsetSeconds(payload.startZoneOffset)
-  if (startOffset != null) {
-    return dayInOffset(startIso, startOffset)
+  const bestOffset = endOffset ?? startOffset
+  if (bestOffset != null && endIso) {
+    return dayInOffset(endIso, bestOffset)
+  }
+  if (bestOffset != null && startIso) {
+    return dayInOffset(startIso, bestOffset)
   }
   return localDayFromIso(endIso) ?? localDayFromIso(startIso)
 }
