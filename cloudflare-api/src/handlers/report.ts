@@ -1,9 +1,126 @@
-﻿import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER, LLM_TIMEOUT_MS, REPORT_EMOJI_RE } from '../constants'
-import type { AnthropicMessageResponse, D1Database, DailyReportGeneratedPayload, DailyReportRow, Env, GeminiResponse, OpenAICompatibleResponse, UserProfileRow } from '../types'
-import { average, execute, isValidDate, jsonResponse, nowIso, parseBooleanFlag, queryAll, queryFirst, shiftIsoDateByDays, toIsoDate } from '../utils'
+import { DEFAULT_LLM_MODEL, DEFAULT_LLM_PROVIDER, LLM_TIMEOUT_MS, REPORT_EMOJI_RE } from '../constants'
+import type {
+  AnthropicMessageResponse,
+  D1Database,
+  DailyReportRow,
+  Env,
+  GeminiResponse,
+  OpenAICompatibleResponse,
+  UserProfileRow,
+} from '../types'
+import {
+  execute,
+  isValidDate,
+  jsonResponse,
+  nowIso,
+  parseBooleanFlag,
+  queryAll,
+  queryFirst,
+  shiftIsoDateByDays,
+  toIsoDate,
+} from '../utils'
+import { checkMonthlyLimit, recordGeminiUsage } from './gemini-usage'
 import { getUserProfile } from './profile'
 import { getScores } from './scores'
 import { ensureAggregatesUpToDate } from './sync-aggregate'
+
+export interface DailyReportTrendRow {
+  date: string
+  steps: number | null
+  sleep_hours: number | null
+  weight_kg: number | null
+  body_fat_pct: number | null
+  blood_systolic: number | null
+  blood_diastolic: number | null
+  active_kcal: number | null
+  total_kcal: number | null
+  intake_kcal: number | null
+  protein_g: number | null
+  fat_g: number | null
+  carbs_g: number | null
+  bmr_kcal: number | null
+}
+
+export interface DailyNutritionEventRow {
+  consumed_at: string | null
+  label: string
+  count: number | null
+  kcal: number | null
+  protein_g: number | null
+  fat_g: number | null
+  carbs_g: number | null
+  note: string | null
+  meal_type: string | null
+}
+
+export interface HaruPromptContext {
+  profile: UserProfileRow
+  scores: Record<string, unknown>
+  trendRows: DailyReportTrendRow[]
+  nutritionEvents: DailyNutritionEventRow[]
+}
+
+interface DailyReportGenerationResult {
+  text: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+}
+
+interface DailyReportGenerationOptions {
+  force?: boolean
+  provider?: string
+  apiKey?: string
+  model?: string
+}
+
+interface DailyReportPersistInput {
+  date: string
+  headline: string
+  briefing: string
+  yu_comment: string
+  saki_comment: string
+  mai_comment: string
+  condition_comment: string
+  activity_comment: string
+  meal_comment: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  generated_at: string
+}
+
+class GeminiLimitExceededError extends Error {
+  currentCostJpy: number
+  limitJpy: number
+
+  constructor(currentCostJpy: number, limitJpy: number) {
+    super('Gemini API の月額上限に達しました。')
+    this.name = 'GeminiLimitExceededError'
+    this.currentCostJpy = currentCostJpy
+    this.limitJpy = limitJpy
+  }
+}
+
+interface PlainTextConstraints {
+  minChars: number
+  maxChars: number
+  forbidToday: boolean
+}
+
+interface HaruSystemPromptOptions {
+  minChars: number
+  maxChars: number
+  templatePrompt?: string
+}
+
+interface HaruUserPromptOptions {
+  date: string
+  trendRows: DailyReportTrendRow[]
+  nutritionEvents: DailyNutritionEventRow[]
+  templatePrompt?: string
+  scores?: Record<string, unknown>
+}
 
 export async function readOptionalJsonBody(request: Request, maxBytes = 65536): Promise<Record<string, unknown>> {
   const contentLength = request.headers.get('content-length')
@@ -36,305 +153,350 @@ export async function readOptionalJsonBody(request: Request, maxBytes = 65536): 
   }
 }
 
-interface DailyReportTrendRow {
-  date: string
-  steps: number | null
-  sleep_hours: number | null
-  weight_kg: number | null
-  blood_systolic: number | null
-  blood_diastolic: number | null
-  intake_kcal: number | null
-  active_kcal: number | null
-  total_kcal: number | null
-}
-
-interface DailyReportGenerationResult {
-  payload: DailyReportGeneratedPayload
-  model: string
-  prompt_tokens: number | null
-  completion_tokens: number | null
-}
-
-interface DailyReportGenerationOptions {
-  force?: boolean
-  provider?: string
-  apiKey?: string
-  model?: string
-}
-
-interface DailyReportPersistInput extends DailyReportGeneratedPayload {
-  date: string
-  model: string
-  prompt_tokens: number | null
-  completion_tokens: number | null
-  generated_at: string
-}
-
 export function stripReportEmoji(value: string): string {
   return value.replace(REPORT_EMOJI_RE, '')
 }
 
-export function normalizeDailyReportText(value: unknown, field: string, minLength = 20, maxLength = 320): string {
-  if (typeof value !== 'string') {
-    throw new Error(`${field} must be a string`)
-  }
-  const normalized = stripReportEmoji(value).replace(/\s+/g, ' ').trim()
+function normalizeGeneratedPlainText(value: string, field: string, constraints: PlainTextConstraints): string {
+  const normalized = stripReportEmoji(value)
+    // Remove common Markdown syntax as a safety net for plain-text reports.
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
   if (!normalized) {
     throw new Error(`${field} must not be empty`)
   }
-  if (normalized.length < minLength || normalized.length > maxLength) {
+  if (normalized.length < constraints.minChars || normalized.length > constraints.maxChars) {
     throw new Error(`${field} length is out of range`)
+  }
+  if (constraints.forbidToday && normalized.includes('今日')) {
+    throw new Error(`${field} must not include 今日`)
   }
   return normalized
 }
 
-export function extractJsonObjectCandidate(raw: string): string {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  if (fenced && fenced[1]) {
-    return fenced[1].trim()
+function normalizeStoredOptionalText(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null
   }
-  const start = raw.indexOf('{')
-  const end = raw.lastIndexOf('}')
-  if (start === -1 || end === -1 || start >= end) {
-    throw new Error('LLM response did not include a JSON object')
-  }
-  return raw.slice(start, end + 1).trim()
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
 }
 
-export function parseDailyReportGeneratedPayload(raw: string): DailyReportGeneratedPayload {
-  const candidate = extractJsonObjectCandidate(raw)
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(candidate)
-  } catch {
-    throw new Error('LLM response is not valid JSON')
+function buildDailyReportHeadline(briefing: string): string {
+  const stripped = briefing.replace(/【.+?】/g, '').replace(/\n+/g, ' ').trim()
+  const firstSentence = stripped.split('。').map((part) => part.trim()).find((part) => part.length > 0) ?? ''
+  if (!firstSentence) {
+    return 'ハルのブリーフィング'
   }
-
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('LLM response JSON must be an object')
-  }
-
-  const root = parsed as Record<string, unknown>
-  const home = root.home
-  const tabs = root.tabs
-  if (!home || typeof home !== 'object' || Array.isArray(home)) {
-    throw new Error('LLM response must include home object')
-  }
-  if (!tabs || typeof tabs !== 'object' || Array.isArray(tabs)) {
-    throw new Error('LLM response must include tabs object')
-  }
-
-  const homeObject = home as Record<string, unknown>
-  const tabsObject = tabs as Record<string, unknown>
-
-  return {
-    headline: normalizeDailyReportText(root.headline, 'headline', 5, 120),
-    yu_comment: normalizeDailyReportText(homeObject.yu, 'home.yu', 20, 320),
-    saki_comment: normalizeDailyReportText(homeObject.saki, 'home.saki', 20, 320),
-    mai_comment: normalizeDailyReportText(homeObject.mai, 'home.mai', 20, 320),
-    condition_comment: normalizeDailyReportText(tabsObject.condition, 'tabs.condition', 20, 320),
-    activity_comment: normalizeDailyReportText(tabsObject.activity, 'tabs.activity', 20, 320),
-    meal_comment: normalizeDailyReportText(tabsObject.meal, 'tabs.meal', 20, 320),
-  }
+  return firstSentence.length <= 30 ? firstSentence : `${firstSentence.slice(0, 30)}…`
 }
 
-export function buildSeasonContext(date: string): Record<string, string> {
-  const month = Number.parseInt(date.slice(5, 7), 10)
-  if (month >= 3 && month <= 5) {
-    return {
-      season: '春',
-      context: '寒暖差と花粉の影響が出やすい時期です。水分補給と睡眠の質を意識してください。',
+function formatPromptNumber(value: number | null | undefined, digits = 1): string {
+  if (value == null || !Number.isFinite(value)) {
+    return '-'
+  }
+  return value.toFixed(digits)
+}
+
+function formatPromptInteger(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) {
+    return '-'
+  }
+  return String(Math.round(value))
+}
+
+function formatPromptBloodPressure(systolic: number | null | undefined, diastolic: number | null | undefined): string {
+  if (
+    systolic == null ||
+    diastolic == null ||
+    !Number.isFinite(systolic) ||
+    !Number.isFinite(diastolic)
+  ) {
+    return '-'
+  }
+  return `${Math.round(systolic)}/${Math.round(diastolic)}`
+}
+
+function buildDateRange(date: string, days: number): string[] {
+  const startDate = shiftIsoDateByDays(date, -(days - 1))
+  return Array.from({ length: days }, (_, index) => shiftIsoDateByDays(startDate, index))
+}
+
+function buildTrendRowsTable(date: string, trendRows: DailyReportTrendRow[]): string {
+  const rowMap = new Map<string, DailyReportTrendRow>(trendRows.map((row) => [row.date, row]))
+  const lines = buildDateRange(date, 14).map((day) => {
+    const row = rowMap.get(day)
+    return `| ${day} | ${formatPromptInteger(row?.steps)} | ${formatPromptNumber(row?.sleep_hours, 1)} | ${formatPromptNumber(row?.weight_kg, 1)} | ${formatPromptNumber(row?.body_fat_pct, 1)} | ${formatPromptBloodPressure(row?.blood_systolic, row?.blood_diastolic)} | ${formatPromptInteger(row?.active_kcal)} | ${formatPromptInteger(row?.total_kcal)} | ${formatPromptInteger(row?.intake_kcal)} | ${formatPromptNumber(row?.protein_g, 1)} | ${formatPromptNumber(row?.fat_g, 1)} | ${formatPromptNumber(row?.carbs_g, 1)} |`
+  })
+  return lines.join('\n')
+}
+
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
+const MEAL_LABELS: Record<string, string> = {
+  breakfast: '朝食',
+  lunch: '昼食',
+  dinner: '夕食',
+  snack: '間食',
+}
+
+function formatSingleEvent(event: DailyNutritionEventRow): string {
+  const time = event.consumed_at && event.consumed_at.length >= 16
+    ? event.consumed_at.slice(11, 16)
+    : '--:--'
+  const countLabel = event.count == null || !Number.isFinite(event.count) ? '-' : event.count.toFixed(1)
+  const noteLabel = event.note?.trim() ? `, note:${event.note.trim()}` : ''
+  return `- ${time} ${event.label} x${countLabel}, kcal:${formatPromptNumber(event.kcal, 1)}, P:${formatPromptNumber(event.protein_g, 1)}g, F:${formatPromptNumber(event.fat_g, 1)}g, C:${formatPromptNumber(event.carbs_g, 1)}g${noteLabel}`
+}
+
+function formatNutritionEventsForPrompt(events: DailyNutritionEventRow[]): string {
+  if (events.length === 0) {
+    return '食事記録なし'
+  }
+
+  const grouped = new Map<string, DailyNutritionEventRow[]>()
+  const noType: DailyNutritionEventRow[] = []
+
+  for (const event of events) {
+    const mealType = event.meal_type?.trim().toLowerCase() ?? ''
+    if (mealType && MEAL_LABELS[mealType]) {
+      const list = grouped.get(mealType) ?? []
+      list.push(event)
+      grouped.set(mealType, list)
+    } else {
+      noType.push(event)
     }
   }
-  if (month >= 6 && month <= 8) {
-    return {
-      season: '夏',
-      context: '暑さで体力を消耗しやすい時期です。脱水と睡眠不足に注意してください。',
+
+  const lines: string[] = []
+  for (const mealType of MEAL_TYPES) {
+    const items = grouped.get(mealType)
+    if (items && items.length > 0) {
+      lines.push(`## ${MEAL_LABELS[mealType]}`)
+      for (const event of items) {
+        lines.push(formatSingleEvent(event))
+      }
     }
   }
-  if (month >= 9 && month <= 11) {
-    return {
-      season: '秋',
-      context: '活動しやすい季節です。運動習慣を定着させる好機です。',
+
+  if (noType.length > 0) {
+    lines.push('## その他')
+    for (const event of noType) {
+      lines.push(formatSingleEvent(event))
     }
   }
-  return {
-    season: '冬',
-    context: '冷えと乾燥で体調が揺らぎやすい時期です。血圧管理と保温を重視してください。',
-  }
+
+  return lines.join('\n')
 }
 
-export function buildTrendSummary(rows: DailyReportTrendRow[]): Record<string, unknown> {
-  const latest = rows[rows.length - 1] ?? null
-  const first = rows[0] ?? null
-  const avgSteps = average(rows.map((row) => row.steps))
-  const avgSleepHours = average(rows.map((row) => row.sleep_hours))
-  const avgIntakeKcal = average(rows.map((row) => row.intake_kcal))
-  const avgActiveKcal = average(rows.map((row) => row.active_kcal))
-  const avgSystolic = average(rows.map((row) => row.blood_systolic))
-  const avgDiastolic = average(rows.map((row) => row.blood_diastolic))
-  const latestWeight = latest?.weight_kg ?? null
-  const firstWeight = first?.weight_kg ?? null
-  const weightDiff =
-    latestWeight != null && firstWeight != null ? Number((latestWeight - firstWeight).toFixed(2)) : null
-
-  return {
-    observed_days: rows.length,
-    latest: latest
-      ? {
-          ...latest,
-        }
-      : null,
-    averages: {
-      steps: avgSteps == null ? null : Math.round(avgSteps),
-      sleep_hours: avgSleepHours == null ? null : Number(avgSleepHours.toFixed(2)),
-      intake_kcal: avgIntakeKcal == null ? null : Math.round(avgIntakeKcal),
-      active_kcal: avgActiveKcal == null ? null : Math.round(avgActiveKcal),
-      blood_pressure: avgSystolic == null || avgDiastolic == null ? null : `${Math.round(avgSystolic)}/${Math.round(avgDiastolic)}`,
-    },
-    change: {
-      steps:
-        latest?.steps != null && first?.steps != null
-          ? Math.round(latest.steps - first.steps)
-          : null,
-      sleep_hours:
-        latest?.sleep_hours != null && first?.sleep_hours != null
-          ? Number((latest.sleep_hours - first.sleep_hours).toFixed(2))
-          : null,
-      weight_kg: weightDiff,
-    },
+function formatScoreSummaryForPrompt(scores: Record<string, unknown> | undefined): string {
+  if (!scores) {
+    return '-'
   }
+  const root = scores as Record<string, unknown>
+  const overall = root.overall
+  const domains = root.domains
+  const summary = {
+    overall,
+    domains,
+  }
+  return JSON.stringify(summary)
 }
 
-export function buildDailyReportPrompt(params: {
-  date: string
-  season: Record<string, string>
-  profile: UserProfileRow
-  scores: Record<string, unknown>
-  trendRows: DailyReportTrendRow[]
-}): { systemPrompt: string; userPrompt: string } {
-  const { date, season, profile, scores, trendRows } = params
-  const trendSummary = buildTrendSummary(trendRows)
+export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string {
+  const focusBlock = options.templatePrompt
+    ? [
+        '',
+        '# 今回の分析フォーカス',
+        `- ${options.templatePrompt}`,
+        '- このテーマを中心に分析してください。',
+      ].join('\n')
+    : ''
 
-  const systemPrompt = [
-    'あなたは健康管理アプリ「Health OS」の専属AIライターです。',
-    'ユーザーの健康データを読み取り、3人の専門家キャラクターになりきって日次コメントを生成します。',
+  return [
+    'あなたは「ハル」。予防医学に精通した健康アドバイザー。ユーザーの健康データを毎日分析するパートナー。',
     '',
-    '# 絶対ルール',
-    '- 出力はJSON1つだけ。前後に文章・説明・マークダウンフェンスを付けない',
-    '- 提供されたデータに基づく事実だけを書く。数値を作らない、診断しない',
-    '- 「ダメ」「やめて」「〜してはいけない」など否定表現は禁止。肯定的な言い換えにする',
-    '- 絵文字は一切使わない',
-    '- 各コメントは80〜150文字（日本語）',
-    '- データがnullの領域は触れずにスキップする',
+    '# 核心ルール',
+    '- 1つの深いインサイト > 3つの浅い観察。必ずドメイン横断の因果関係を語る（睡眠→血圧、活動→体重、食事→体組成など）',
+    '- 全ての文に具体的な数値を含め、14日平均や先週との比較で語る',
+    '- 存在するデータだけを分析する。記録がない項目には一切触れない（「記録なし」「未入力」等の言及禁止）',
+    '- です/ます調。抽象的な励まし禁止。「だからなに？」に答えられない文は書かない',
+    '- 推測禁止（歩数が多い理由をでっちあげない等）',
+    '- 自明な因果は書かない（「歩数が減ると消費カロリーが減る」は当たり前）',
+    '- データの読み上げではなく、ユーザーが気づいていない相関や変化を指摘する',
     '',
-    '# 比較の基準',
-    '- 「高め」「低め」「改善」「悪化」を判断する基準は、医学基準ではなくユーザー個人の14日平均（ベースライン）を使う',
-    '- 例: 血圧の14日平均が132/82で今日が129/86なら「平均より少し下がっています」が正しい',
-    '- 医学的な正常値に触れる場合は「一般的な基準では〜」と明示する',
+    '# 時制',
+    '- 朝読むレポート。「昨日」=データ対象日。提案のみ「今日」OK',
     '',
-    '# コメントの構成ルール',
-    '- 各コメントは「事実の確認→ポジティブな解釈or具体的な提案」の順にする',
-    '- 数値が悪くても、まず客観的に事実を述べ、次に具体的で実行可能なアクションを1つ提案する',
-    '- 「頑張りましょう」「意識しましょう」のような抽象的な励ましは避け、具体的な行動を提案する',
-    '  - 悪い例: 「歩数を増やす工夫を始めてみましょう」',
-    '  - 良い例: 「昼食後に10分だけ近所を歩くと、無理なく2000歩ほど上乗せできますよ」',
+    '# 医療',
+    '- データ分析はOK。診断・処方はNG。深刻な異常値→「医療機関への相談を」で止める',
+    focusBlock,
     '',
-    '# home と tabs の役割分担',
-    '- home（ホーム画面）: その専門家が今日一番伝えたいこと1つに絞る。概要として機能する',
-    '- tabs（タブ画面）: homeとは別の切り口で書く。具体的なデータ比較・トレンド分析・行動提案を含める',
-    '- homeとtabsで同じ話題を繰り返してはならない。例えばhomeで血圧に触れたら、tabsでは体重や心拍など別の指標に焦点を当てる',
+    '# 出力',
+    '- プレーンテキストのみ（マークダウン記法禁止）',
+    '- 3セクション構成:',
+    '【注目ポイント】最も重要なドメイン横断の発見1つ',
+    '【データ分析】根拠の数値比較（14日平均比、トレンド）',
+    '【今日の提案】具体的・時間指定のアクション1つ',
+    '- 各セクション間は空行で区切る',
+    `- ${options.minChars}-${options.maxChars}文字`,
   ].join('\n')
-
-  const userPrompt = [
-    `# 対象日: ${date}`,
-    `季節: ${season.season}（${season.context}）`,
-    '',
-    '---',
-    '# ユーザー情報',
-    `- 年齢: ${profile.age ?? '不明'}歳、性別: ${profile.gender === 'male' ? '男性' : profile.gender === 'female' ? '女性' : '未設定'}`,
-    `- 身長: ${profile.height_cm ?? '不明'}cm、目標体重: ${profile.goal_weight_kg ?? '未設定'}kg`,
-    `- 歩数目標: ${profile.steps_goal ?? '未設定'}歩/日、睡眠目標: ${profile.sleep_goal_minutes ? `${Math.round(profile.sleep_goal_minutes / 60)}時間` : '未設定'}`,
-    `- 運動頻度: ${profile.exercise_freq ?? '未設定'}、運動種目: ${profile.exercise_type ?? '未設定'}`,
-    '',
-    '---',
-    '# 今日のスコア（0〜100点、高いほど良い）',
-    `- 総合: ${(scores as Record<string, unknown>).overall ? JSON.stringify((scores as Record<string, unknown>).overall) : 'データなし'}`,
-    `- 各領域: ${JSON.stringify((scores as Record<string, unknown>).domains)}`,
-    `  - score: 0-100の点数。80以上=良好(green)、50-79=注意(yellow)、50未満=要改善(red)、null=データなし`,
-    `- 14日平均スコア（ベースライン）: ${JSON.stringify((scores as Record<string, unknown>).baseline)}`,
-    '',
-    '# 気づき（ルールエンジンが検出した注目ポイント）',
-    `${JSON.stringify((scores as Record<string, unknown>).insights)}`,
-    '- type: "positive"=良い傾向, "attention"=注意, "threshold"=基準値超過',
-    '',
-    '# 過去14日トレンド',
-    JSON.stringify(trendSummary),
-    '- averages: 14日間の平均値',
-    '- change: 初日→最新日の変化量（正=増加、負=減少）',
-    '',
-    '---',
-    '# キャラクター定義',
-    '',
-    '## ユウ先生（内科医・男性）',
-    '担当: homeのyuコメント + tabsのconditionコメント',
-    'トーン: 穏やかで安心感がある。データを噛み砕いて丁寧に伝える。',
-    '特徴: 14日平均との比較で「改善/横ばい/注意」を正確に判定する。季節と体調の関連を自然に織り込む。',
-    '注意: 血圧が14日平均より下がっていれば「改善傾向」と書く。平均より上がっていれば「やや上がっている」と書く。方向を間違えない。',
-    'homeの書き方: 今日のコンディションで一番伝えたいことを1つ。安心感を与える締め。',
-    'tabsの書き方: homeで触れなかった指標のトレンド分析。14日間の変化と具体的な生活改善提案。',
-    '例文: 「今日の血圧は14日平均より少し下がっていますね。この調子で減塩を続けていけば、安定したラインに近づいていきますよ。」',
-    '',
-    '## サキさん（管理栄養士・女性）',
-    '担当: homeのsakiコメント + tabsのmealコメント',
-    'トーン: 明るく親しみやすい。旬の食材や具体的なメニュー提案が得意。',
-    '特徴: 制限ではなく「こうすると美味しいですよ」という提案型。季節の食材を具体的なメニュー名で提案する。',
-    'homeの書き方: 今日の食事状況をサッと触れて、旬の食材を使った具体的な一品を提案。',
-    'tabsの書き方: カロリーバランスや栄養面のトレンドを分析し、1週間単位での食事パターン改善を提案。',
-    '食事記録がない場合: 「記録がない」とだけ指摘せず、記録することのメリットと、今日食べると良い具体メニューを提案する。',
-    '例文: 「たんぱく質がしっかり摂れていますね。今の時期は新玉ねぎが甘くて美味しいので、スライスしてかつお節をのせるだけで立派な一品になりますよ。」',
-    '',
-    '## マイコーチ（パーソナルトレーナー・女性）',
-    '担当: homeのmaiコメント + tabsのactivityコメント',
-    'トーン: ポジティブで励まし上手。コーチとして具体的なメニューを提案する。',
-    '特徴: ユーザーの運動種目・頻度を踏まえて、今日できる具体的な運動を1つ提案する。',
-    '重要: 「歩数が少ない」「目標未達」という事実の報告だけではAIの価値がない。コーチとして「今日これをやろう」という具体的アクションを必ず含める。',
-    `  - ユーザーの運動種目: ${profile.exercise_type ?? '未設定'}`,
-    `  - ユーザーの運動頻度: ${profile.exercise_freq ?? '未設定'}`,
-    'homeの書き方: 今日の活動で良かった点を見つけて褒め、+αの具体アクション1つ。',
-    'tabsの書き方: 14日間の活動トレンドを分析し、週間での運動リズムを提案。歩数だけでなく消費カロリーや距離も活用。',
-    '歩数が極端に少ない日: 「歩数が少ない」と繰り返さず、「今日は室内で過ごす日のようですね」と受け入れた上で、室内でできるストレッチや筋トレを提案する。',
-    '例文: 「今日は室内中心の一日だったようですね。夕食前に5分だけスクワットとストレッチをすると、明日の身体が軽くなりますよ。」',
-    '',
-    '---',
-    '# 出力フォーマット（このJSON構造を厳守）',
-    JSON.stringify(
-      {
-        headline: '全体の状態を一言で（15〜30文字）',
-        home: {
-          yu: 'ユウ先生の総合コメント（80〜150文字）',
-          saki: 'サキさんの栄養コメント（80〜150文字）',
-          mai: 'マイコーチの運動コメント（80〜150文字）',
-        },
-        tabs: {
-          condition: 'ユウ先生が書くコンディション詳細（80〜150文字）',
-          activity: 'マイコーチが書く運動詳細（80〜150文字）',
-          meal: 'サキさんが書く食事詳細（80〜150文字）',
-        },
-      },
-      null,
-      2,
-    ),
-  ].join('\n')
-
-  return { systemPrompt, userPrompt }
 }
 
-export async function callAnthropicDailyReport(
+const DEFAULT_BMR_KCAL = 1500
+const INTAKE_COMPLETENESS_RATIO = 0.7
+
+function maskIncompleteIntake(trendRows: DailyReportTrendRow[]): DailyReportTrendRow[] {
+  const fallbackBmr = trendRows
+    .filter((r) => r.bmr_kcal != null && Number.isFinite(r.bmr_kcal))
+    .map((r) => r.bmr_kcal as number)
+    .pop() ?? DEFAULT_BMR_KCAL
+  const threshold = (bmr: number | null): number =>
+    (bmr != null && Number.isFinite(bmr) ? bmr : fallbackBmr) * INTAKE_COMPLETENESS_RATIO
+
+  return trendRows.map((row) => {
+    const intake = row.intake_kcal
+    if (intake == null || intake < threshold(row.bmr_kcal)) {
+      return { ...row, intake_kcal: null, protein_g: null, fat_g: null, carbs_g: null }
+    }
+    return row
+  })
+}
+
+function isDataDateIntakeComplete(trendRows: DailyReportTrendRow[], dataDate: string): boolean {
+  const row = trendRows.find((r) => r.date === dataDate)
+  if (!row || row.intake_kcal == null) {
+    return false
+  }
+  const fallbackBmr = trendRows
+    .filter((r) => r.bmr_kcal != null && Number.isFinite(r.bmr_kcal))
+    .map((r) => r.bmr_kcal as number)
+    .pop() ?? DEFAULT_BMR_KCAL
+  const bmr = row.bmr_kcal != null && Number.isFinite(row.bmr_kcal) ? row.bmr_kcal : fallbackBmr
+  return row.intake_kcal >= bmr * INTAKE_COMPLETENESS_RATIO
+}
+
+export function buildHaruUserPrompt(options: HaruUserPromptOptions): string {
+  const dataDate = shiftIsoDateByDays(options.date, -1)
+  const templateBlock = options.templatePrompt
+    ? [
+        '',
+        '# 依頼テーマ',
+        options.templatePrompt,
+      ].join('\n')
+    : ''
+
+  const maskedTrendRows = maskIncompleteIntake(options.trendRows)
+  const showNutritionDetail = isDataDateIntakeComplete(options.trendRows, dataDate)
+
+  return [
+    `# レポート日: ${options.date}朝`,
+    `# データ対象日: ${dataDate}（「昨日」= この日のことです）`,
+    `# 睡眠データは起床日(${options.date})の記録です`,
+    '',
+    '# 14日間のデータ',
+    '| date | steps | sleep_h | weight | fat% | BP | active_kcal | total_kcal | intake_kcal | protein | fat | carbs |',
+    buildTrendRowsTable(dataDate, maskedTrendRows),
+    '',
+    ...(showNutritionDetail
+      ? ['# データ対象日の食事記録', formatNutritionEventsForPrompt(options.nutritionEvents)]
+      : []),
+    '',
+    '# データ対象日のスコア参考',
+    formatScoreSummaryForPrompt(options.scores),
+    templateBlock,
+  ].join('\n')
+}
+
+export async function queryDailyReportTrendRows(db: D1Database, date: string): Promise<DailyReportTrendRow[]> {
+  const startDate = shiftIsoDateByDays(date, -13)
+  return queryAll<DailyReportTrendRow>(
+    db,
+    `
+    SELECT
+      m.date,
+      m.steps,
+      m.sleep_hours,
+      m.weight_kg,
+      m.body_fat_pct,
+      m.blood_systolic,
+      m.blood_diastolic,
+      m.active_kcal,
+      m.total_kcal,
+      m.intake_kcal,
+      nutrition.protein_g,
+      nutrition.fat_g,
+      nutrition.carbs_g,
+      m.bmr_kcal
+    FROM daily_metrics AS m
+    LEFT JOIN (
+      SELECT
+        local_date AS date,
+        SUM(COALESCE(protein_g, 0) * COALESCE(count, 1)) AS protein_g,
+        SUM(COALESCE(fat_g, 0) * COALESCE(count, 1)) AS fat_g,
+        SUM(COALESCE(carbs_g, 0) * COALESCE(count, 1)) AS carbs_g
+      FROM nutrition_events
+      WHERE local_date BETWEEN ? AND ?
+      GROUP BY local_date
+    ) AS nutrition
+      ON nutrition.date = m.date
+    WHERE m.date BETWEEN ? AND ?
+    ORDER BY m.date ASC
+    `,
+    [startDate, date, startDate, date],
+  )
+}
+
+export async function queryDailyNutritionEvents(db: D1Database, date: string): Promise<DailyNutritionEventRow[]> {
+  return queryAll<DailyNutritionEventRow>(
+    db,
+    `
+    SELECT
+      consumed_at,
+      label,
+      count,
+      kcal,
+      protein_g,
+      fat_g,
+      carbs_g,
+      note,
+      meal_type
+    FROM nutrition_events
+    WHERE local_date = ?
+    ORDER BY consumed_at ASC, id ASC
+    `,
+    [date],
+  )
+}
+
+export async function loadHaruPromptContext(db: D1Database, date: string): Promise<HaruPromptContext> {
+  const dataDate = shiftIsoDateByDays(date, -1)
+  const [profile, scores, trendRows, nutritionEvents] = await Promise.all([
+    getUserProfile(db),
+    getScores(db, dataDate),
+    queryDailyReportTrendRows(db, dataDate),
+    queryDailyNutritionEvents(db, dataDate),
+  ])
+
+  return {
+    profile,
+    scores,
+    trendRows,
+    nutritionEvents,
+  }
+}
+
+async function callAnthropicDailyReport(
   apiKey: string,
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  constraints: PlainTextConstraints,
 ): Promise<DailyReportGenerationResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
@@ -351,7 +513,7 @@ export async function callAnthropicDailyReport(
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1200,
+        max_tokens: 1600,
         temperature: 0.5,
         system: systemPrompt,
         messages: [
@@ -371,7 +533,9 @@ export async function callAnthropicDailyReport(
         const parsed = JSON.parse(rawResponse) as Record<string, unknown>
         const err = parsed.error as Record<string, unknown> | undefined
         detail = typeof err?.message === 'string' ? `: ${err.message}` : ''
-      } catch { /* ignore parse failure */ }
+      } catch {
+        // ignore parse failure
+      }
       throw new Error(`Anthropic API error (${responseStatus})${detail}`)
     }
   } catch (error) {
@@ -394,13 +558,9 @@ export async function callAnthropicDailyReport(
     .filter((item) => item?.type === 'text' && typeof item?.text === 'string')
     .map((item) => item.text as string)
   const generatedText = textBlocks.join('\n').trim()
-  if (!generatedText) {
-    throw new Error('Anthropic API returned empty content')
-  }
-
-  const payload = parseDailyReportGeneratedPayload(generatedText)
+  const normalizedText = normalizeGeneratedPlainText(generatedText, 'briefing', constraints)
   return {
-    payload: { ...payload },
+    text: normalizedText,
     model: typeof parsedResponse.model === 'string' ? parsedResponse.model : model,
     prompt_tokens:
       typeof parsedResponse.usage?.input_tokens === 'number' ? parsedResponse.usage.input_tokens : null,
@@ -409,11 +569,12 @@ export async function callAnthropicDailyReport(
   }
 }
 
-export async function callOpenAIDailyReport(
+async function callOpenAIDailyReport(
   apiKey: string,
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  constraints: PlainTextConstraints,
 ): Promise<DailyReportGenerationResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
@@ -428,7 +589,7 @@ export async function callOpenAIDailyReport(
       },
       body: JSON.stringify({
         model,
-        max_completion_tokens: /^(gpt-5|o[1-9])/.test(model) ? 16384 : 1200,
+        max_completion_tokens: /^(gpt-5|o[1-9])/.test(model) ? 16384 : 1600,
         ...(/^(gpt-5|o[1-9])/.test(model) ? {} : { temperature: 0.5 }),
         messages: [
           { role: /^(gpt-5|o[1-9])/.test(model) ? 'developer' : 'system', content: systemPrompt },
@@ -450,38 +611,44 @@ export async function callOpenAIDailyReport(
     clearTimeout(timeoutId)
   }
 
-  const parsed = JSON.parse(rawResponse) as OpenAICompatibleResponse
-  const generatedText = parsed.choices?.[0]?.message?.content?.trim() ?? ''
-  if (!generatedText) {
-    throw new Error('OpenAI API returned empty content')
+  let parsed: OpenAICompatibleResponse
+  try {
+    parsed = JSON.parse(rawResponse) as OpenAICompatibleResponse
+  } catch {
+    throw new Error('OpenAI API returned invalid JSON')
   }
+  const generatedText = parsed.choices?.[0]?.message?.content?.trim() ?? ''
+  const normalizedText = normalizeGeneratedPlainText(generatedText, 'briefing', constraints)
 
-  const payload = parseDailyReportGeneratedPayload(generatedText)
   return {
-    payload: { ...payload },
+    text: normalizedText,
     model: typeof parsed.model === 'string' ? parsed.model : model,
     prompt_tokens: typeof parsed.usage?.prompt_tokens === 'number' ? parsed.usage.prompt_tokens : null,
     completion_tokens: typeof parsed.usage?.completion_tokens === 'number' ? parsed.usage.completion_tokens : null,
   }
 }
 
-export async function callGeminiDailyReport(
+async function callGeminiDailyReport(
   apiKey: string,
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  constraints: PlainTextConstraints,
 ): Promise<DailyReportGenerationResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
 
   const geminiModel = model || 'gemini-2.5-flash'
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`
 
   let rawResponse = ''
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
@@ -505,39 +672,40 @@ export async function callGeminiDailyReport(
     clearTimeout(timeoutId)
   }
 
-  const parsed = JSON.parse(rawResponse) as GeminiResponse
-  const parts = parsed.candidates?.[0]?.content?.parts ?? []
-  // Gemini 2.5 models include "thought" parts before the actual response.
-  // Find the last non-thought part which contains the generated text.
-  const outputPart = [...parts].reverse().find((p) => !p.thought)
-  const generatedText = (typeof outputPart?.text === 'string' ? outputPart.text : '').trim()
-  if (!generatedText) {
-    throw new Error(`Gemini API returned empty content. Parts count: ${parts.length}, raw snippet: ${rawResponse.slice(0, 300)}`)
+  let parsed: GeminiResponse
+  try {
+    parsed = JSON.parse(rawResponse) as GeminiResponse
+  } catch {
+    throw new Error('Gemini API returned invalid JSON')
   }
 
-  const payload = parseDailyReportGeneratedPayload(generatedText)
+  const parts = parsed.candidates?.[0]?.content?.parts ?? []
+  const outputPart = [...parts].reverse().find((part) => !part.thought)
+  const generatedText = (typeof outputPart?.text === 'string' ? outputPart.text : '').trim()
+  const normalizedText = normalizeGeneratedPlainText(generatedText, 'briefing', constraints)
   return {
-    payload: { ...payload },
+    text: normalizedText,
     model: parsed.modelVersion ?? geminiModel,
     prompt_tokens: typeof parsed.usageMetadata?.promptTokenCount === 'number' ? parsed.usageMetadata.promptTokenCount : null,
     completion_tokens: typeof parsed.usageMetadata?.candidatesTokenCount === 'number' ? parsed.usageMetadata.candidatesTokenCount : null,
   }
 }
 
-export async function callLlmDailyReport(
+export async function callLlmPlainText(
   provider: string,
   apiKey: string,
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  constraints: PlainTextConstraints,
 ): Promise<DailyReportGenerationResult> {
   if (provider === 'openai') {
-    return callOpenAIDailyReport(apiKey, model || 'gpt-4o-mini', systemPrompt, userPrompt)
+    return callOpenAIDailyReport(apiKey, model || 'gpt-4o-mini', systemPrompt, userPrompt, constraints)
   }
   if (provider === 'gemini' || provider === 'google') {
-    return callGeminiDailyReport(apiKey, model || 'gemini-2.5-flash', systemPrompt, userPrompt)
+    return callGeminiDailyReport(apiKey, model || 'gemini-2.5-flash', systemPrompt, userPrompt, constraints)
   }
-  return callAnthropicDailyReport(apiKey, model || DEFAULT_LLM_MODEL, systemPrompt, userPrompt)
+  return callAnthropicDailyReport(apiKey, model || DEFAULT_LLM_MODEL, systemPrompt, userPrompt, constraints)
 }
 
 export async function getDailyReport(db: D1Database, date: string): Promise<DailyReportRow | null> {
@@ -545,7 +713,7 @@ export async function getDailyReport(db: D1Database, date: string): Promise<Dail
     db,
     `
     SELECT
-      date, headline, yu_comment, saki_comment, mai_comment,
+      date, headline, briefing, yu_comment, saki_comment, mai_comment,
       condition_comment, activity_comment, meal_comment,
       model, prompt_tokens, completion_tokens, generated_at, created_at
     FROM daily_reports
@@ -564,16 +732,18 @@ export function toDailyReportResponse(row: DailyReportRow): Record<string, unkno
     model: row.model,
     prompt_tokens: row.prompt_tokens,
     completion_tokens: row.completion_tokens,
+    briefing: normalizeStoredOptionalText(row.briefing),
     home: {
       headline: row.headline,
-      yu: row.yu_comment,
-      saki: row.saki_comment,
-      mai: row.mai_comment,
+      yu: normalizeStoredOptionalText(row.yu_comment),
+      saki: normalizeStoredOptionalText(row.saki_comment),
+      mai: normalizeStoredOptionalText(row.mai_comment),
+      haru: normalizeStoredOptionalText(row.briefing),
     },
     tabs: {
-      condition: row.condition_comment,
-      activity: row.activity_comment,
-      meal: row.meal_comment,
+      condition: normalizeStoredOptionalText(row.condition_comment),
+      activity: normalizeStoredOptionalText(row.activity_comment),
+      meal: normalizeStoredOptionalText(row.meal_comment),
     },
     cached: true,
   }
@@ -584,12 +754,13 @@ export async function saveDailyReport(db: D1Database, payload: DailyReportPersis
     db,
     `
     INSERT INTO daily_reports(
-      date, headline, yu_comment, saki_comment, mai_comment,
+      date, headline, briefing, yu_comment, saki_comment, mai_comment,
       condition_comment, activity_comment, meal_comment,
       model, prompt_tokens, completion_tokens, generated_at
-    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(date) DO UPDATE SET
       headline = excluded.headline,
+      briefing = excluded.briefing,
       yu_comment = excluded.yu_comment,
       saki_comment = excluded.saki_comment,
       mai_comment = excluded.mai_comment,
@@ -604,6 +775,7 @@ export async function saveDailyReport(db: D1Database, payload: DailyReportPersis
     [
       payload.date,
       payload.headline,
+      payload.briefing,
       payload.yu_comment,
       payload.saki_comment,
       payload.mai_comment,
@@ -617,23 +789,6 @@ export async function saveDailyReport(db: D1Database, payload: DailyReportPersis
     ],
   )
 }
-
-export async function queryDailyReportTrendRows(db: D1Database, date: string): Promise<DailyReportTrendRow[]> {
-  const startDate = shiftIsoDateByDays(date, -13)
-  return queryAll<DailyReportTrendRow>(
-    db,
-    `
-    SELECT
-      date, steps, sleep_hours, weight_kg, blood_systolic, blood_diastolic, intake_kcal, active_kcal, total_kcal
-    FROM daily_metrics
-    WHERE date BETWEEN ? AND ?
-    ORDER BY date ASC
-    `,
-    [startDate, date],
-  )
-}
-
-
 
 export async function handleDailyReportGet(url: URL, env: Env): Promise<Response> {
   const date = url.searchParams.get('date') ?? toIsoDate(new Date())
@@ -665,39 +820,73 @@ export async function generateDailyReportIfNeeded(
   }
 
   await ensureAggregatesUpToDate(env.DB)
-  const [profile, scores, trendRows] = await Promise.all([
-    getUserProfile(env.DB),
-    getScores(env.DB, date),
-    queryDailyReportTrendRows(env.DB, date),
-  ])
-  const season = buildSeasonContext(date)
-  const prompt = buildDailyReportPrompt({
+  const promptContext = await loadHaruPromptContext(env.DB, date)
+  const systemPrompt = buildHaruSystemPrompt({
+    minChars: 300,
+    maxChars: 800,
+  })
+  const userPrompt = buildHaruUserPrompt({
     date,
-    season: { ...season },
-    profile: { ...profile },
-    scores: { ...scores },
-    trendRows: [...trendRows],
+    trendRows: promptContext.trendRows,
+    nutritionEvents: promptContext.nutritionEvents,
+    scores: promptContext.scores,
   })
 
   const envProvider = (env.LLM_PROVIDER ?? DEFAULT_LLM_PROVIDER).trim().toLowerCase() || DEFAULT_LLM_PROVIDER
-  const provider = options.provider?.trim().toLowerCase() || envProvider
   const overrideApiKey = options.apiKey?.trim() ?? ''
   const envApiKey = (env.LLM_API_KEY ?? '').trim()
-  const effectiveApiKey = overrideApiKey || envApiKey
-  if (!effectiveApiKey) {
+  const geminiApiKey = (env.GEMINI_API_KEY ?? '').trim()
+  let provider: string
+  let effectiveApiKey: string
+  if (overrideApiKey) {
+    effectiveApiKey = overrideApiKey
+    provider = options.provider?.trim().toLowerCase() || envProvider
+  } else if (envApiKey) {
+    effectiveApiKey = envApiKey
+    provider = options.provider?.trim().toLowerCase() || envProvider
+  } else if (geminiApiKey) {
+    effectiveApiKey = geminiApiKey
+    provider = 'gemini'
+  } else {
     throw new Error('LLM API key is not configured')
   }
   const overrideModel = options.model?.trim() ?? ''
   const model = overrideModel || (env.LLM_MODEL ?? '').trim() || ''
 
-  const generated = await callLlmDailyReport(provider, effectiveApiKey, model, prompt.systemPrompt, prompt.userPrompt)
+  if (provider === 'gemini') {
+    const limitCheck = await checkMonthlyLimit(env.DB)
+    if (!limitCheck.ok) {
+      throw new GeminiLimitExceededError(limitCheck.currentCostJpy, limitCheck.limitJpy)
+    }
+  }
+
+  const generated = await callLlmPlainText(provider, effectiveApiKey, model, systemPrompt, userPrompt, {
+    minChars: 300,
+    maxChars: 800,
+    forbidToday: false,
+  })
+  if (provider === 'gemini') {
+    try {
+      await recordGeminiUsage(env.DB, generated.prompt_tokens ?? 0, generated.completion_tokens ?? 0)
+    } catch {
+      // Usage tracking failure should not block report delivery.
+    }
+  }
+
   const persistPayload: DailyReportPersistInput = {
     date,
+    headline: buildDailyReportHeadline(generated.text),
+    briefing: generated.text,
+    yu_comment: '',
+    saki_comment: '',
+    mai_comment: '',
+    condition_comment: '',
+    activity_comment: '',
+    meal_comment: '',
     model: generated.model,
     prompt_tokens: generated.prompt_tokens,
     completion_tokens: generated.completion_tokens,
     generated_at: nowIso(),
-    ...generated.payload,
   }
 
   await saveDailyReport(env.DB, persistPayload)
@@ -710,8 +899,9 @@ export async function generateDailyReportIfNeeded(
 }
 
 export async function handleDailyReportGenerate(request: Request, url: URL, env: Env): Promise<Response> {
-  const apiKey = (env.LLM_API_KEY ?? '').trim()
-  if (!apiKey) {
+  const envLlmApiKey = (env.LLM_API_KEY ?? '').trim()
+  const geminiApiKey = (env.GEMINI_API_KEY ?? '').trim()
+  if (!envLlmApiKey && !geminiApiKey) {
     return jsonResponse({ detail: 'LLM API key is not configured' }, 503)
   }
 
@@ -736,24 +926,45 @@ export async function handleDailyReportGenerate(request: Request, url: URL, env:
   const forceFromQuery = parseBooleanFlag(url.searchParams.get('force'))
   const force = forceFromBody ?? forceFromQuery ?? false
 
-  const provider = typeof body.provider === 'string' ? body.provider : undefined
+  const overrideProvider = typeof body.provider === 'string' ? body.provider : undefined
   const overrideApiKey = typeof body.api_key === 'string' ? body.api_key : undefined
   const overrideModel = typeof body.model === 'string' ? body.model : undefined
+
+  let effectiveApiKey: string
+  let effectiveProvider: string | undefined
+  if (overrideApiKey) {
+    effectiveApiKey = overrideApiKey
+    effectiveProvider = overrideProvider
+  } else if (overrideProvider === 'gemini' && geminiApiKey) {
+    effectiveApiKey = geminiApiKey
+    effectiveProvider = 'gemini'
+  } else if (envLlmApiKey) {
+    effectiveApiKey = envLlmApiKey
+    effectiveProvider = overrideProvider
+  } else if (geminiApiKey) {
+    effectiveApiKey = geminiApiKey
+    effectiveProvider = 'gemini'
+  } else {
+    return jsonResponse({ detail: 'LLM API key is not configured' }, 503)
+  }
 
   try {
     const result = await generateDailyReportIfNeeded(env, date, {
       force,
-      provider,
-      apiKey: overrideApiKey ?? apiKey,
+      provider: effectiveProvider,
+      apiKey: effectiveApiKey,
       model: overrideModel,
     })
     return jsonResponse({ ...result })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to generate daily report'
-    if (message.includes('JSON') || message.includes('LLM response')) {
-      console.error(`daily-report-json-parse-error: ${message}`)
+    if (error instanceof GeminiLimitExceededError) {
+      return jsonResponse({
+        detail: error.message,
+        current_cost_jpy: error.currentCostJpy,
+        limit_jpy: error.limitJpy,
+      }, 429)
     }
+    const message = error instanceof Error ? error.message : 'Failed to generate daily report'
     return jsonResponse({ detail: message }, 500)
   }
 }
-
