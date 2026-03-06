@@ -228,13 +228,25 @@ function buildDateRange(date: string, days: number): string[] {
   return Array.from({ length: days }, (_, index) => shiftIsoDateByDays(startDate, index))
 }
 
-function buildTrendRowsTable(date: string, trendRows: DailyReportTrendRow[]): string {
+function buildTrendRowsTable(date: string, trendRows: DailyReportTrendRow[]): { header: string; body: string } {
   const rowMap = new Map<string, DailyReportTrendRow>(trendRows.map((row) => [row.date, row]))
-  const lines = buildDateRange(date, 14).map((day) => {
+  const hasAnyIntake = trendRows.some((r) => r.intake_kcal != null)
+  const days = buildDateRange(date, 14)
+
+  const header = hasAnyIntake
+    ? '| date | steps | sleep_h | weight | fat% | BP | active_burn_kcal | total_burn_kcal | intake_kcal | protein | fat | carbs |'
+    : '| date | steps | sleep_h | weight | fat% | BP | active_burn_kcal | total_burn_kcal |'
+
+  const lines = days.map((day) => {
     const row = rowMap.get(day)
-    return `| ${day} | ${formatPromptInteger(row?.steps)} | ${formatPromptNumber(row?.sleep_hours, 1)} | ${formatPromptNumber(row?.weight_kg, 1)} | ${formatPromptNumber(row?.body_fat_pct, 1)} | ${formatPromptBloodPressure(row?.blood_systolic, row?.blood_diastolic)} | ${formatPromptInteger(row?.active_kcal)} | ${formatPromptInteger(row?.total_kcal)} | ${formatPromptInteger(row?.intake_kcal)} | ${formatPromptNumber(row?.protein_g, 1)} | ${formatPromptNumber(row?.fat_g, 1)} | ${formatPromptNumber(row?.carbs_g, 1)} |`
+    const base = `| ${day} | ${formatPromptInteger(row?.steps)} | ${formatPromptNumber(row?.sleep_hours, 1)} | ${formatPromptNumber(row?.weight_kg, 1)} | ${formatPromptNumber(row?.body_fat_pct, 1)} | ${formatPromptBloodPressure(row?.blood_systolic, row?.blood_diastolic)} | ${formatPromptInteger(row?.active_kcal)} | ${formatPromptInteger(row?.total_kcal)}`
+    if (hasAnyIntake) {
+      return `${base} | ${formatPromptInteger(row?.intake_kcal)} | ${formatPromptNumber(row?.protein_g, 1)} | ${formatPromptNumber(row?.fat_g, 1)} | ${formatPromptNumber(row?.carbs_g, 1)} |`
+    }
+    return `${base} |`
   })
-  return lines.join('\n')
+
+  return { header, body: lines.join('\n') }
 }
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
@@ -294,56 +306,81 @@ function formatNutritionEventsForPrompt(events: DailyNutritionEventRow[]): strin
   return lines.join('\n')
 }
 
-function formatScoreSummaryForPrompt(scores: Record<string, unknown> | undefined): string {
+function formatScoreSummaryForPrompt(scores: Record<string, unknown> | undefined, hideNutrition: boolean): string {
   if (!scores) {
     return '-'
   }
   const root = scores as Record<string, unknown>
   const overall = root.overall
-  const domains = root.domains
+  const domains = root.domains as Record<string, unknown> | undefined
+  const filteredDomains = hideNutrition && domains
+    ? Object.fromEntries(Object.entries(domains).filter(([key]) => key !== 'nutrition'))
+    : domains
   const summary = {
     overall,
-    domains,
+    domains: filteredDomains,
   }
   return JSON.stringify(summary)
 }
 
 export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string {
-  const focusBlock = options.templatePrompt
-    ? [
-        '',
-        '# 今回の分析フォーカス',
-        `- ${options.templatePrompt}`,
-        '- このテーマを中心に分析してください。',
-      ].join('\n')
-    : ''
+  const isCustomReport = !!options.templatePrompt
 
-  return [
-    'あなたは「ハル」。予防医学に精通した健康アドバイザー。ユーザーの健康データを毎日分析するパートナー。',
+  const baseRules = [
+    'あなたは「ハル」。ユーザーの健康データを毎日見ている、友人の医師。',
     '',
-    '# 核心ルール',
-    '- 1つの深いインサイト > 3つの浅い観察。必ずドメイン横断の因果関係を語る（睡眠→血圧、活動→体重、食事→体組成など）',
-    '- 全ての文に具体的な数値を含め、14日平均や先週との比較で語る',
-    '- 存在するデータだけを分析する。記録がない項目には一切触れない（「記録なし」「未入力」等の言及禁止）',
-    '- です/ます調。抽象的な励まし禁止。「だからなに？」に答えられない文は書かない',
-    '- 推測禁止（歩数が多い理由をでっちあげない等）',
-    '- 自明な因果は書かない（「歩数が減ると消費カロリーが減る」は当たり前）',
-    '- データの読み上げではなく、ユーザーが気づいていない相関や変化を指摘する',
+    '# 共通ルール',
+    '- 存在するデータだけを語る。記録がない項目には一切触れない',
+    '- ある指標が「高い」「低い」と言う場合は、必ず14日間の平均と比較してから判断する。平均付近なら「安定している」と表現する',
+    '- 食事データがある場合、摂取カロリーと総消費カロリー(total_burn_kcal)の収支に必ず触れる',
+    '- 推測禁止。診断・処方もNG',
     '',
     '# 時制',
-    '- 朝読むレポート。「昨日」=データ対象日。提案のみ「今日」OK',
+    '- 「昨日」=データ対象日',
+  ]
+
+  if (isCustomReport) {
+    return [
+      ...baseRules,
+      '',
+      '# スタイル',
+      '- 友人の医師として詳しく解説するトーン。です/ます調',
+      '- 1文ごとに改行する。長い段落は禁止',
+      '- プレーンテキストのみ（マークダウン記法禁止）',
+      '',
+      '# 内容ルール',
+      '- 指定テーマを14日間のトレンドデータから深掘りする',
+      '- 数値の比較（14日平均、直近7日 vs 前7日など）を根拠として示す',
+      '- 指標同士の相関を分析する（睡眠→血圧、活動→体重など）',
+      '- 改善点だけでなく、良い傾向も具体的に伝える',
+      '- 最後に具体的な提案を2-3個',
+      '',
+      '# 分析テーマ',
+      `- ${options.templatePrompt}`,
+      '- このテーマを中心に深く分析してください',
+      '',
+      '# 出力',
+      `- ${options.minChars}-${options.maxChars}文字`,
+    ].join('\n')
+  }
+
+  return [
+    ...baseRules,
     '',
-    '# 医療',
-    '- データ分析はOK。診断・処方はNG。深刻な異常値→「医療機関への相談を」で止める',
-    focusBlock,
+    '# スタイル',
+    '- LINEで友達に話しかけるような自然な会話体。です/ます調だけど堅くない',
+    '- セクション見出し・箇条書き・マークダウン記法は一切使わない。普通の文章で書く',
+    '- 1文ごとに改行する。長い段落は禁止',
+    '',
+    '# 内容ルール',
+    '- ポジティブな変化があればそこから自然に入る。ただし「褒める」「まず良い点」のような前置きは絶対に書かない',
+    '- 体重・血圧・活動・睡眠・食事など、データにある主要指標をバランスよく触れる',
+    '- 指標同士の関連を自然に織り込む（「歩いた分、体脂肪が下がってますね」のように）',
+    '- 数値は根拠として括弧で添える程度。数値だけの文は書かない',
+    '- 最後に具体的な提案を1つ、会話の流れで自然に',
     '',
     '# 出力',
-    '- プレーンテキストのみ（マークダウン記法禁止）',
-    '- 3セクション構成:',
-    '【注目ポイント】最も重要なドメイン横断の発見1つ',
-    '【データ分析】根拠の数値比較（14日平均比、トレンド）',
-    '【今日の提案】具体的・時間指定のアクション1つ',
-    '- 各セクション間は空行で区切る',
+    '- プレーンテキストのみ',
     `- ${options.minChars}-${options.maxChars}文字`,
   ].join('\n')
 }
@@ -400,15 +437,14 @@ export function buildHaruUserPrompt(options: HaruUserPromptOptions): string {
     `# 睡眠データは起床日(${options.date})の記録です`,
     '',
     '# 14日間のデータ',
-    '| date | steps | sleep_h | weight | fat% | BP | active_kcal | total_kcal | intake_kcal | protein | fat | carbs |',
-    buildTrendRowsTable(dataDate, maskedTrendRows),
+    (() => { const t = buildTrendRowsTable(dataDate, maskedTrendRows); return `${t.header}\n${t.body}` })(),
     '',
     ...(showNutritionDetail
       ? ['# データ対象日の食事記録', formatNutritionEventsForPrompt(options.nutritionEvents)]
       : []),
     '',
     '# データ対象日のスコア参考',
-    formatScoreSummaryForPrompt(options.scores),
+    formatScoreSummaryForPrompt(options.scores, !showNutritionDetail),
     templateBlock,
   ].join('\n')
 }

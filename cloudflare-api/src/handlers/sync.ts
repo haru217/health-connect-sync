@@ -187,13 +187,19 @@ export async function handleSync(request: Request, env: Env, ctx: ExecutionConte
     }
   }
 
-  const yesterday = shiftIsoDateByDays(toIsoDate(new Date()), -1)
+  const today = toIsoDate(new Date())
   const llmApiKey = (env.LLM_API_KEY ?? '').trim()
-  if (llmApiKey && ctx) {
+  if (ctx) {
     ctx.waitUntil(
-      generateDailyReportIfNeeded(env, yesterday).catch((err: unknown) =>
-        console.error('Auto report generation failed:', err)
-      ),
+      rebuildAggregatesFromHealthRecords(env.DB)
+        .then(() => {
+          if (llmApiKey) {
+            return generateDailyReportIfNeeded(env, today)
+          }
+        })
+        .catch((err: unknown) =>
+          console.error('Post-sync background tasks failed:', err)
+        ),
     )
   }
 
