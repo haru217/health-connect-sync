@@ -159,13 +159,10 @@ export function stripReportEmoji(value: string): string {
 
 function normalizeGeneratedPlainText(value: string, field: string, constraints: PlainTextConstraints): string {
   const normalized = stripReportEmoji(value)
-    // Remove common Markdown syntax as a safety net for plain-text reports.
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/^[-*]\s+/gm, '')
+    // Avoid stripping useful markdown structure like bold or bullets here,
+    // so the frontend can properly render the styled brief.
     .replace(/\r\n?/g, '\n')
-    .replace(/[^\S\n]+/g, ' ')
+    // Combine multiple newlines, but preserve paragraph breaks
     .replace(/\n{3,}/g, '\n\n')
     .trim()
   if (!normalized) {
@@ -345,8 +342,7 @@ export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string 
       '',
       '# スタイル',
       '- 友人の医師として詳しく解説するトーン。です/ます調',
-      '- 1文ごとに改行する。長い段落は禁止',
-      '- プレーンテキストのみ（マークダウン記法禁止）',
+      '- 適度に段落を分け、重要なポイントは箇条書きや太字（**太字**）を用いて視認性良く情報を整理すること',
       '',
       '# 内容ルール',
       '- 指定テーマを14日間のトレンドデータから深掘りする',
@@ -367,20 +363,27 @@ export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string 
   return [
     ...baseRules,
     '',
+    '# 構造',
+    '- 最初の段落: 挨拶と昨日の一言まとめ（見出しなし）',
+    '- 本文: 2〜3つの【セクション見出し】で構造化（例:【からだの様子】【食事と栄養】【運動と活動】【ハルからのアドバイス】）',
+    '- セクション見出しは必ず【】で囲む',
+    '- 最後: 励ましの一言で自然に締める',
+    '',
     '# スタイル',
-    '- LINEで友達に話しかけるような自然な会話体。です/ます調だけど堅くない',
-    '- セクション見出し・箇条書き・マークダウン記法は一切使わない。普通の文章で書く',
-    '- 1文ごとに改行する。長い段落は禁止',
+    '- 友人の医師として話す。専門用語や医学的メカニズムの説明は避け、日常の言葉で伝える',
+    '- です/ます調だけど堅くない。心配な数値でも「こうすれば大丈夫」と前向きに伝える',
+    '- 必須: 各【セクション】の中で、最も伝えたいポイント1箇所を必ず**太字**にする。太字がないセクションは不可',
+    '- 箇条書き（-や・）は使わない。文章で自然に書く',
+    '- 段落は適宜分け、長すぎる文の塊を作らない',
     '',
     '# 内容ルール',
-    '- ポジティブな変化があればそこから自然に入る。ただし「褒める」「まず良い点」のような前置きは絶対に書かない',
+    '- データが悪い日でも「ダメ」「危険」「懸念」のような否定的な表現は避ける。改善の余地として前向きに伝える',
     '- 体重・血圧・活動・睡眠・食事など、データにある主要指標をバランスよく触れる',
-    '- 指標同士の関連を自然に織り込む（「歩いた分、体脂肪が下がってますね」のように）',
-    '- 数値は根拠として括弧で添える程度。数値だけの文は書かない',
-    '- 最後に具体的な提案を1つ、会話の流れで自然に',
+    '- 指標同士の関連を自然に織り込む（「動いた分が体脂肪の改善に出ていますね」のように）',
+    '- 摂取カロリーが消費カロリーを上回る場合は「黒字」「しっかり摂れた」ではなく、改善の余地として前向きな提案につなげる',
+    '- 数値は根拠として必要最小限添える程度。数値だけの文は書かない',
     '',
     '# 出力',
-    '- プレーンテキストのみ',
     `- ${options.minChars}-${options.maxChars}文字`,
   ].join('\n')
 }
@@ -422,10 +425,10 @@ export function buildHaruUserPrompt(options: HaruUserPromptOptions): string {
   const dataDate = shiftIsoDateByDays(options.date, -1)
   const templateBlock = options.templatePrompt
     ? [
-        '',
-        '# 依頼テーマ',
-        options.templatePrompt,
-      ].join('\n')
+      '',
+      '# 依頼テーマ',
+      options.templatePrompt,
+    ].join('\n')
     : ''
 
   const maskedTrendRows = maskIncompleteIntake(options.trendRows)

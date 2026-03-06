@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary, fetchScores, fetchSummary } from '../api/healthApi'
-import { fetchCustomReportById, fetchCustomReportsHistory, requestCustomReport } from '../api/reports'
+import { fetchCustomReportsHistory, requestCustomReport } from '../api/reports'
 import type {
   HomeSummaryResponse,
   RequestState,
@@ -186,46 +186,106 @@ function HaruBriefing({
   if (briefing) {
     const paragraphs = briefing.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0)
     return (
-      <section className="haru-briefing-section" style={{ margin: '16px', padding: '16px', background: 'var(--surface)', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>tips_and_updates</span>
-          ハルのブリーフィング
-        </div>
-        {showReportDateLabel && reportDateLabel ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'var(--surface-subtle, rgba(15, 23, 42, 0.04))', borderRadius: '999px', padding: '4px 10px' }}>
-              {reportDateLabel}のレポート
+      <section className="haru-briefing-section" style={{ margin: '16px 16px 32px 16px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--surface)',
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+          border: '1px solid var(--border-color)',
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          {/* ハルのアバター領域 (大きめ) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '20px 20px 16px 20px',
+            background: 'linear-gradient(to bottom, var(--surface-subtle), var(--surface))',
+            borderBottom: '1px solid rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              flexShrink: 0, width: '88px', height: '88px', borderRadius: '50%',
+              overflow: 'hidden',
+              border: '4px solid white',
+              boxShadow: '0 8px 16px rgba(45,139,111,0.15)',
+              background: 'white',
+              position: 'relative',
+              zIndex: 2
+            }}>
+              <img
+                src="/haru-avatar.png"
+                alt="ハル"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '20px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>ハル</span>
+                <span style={{
+                  fontSize: '11px', fontWeight: 'bold', color: 'white',
+                  background: 'var(--accent-color)', padding: '2px 8px', borderRadius: '999px'
+                }}>
+                  AI Agent
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                {showReportDateLabel && reportDateLabel ? `${reportDateLabel}の分析レポート` : 'あなた専属のヘルスケアパートナー'}
+              </div>
             </div>
           </div>
-        ) : null}
-        <div style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--text-primary)' }}>
-          {paragraphs.map((para, i) => {
-            const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
-            if (sectionMatch) {
-              return (
-                <div key={i} style={{ marginBottom: i < paragraphs.length - 1 ? '12px' : 0 }}>
-                  <div style={{
-                    fontSize: '13px',
-                    fontWeight: 'bold',
-                    color: 'var(--accent-color)',
-                    marginBottom: '4px',
-                    marginTop: i > 0 ? '8px' : 0,
-                  }}>
-                    {sectionMatch[1]}
-                  </div>
-                  <p style={{ margin: 0 }}>{sectionMatch[2].trim()}</p>
-                </div>
-              )
-            }
-            return <p key={i} style={{ margin: `0 0 ${i < paragraphs.length - 1 ? '8px' : '0'} 0` }}>{para}</p>
-          })}
+
+          {/* メッセージ領域 */}
+          <div style={{ padding: '0 20px 24px 20px', position: 'relative' }}>
+
+            <div style={{ fontSize: '15px', lineHeight: '1.7', color: 'var(--text-primary)', position: 'relative', zIndex: 2 }}>
+              {paragraphs.map((para, i) => {
+                const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
+                if (sectionMatch) {
+                  const sectionLines = sectionMatch[2].trim().split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
+                  return (
+                    <div key={i} style={{
+                      marginBottom: i < paragraphs.length - 1 ? '16px' : 0,
+                    }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: 'var(--accent-color)',
+                        marginBottom: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+                        {sectionMatch[1]}
+                      </div>
+                      {sectionLines.map((line, j) => (
+                        <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '4px' : '0'} 0` }}>
+                          {renderMarkdownText(line)}
+                        </p>
+                      ))}
+                    </div>
+                  )
+                }
+                return (
+                  <p key={i} style={{ margin: `0 0 ${i < paragraphs.length - 1 ? '12px' : '0'} 0` }}>
+                    {renderMarkdownText(para)}
+                  </p>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </section>
     )
   }
+
   if (fallbackReport) {
     return <ExpertSection home={fallbackReport} />
   }
+
   return null
 }
 
@@ -281,30 +341,29 @@ const TEMPLATES = [
   { id: 'general', icon: 'health_and_safety', label: '全体の健康', desc: '総合分析' },
 ] as const
 
-function renderReportText(text: string) {
-  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0)
-  return paragraphs.map((para, i) => {
-    const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
-    if (sectionMatch) {
+/**
+ * テキスト内の **太字** などの簡易Markdown記法をパースしてReact要素の配列を返す
+ */
+function renderMarkdownText(text: string): React.ReactNode[] {
+  // `**text**` にマッチする正規表現
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // ** に囲まれている場合は太字にする（色は変えない）
+      const content = part.slice(2, -2)
       return (
-        <div key={i} style={{ marginBottom: '8px' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--accent-color)', fontSize: '12px' }}>
-            {sectionMatch[1]}
-          </span>
-          <br />
-          {sectionMatch[2].trim()}
-        </div>
+        <strong key={index} style={{ fontWeight: 'bold' }}>
+          {content}
+        </strong>
       )
     }
-    return <p key={i} style={{ margin: '0 0 6px 0' }}>{para}</p>
+    return <span key={index}>{part}</span>
   })
 }
 
-function CustomReportSection({ history, onRequest }: { history: CustomReportHistoryItem[], onRequest: (id: string) => void }) {
+
+function CustomReportSection({ history, onRequest, onViewReport }: { history: CustomReportHistoryItem[], onRequest: (id: string) => void, onViewReport?: (id: number) => void }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [fullTexts, setFullTexts] = useState<Record<number, string>>({})
-  const [loadingHistoryId, setLoadingHistoryId] = useState<number | null>(null)
 
   const styles = `
     .haru-template-btn {
@@ -369,23 +428,6 @@ function CustomReportSection({ history, onRequest }: { history: CustomReportHist
     }
   }
 
-  const handleToggleHistory = async (id: number) => {
-    if (expandedId === id) {
-      setExpandedId(null)
-      return
-    }
-
-    setExpandedId(id)
-    if (fullTexts[id]) return
-
-    setLoadingHistoryId(id)
-    try {
-      const fullText = await fetchCustomReportById(id)
-      setFullTexts(prev => ({ ...prev, [id]: fullText }))
-    } finally {
-      setLoadingHistoryId(current => (current === id ? null : current))
-    }
-  }
 
   return (
     <section className="custom-report-section" style={{ margin: '32px 16px' }}>
@@ -420,56 +462,34 @@ function CustomReportSection({ history, onRequest }: { history: CustomReportHist
       {history.length > 0 ? (
         <div style={{ marginTop: '16px' }}>
           <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>過去のレポート</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {history.slice(0, 5).map(h => {
               const dateLabel = h.createdAt ? new Date(h.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
-              const isExpanded = expandedId === h.id
-              const hasFullText = Boolean(fullTexts[h.id])
-              const isLoading = loadingHistoryId === h.id
-              const bodyText = isExpanded
-                ? (hasFullText ? fullTexts[h.id] : (isLoading ? '読み込み中...' : h.excerpt))
-                : h.excerpt
               return (
                 <div
                   key={h.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => { void handleToggleHistory(h.id) }}
+                  onClick={() => onViewReport?.(h.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      void handleToggleHistory(h.id)
+                      onViewReport?.(h.id)
                     }
                   }}
-                  style={{ background: 'var(--surface)', padding: '12px', borderRadius: '12px', borderLeft: '3px solid var(--accent-color)', cursor: 'pointer' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'var(--surface)',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: 'bold' }}>{h.templateLabel}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{dateLabel}</span>
-                  </div>
-                  <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
-                    {renderReportText(bodyText ?? '')}
-                    {!isExpanded && h.excerpt.length >= 200 ? <span>…</span> : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void handleToggleHistory(h.id)
-                    }}
-                    style={{
-                      marginTop: '8px',
-                      padding: 0,
-                      border: 'none',
-                      background: 'transparent',
-                      color: 'var(--accent-color)',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {isExpanded ? '閉じる' : '…続きを読む'}
-                  </button>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', flex: 1 }}>{h.templateLabel}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>{dateLabel}</span>
+                  <span style={{ fontSize: '14px', color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
                 </div>
               )
             })}
@@ -491,9 +511,10 @@ type HomeScreenData = {
 
 interface HomeScreenProps {
   onNavigate?: (target: HomeNavigateTarget) => void
+  onViewReport?: (id: number) => void
 }
 
-export default function HomeScreen({ onNavigate }: HomeScreenProps) {
+export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps) {
   const { activeDate } = useDateContext()
   const [state, setState] = useState<RequestState<HomeScreenData>>({ status: 'loading' })
 
@@ -589,7 +610,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             activeDate={activeDate}
           />
           <YesterdayHighlights metrics={content.summary.metrics} averages={content.averages} />
-          <CustomReportSection history={content.customReports} onRequest={handleRequestReport} />
+          <CustomReportSection history={content.customReports} onRequest={handleRequestReport} onViewReport={onViewReport} />
           {reportError && (
             <div style={{ margin: '0 16px', padding: '12px', background: 'var(--danger-bg, #fef2f2)', color: 'var(--danger-color, #dc2626)', borderRadius: '8px', fontSize: '13px' }}>
               {reportError}
