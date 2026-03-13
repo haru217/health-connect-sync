@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/HomeScreen'
+import ReportDetailScreen from './screens/ReportDetailScreen'
 import MealScreen from './screens/MealScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 import HealthScreen from './screens/HealthScreen'
 import MyScreen from './screens/MyScreen'
 import SetupScreen from './screens/SetupScreen'
+import FoodScreen from './screens/FoodScreen'
 import { DateProvider } from './context/DateContext'
 import { fetchProfile } from './api/healthApi'
 import type { ProfileResponse } from './api/types'
 
-type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my'
+type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my' | 'food' | 'report-detail' | 'weekly-report-detail'
 type InstallChoice = 'accepted' | 'dismissed'
 type SetupGate = 'checking' | 'required' | 'completed'
 
@@ -25,6 +27,8 @@ type BeforeInstallPromptEvent = Event & {
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home')
   const [healthInitialTab, setHealthInitialTab] = useState<'composition' | 'circulation' | 'sleep' | 'vital'>('composition')
+  const [reportDetailId, setReportDetailId] = useState<number | null>(null)
+  const [weeklyReportWeekStart, setWeeklyReportWeekStart] = useState<string | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showInstallHint, setShowInstallHint] = useState(false)
@@ -142,7 +146,15 @@ function App() {
             setHealthInitialTab(t.innerTab)
           }
           setCurrentScreen(t.tab as ScreenType)
+        }} onViewReport={(id) => {
+          setReportDetailId(id)
+          setCurrentScreen('report-detail')
+        }} onViewWeeklyReport={(weekStart) => {
+          setWeeklyReportWeekStart(weekStart)
+          setCurrentScreen('weekly-report-detail')
         }} />
+      case 'food':
+        return <FoodScreen />
       case 'meal':
         return <MealScreen />
       case 'exercise':
@@ -151,6 +163,14 @@ function App() {
         return <HealthScreen initialTab={healthInitialTab} />
       case 'my':
         return <MyScreen />
+      case 'report-detail':
+        return reportDetailId != null ? (
+          <ReportDetailScreen reportId={reportDetailId} onBack={() => setCurrentScreen('home')} />
+        ) : <HomeScreen />
+      case 'weekly-report-detail':
+        return weeklyReportWeekStart != null ? (
+          <ReportDetailScreen weeklyReportWeekStart={weeklyReportWeekStart} onBack={() => setCurrentScreen('home')} />
+        ) : <HomeScreen />
       default:
         return <HomeScreen />
     }
@@ -176,9 +196,7 @@ function App() {
         {/* Header */}
         <header className="header">
           <div className="header-title">{isSetupActive ? '初回セットアップ' : 'Health AI Advisor'}</div>
-          <div className="header-settings">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", color: 'var(--text-muted)' }}>person</span>
-          </div>
+          <div className="header-settings" />
         </header>
 
         {/* Main Content Area */}
@@ -190,19 +208,6 @@ function App() {
         {!isSetupActive ? (
           <nav className="bottom-nav">
             <NavItem
-              icon="favorite"
-              label="からだ"
-              isActive={currentScreen === 'health'}
-              alwaysFill
-              onClick={() => setCurrentScreen('health')}
-            />
-            <NavItem
-              icon="vital_signs"
-              label="アクティビティ"
-              isActive={currentScreen === 'exercise'}
-              onClick={() => setCurrentScreen('exercise')}
-            />
-            <NavItem
               icon="home"
               label="ホーム"
               isActive={currentScreen === 'home'}
@@ -211,15 +216,8 @@ function App() {
             <NavItem
               icon="restaurant"
               label="食事"
-              isActive={currentScreen === 'meal'}
-              onClick={() => setCurrentScreen('meal')}
-            />
-            <NavItem
-              icon="person"
-              label="プロフィール"
-              isActive={currentScreen === 'my'}
-              alwaysFill
-              onClick={() => setCurrentScreen('my')}
+              isActive={currentScreen === 'food'}
+              onClick={() => setCurrentScreen('food')}
             />
           </nav>
         ) : null}

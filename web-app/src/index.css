@@ -2,6 +2,7 @@
   /* Pastel color palette for Health AI Advisor UI */
   --bg-color: #F9FDF5;
   --surface-color: #FFFFFF;
+  --surface: var(--surface-color);
   --accent-color: #2D8B6F;
   --accent-color-hover: #226D56;
   --good-color: #38A169;

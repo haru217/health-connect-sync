@@ -10,7 +10,7 @@ interface FoodInputProps {
 
 export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps) {
     const [text, setText] = useState('')
-    const [loading, setLoading] = useState(false)
+    const [, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [favorites, setFavorites] = useState<FoodAnalyzeResult[]>([])
 

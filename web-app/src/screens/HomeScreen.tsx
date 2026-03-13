@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary, fetchScores, fetchSummary } from '../api/healthApi'
-import { fetchCustomReportsHistory, requestCustomReport } from '../api/reports'
+import { fetchCustomReportsHistory, fetchWeeklyReports, requestCustomReport } from '../api/reports'
 import type {
   HomeSummaryResponse,
   RequestState,
@@ -9,6 +9,7 @@ import type {
   ScoreDomain,
   SummaryResponse,
   CustomReportHistoryItem,
+  WeeklyReportItem,
 } from '../api/types'
 import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
@@ -188,94 +189,74 @@ function HaruBriefing({
     return (
       <section className="haru-briefing-section" style={{ margin: '16px 16px 32px 16px' }}>
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
           background: 'var(--surface)',
           borderRadius: '24px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
           border: '1px solid var(--border-color)',
           overflow: 'hidden',
-          position: 'relative'
         }}>
-          {/* ハルのアバター領域 (大きめ) */}
+          {/* キャラクターヘッダー */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px',
-            padding: '20px 20px 16px 20px',
-            background: 'linear-gradient(to bottom, var(--surface-subtle), var(--surface))',
-            borderBottom: '1px solid rgba(0,0,0,0.02)'
+            justifyContent: 'center',
+            padding: '24px 20px 16px',
+            background: 'linear-gradient(135deg, rgba(45,139,111,0.08) 0%, rgba(45,139,111,0.02) 100%)',
           }}>
             <div style={{
-              flexShrink: 0, width: '88px', height: '88px', borderRadius: '50%',
+              width: '100px', height: '100px', borderRadius: '50%',
               overflow: 'hidden',
               border: '4px solid white',
-              boxShadow: '0 8px 16px rgba(45,139,111,0.15)',
+              boxShadow: '0 8px 24px rgba(45,139,111,0.18)',
               background: 'white',
-              position: 'relative',
-              zIndex: 2
             }}>
               <img
                 src="/haru-avatar.png"
-                alt="ハル"
+                alt=""
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '20px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>ハル</span>
-                <span style={{
-                  fontSize: '11px', fontWeight: 'bold', color: 'white',
-                  background: 'var(--accent-color)', padding: '2px 8px', borderRadius: '999px'
-                }}>
-                  AI Agent
-                </span>
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {showReportDateLabel && reportDateLabel ? `${reportDateLabel}の分析レポート` : 'あなた専属のヘルスケアパートナー'}
-              </div>
-            </div>
           </div>
 
-          {/* メッセージ領域 */}
-          <div style={{ padding: '0 20px 24px 20px', position: 'relative' }}>
-
-            <div style={{ fontSize: '15px', lineHeight: '1.7', color: 'var(--text-primary)', position: 'relative', zIndex: 2 }}>
-              {paragraphs.map((para, i) => {
-                const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
-                if (sectionMatch) {
-                  const sectionLines = sectionMatch[2].trim().split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
-                  return (
-                    <div key={i} style={{
-                      marginBottom: i < paragraphs.length - 1 ? '16px' : 0,
-                    }}>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        color: 'var(--accent-color)',
-                        marginBottom: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
-                        {sectionMatch[1]}
-                      </div>
-                      {sectionLines.map((line, j) => (
-                        <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '4px' : '0'} 0` }}>
-                          {renderMarkdownText(line)}
-                        </p>
-                      ))}
-                    </div>
-                  )
-                }
+          {/* ブリーフィング本文 */}
+          <div style={{ padding: '16px 20px 24px', fontSize: '15px', lineHeight: '1.7', color: 'var(--text-primary)' }}>
+            {showReportDateLabel && reportDateLabel ? (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', textAlign: 'center' }}>
+                {reportDateLabel}の分析レポート
+              </div>
+            ) : null}
+            {paragraphs.map((para, i) => {
+              const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
+              if (sectionMatch) {
+                const sectionLines = sectionMatch[2].trim().split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
                 return (
-                  <p key={i} style={{ margin: `0 0 ${i < paragraphs.length - 1 ? '12px' : '0'} 0` }}>
-                    {renderMarkdownText(para)}
-                  </p>
+                  <div key={i} style={{ marginBottom: i < paragraphs.length - 1 ? '16px' : 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      color: 'var(--accent-color)',
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+                      {sectionMatch[1]}
+                    </div>
+                    {sectionLines.map((line, j) => (
+                      <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '4px' : '0'} 0` }}>
+                        {renderMarkdownText(line)}
+                      </p>
+                    ))}
+                  </div>
                 )
-              })}
-            </div>
+              }
+              return (
+                <p key={i} style={{ margin: `0 0 ${i < paragraphs.length - 1 ? '12px' : '0'} 0` }}>
+                  {renderMarkdownText(para)}
+                </p>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -289,48 +270,6 @@ function HaruBriefing({
   return null
 }
 
-function YesterdayHighlights({ metrics, averages }: { metrics?: Record<string, number | null>, averages?: Record<string, number | null> }) {
-  const items = [
-    { key: 'sleep', label: '睡眠', unit: '時間', val: metrics?.sleep ? (metrics.sleep / 60) : null, avg: averages?.sleep ? (averages.sleep / 60) : null, higherIsBetter: true },
-    { key: 'steps', label: '歩数', unit: '歩', val: metrics?.steps, avg: averages?.steps, higherIsBetter: true },
-    { key: 'weight', label: '体重', unit: 'kg', val: metrics?.weight, avg: averages?.weight, higherIsBetter: false },
-    { key: 'bp', label: '血圧', unit: 'mmHg', val: metrics?.bp_systolic, avg: averages?.bp_systolic, higherIsBetter: false },
-    { key: 'active_kcal', label: '消費', unit: 'kcal', val: metrics?.active_kcal, avg: averages?.active_kcal, higherIsBetter: true },
-    { key: 'intake_kcal', label: '摂取', unit: 'kcal', val: metrics?.intake_kcal, avg: averages?.intake_kcal, higherIsBetter: false },
-  ]
-
-  const getTrend = (val: number, avg: number, higherIsBetter: boolean) => {
-    const isHigher = val > avg * 1.1
-    const isLower = val < avg * 0.9
-    if (isHigher) return { icon: '▲', color: higherIsBetter ? 'var(--accent-color)' : 'var(--danger-color)' }
-    if (isLower) return { icon: '▼', color: higherIsBetter ? 'var(--danger-color)' : 'var(--accent-color)' }
-    return { icon: '→', color: 'var(--text-muted)' }
-  }
-
-  return (
-    <section className="yesterday-highlights" style={{ margin: '16px' }}>
-      <h3 style={{ fontSize: '15px', marginBottom: '12px' }}>昨日のハイライト</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-        {items.map(item => {
-          if (item.val == null) return null
-          const trend = item.avg != null ? getTrend(item.val, item.avg, item.higherIsBetter) : null
-          return (
-            <div key={item.key} style={{ background: 'var(--surface)', padding: '16px 8px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>{item.label}</div>
-              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                {item.val.toFixed(item.key === 'steps' || item.key === 'active_kcal' || item.key === 'intake_kcal' || item.key === 'bp' ? 0 : 1)}
-                <span style={{ fontSize: '10px', fontWeight: 'normal', margin: '0 2px' }}>{item.unit}</span>
-              </div>
-              <div style={{ marginTop: '4px' }}>
-                {trend && <span style={{ fontSize: '12px', color: trend.color, fontWeight: 'bold' }}>{trend.icon}</span>}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
 
 const TEMPLATES = [
   { id: 'weight', icon: 'monitor_weight', label: '体重の変化', desc: '体重推移を分析' },
@@ -434,7 +373,7 @@ function CustomReportSection({ history, onRequest, onViewReport }: { history: Cu
       <style>{styles}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
         <span className="material-symbols-outlined" style={{ color: 'var(--accent-color)', fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>psychology</span>
-        <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 'bold' }}>ハルに聞く</h3>
+        <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 'bold' }}>もっと詳しく</h3>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
@@ -502,19 +441,74 @@ function CustomReportSection({ history, onRequest, onViewReport }: { history: Cu
 
 // ----------------------------------------------------------------------------
 
+function WeeklyReportCard({
+  report,
+  onOpen,
+}: {
+  report: WeeklyReportItem | null
+  onOpen?: (weekStart: string) => void
+}) {
+  return (
+    <section style={{ margin: '0 16px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <span className="material-symbols-outlined" style={{ color: 'var(--accent-indigo)', fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
+          calendar_month
+        </span>
+        <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 'bold' }}>週次レポート</h3>
+      </div>
+      {report ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpen?.(report.week_start)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onOpen?.(report.week_start)
+            }
+          }}
+          style={{
+            background: 'var(--surface)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '14px 16px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          }}
+        >
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+            {report.week_start}〜{report.week_end}
+          </div>
+          <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+            {report.headline}
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
+          週次レポートはまだありません
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ----------------------------------------------------------------------------
+
 type HomeScreenData = {
   summary: HomeSummaryResponse
   scores: ScoreData
   fullSummary: SummaryResponse
   customReports: CustomReportHistoryItem[]
+  latestWeeklyReport: WeeklyReportItem | null
 }
 
 interface HomeScreenProps {
   onNavigate?: (target: HomeNavigateTarget) => void
   onViewReport?: (id: number) => void
+  onViewWeeklyReport?: (weekStart: string) => void
 }
 
-export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps) {
+export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyReport }: HomeScreenProps) {
   const { activeDate } = useDateContext()
   const [state, setState] = useState<RequestState<HomeScreenData>>({ status: 'loading' })
 
@@ -526,11 +520,21 @@ export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps
       fetchHomeSummary(activeDate),
       fetchScores(activeDate),
       fetchSummary(),
-      fetchCustomReportsHistory()
+      fetchCustomReportsHistory(),
+      fetchWeeklyReports(1),
     ])
-      .then(([summaryRes, scoresRes, fullSummaryRes, reportsRes]) => {
+      .then(([summaryRes, scoresRes, fullSummaryRes, reportsRes, weeklyReports]) => {
         if (alive) {
-          setState({ status: 'success', data: { summary: summaryRes, scores: scoresRes, fullSummary: fullSummaryRes, customReports: reportsRes } })
+          setState({
+            status: 'success',
+            data: {
+              summary: summaryRes,
+              scores: scoresRes,
+              fullSummary: fullSummaryRes,
+              customReports: reportsRes,
+              latestWeeklyReport: weeklyReports[0] ?? null,
+            },
+          })
         }
       })
       .catch((error) => {
@@ -566,7 +570,7 @@ export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps
   const content = useMemo(() => {
     if (state.status !== 'success') return null
 
-    const { summary, scores, fullSummary, customReports } = state.data
+    const { summary, scores, fullSummary, customReports, latestWeeklyReport } = state.data
     const sufficiency = summary.sufficiency
     const hasSomeData = Boolean(sufficiency.sleep || sufficiency.steps || sufficiency.weight || sufficiency.meal || sufficiency.bp)
     const hasReport = summary.report != null
@@ -586,6 +590,7 @@ export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps
       heroDesc,
       averages,
       customReports,
+      latestWeeklyReport,
     }
   }, [state])
 
@@ -609,7 +614,7 @@ export default function HomeScreen({ onNavigate, onViewReport }: HomeScreenProps
             reportDate={content.summary.report?.reportDate}
             activeDate={activeDate}
           />
-          <YesterdayHighlights metrics={content.summary.metrics} averages={content.averages} />
+          <WeeklyReportCard report={content.latestWeeklyReport} onOpen={onViewWeeklyReport} />
           <CustomReportSection history={content.customReports} onRequest={handleRequestReport} onViewReport={onViewReport} />
           {reportError && (
             <div style={{ margin: '0 16px', padding: '12px', background: 'var(--danger-bg, #fef2f2)', color: 'var(--danger-color, #dc2626)', borderRadius: '8px', fontSize: '13px' }}>

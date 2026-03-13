@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { useDateContext } from '../context/DateContext'
@@ -86,36 +86,38 @@ function joinAdviceSentences(sentences: string[]): string | null {
 
 function generateActivityAdvice(
   avgSteps: number | null,
-  stepsGoal: number,
-  stepsGoalIsCustom: boolean,
   calorieBalance: number | null,
   avgActiveKcal: number | null,
   measuredDays: number,
   segment: Segment,
 ): string | null {
   const messages: string[] = []
+  const period = segment === 'week' ? '今週' : segment === 'month' ? 'この1か月' : 'この1年'
 
-  // 歩数 — 事実ベース
+  // 歩数（ポジティブ解釈 or ニュートラル、ネガティブなし）
   if (avgSteps != null && Number.isFinite(avgSteps)) {
-    const stepsLabel = `平均${Math.round(avgSteps).toLocaleString()}歩/日`
-    if (stepsGoalIsCustom) {
-      const ratio = avgSteps / stepsGoal
-      if (ratio >= 1.0) {
-        messages.push(`${stepsLabel}で目標を達成しています`)
-      } else {
-        messages.push(`${stepsLabel}（目標${stepsGoal.toLocaleString()}歩）`)
-      }
+    const rounded = Math.round(avgSteps)
+    const stepsStr = rounded.toLocaleString()
+    if (rounded >= 10000) {
+      messages.push(`${period}は1日平均${stepsStr}歩と活発に動けています`)
+    } else if (rounded >= 7000) {
+      messages.push(`${period}は1日平均${stepsStr}歩でほどよく動けています`)
     } else {
-      messages.push(`${stepsLabel}の活動量です`)
+      messages.push(`${period}は1日平均${stepsStr}歩でした`)
     }
   }
 
-  // カロリー — ある場合のみ補足
+  // カロリー（観察的な解釈）
   if (calorieBalance != null && Number.isFinite(calorieBalance)) {
-    const sign = calorieBalance > 0 ? '+' : ''
-    messages.push(`カロリー収支は${sign}${Math.round(calorieBalance).toLocaleString()}kcalです`)
+    if (calorieBalance > 200) {
+      messages.push('摂取カロリーが消費をやや上回っています')
+    } else if (calorieBalance < -200) {
+      messages.push('消費カロリーが摂取をやや上回っています')
+    } else {
+      messages.push('カロリーの摂取と消費はほぼ均衡しています')
+    }
   } else if (avgActiveKcal != null && Number.isFinite(avgActiveKcal)) {
-    messages.push(`平均活動カロリーは${Math.round(avgActiveKcal)}kcal/日です`)
+    messages.push(`活動による消費は1日あたり約${Math.round(avgActiveKcal).toLocaleString()}kcalです`)
   }
 
   // データ不足時
@@ -201,14 +203,7 @@ export default function ExerciseScreen() {
       ? displayIntakeKcal - displayTotalKcal
       : null
 
-    const showStepsBadge = data.stepsGoalIsCustom && displaySteps != null
-    const stepsRatio = displaySteps != null && stepsGoal > 0 ? displaySteps / stepsGoal : null
-    let stepsStatus = '不足'
-    let stepsClass = 'danger'
-    if (stepsRatio != null) {
-      if (stepsRatio >= 1.0) { stepsStatus = '達成'; stepsClass = 'good' }
-      else if (stepsRatio >= 0.7) { stepsStatus = 'もう少し'; stepsClass = 'warning' }
-    }
+    const showStepsBadge = data.stepsGoalIsCustom && displaySteps != null && stepsGoal > 0 && displaySteps >= stepsGoal
     const hasStepsMetric = displaySteps != null
     const hasDistanceMetric = displayDistance != null
     const hasActiveKcalMetric = displayActiveKcal != null
@@ -216,18 +211,26 @@ export default function ExerciseScreen() {
     const hasIntakeKcalMetric = displayIntakeKcal != null
     const hasBmrMetric = displayBmr != null
     const hasCalorieBalance = calorieBalanceValue != null
-    const hasCurrentCard = hasStepsMetric || hasDistanceMetric || hasActiveKcalMetric || hasTotalKcalMetric || hasIntakeKcalMetric || hasBmrMetric || hasCalorieBalance
+    const hasActivityCard = hasStepsMetric || hasDistanceMetric
+    const hasCalorieCard = hasActiveKcalMetric || hasTotalKcalMetric || hasIntakeKcalMetric || hasBmrMetric || hasCalorieBalance
 
     const adviceText = generateActivityAdvice(
       periodSummary.avg_steps,
-      stepsGoal,
-      data.stepsGoalIsCustom,
       periodSummary.calorie_balance,
       periodSummary.avg_active_kcal,
       periodSummary.measured_days,
       segment,
     )
     const monthTicks = segment === 'month' ? monthTickDates(series.map((item) => item.date), activeDate) : undefined
+    const hasIntakeData = series.some((item) => item.intake_kcal != null && item.intake_kcal > 0)
+    const balanceData = hasIntakeData
+      ? series.map((item) => ({
+        ...item,
+        balance: item.intake_kcal != null && item.total_kcal != null
+          ? Math.round(item.intake_kcal - item.total_kcal)
+          : null,
+      }))
+      : []
 
     const showDistanceChart = segment !== 'week'
     const showSessions = segment === 'week' && exerciseSessions.length > 0
@@ -235,20 +238,19 @@ export default function ExerciseScreen() {
     const hasSummaryAvgSteps = periodSummary.avg_steps != null
     const hasSummaryDistance = periodSummary.total_distance_km != null
     const hasSummaryCalorieBalance = periodSummary.calorie_balance != null
-    const hasSummaryGoalDays = segment === 'week' && periodSummary.measured_days > 0
-    const hasSummaryList = hasSummaryAvgSteps || hasSummaryDistance || hasSummaryCalorieBalance || hasSummaryGoalDays
+    const hasSummaryList = hasSummaryAvgSteps || hasSummaryDistance || hasSummaryCalorieBalance
 
     return (
       <div className="tab-content">
         <ActivityAdviceCard advice={adviceText} />
 
-        {hasCurrentCard ? (
+        {hasActivityCard ? (
           <div className="health-current-card">
             {hasStepsMetric ? (
               <div className="health-metric-row">
                 <span className="health-metric-label">{useAverage ? '平均歩数' : '歩数'}</span>
                 <span className="health-metric-value">
-                  {showStepsBadge ? <span className={`status-badge ${stepsClass}`} style={{ marginRight: 8 }}>{stepsStatus}</span> : null}
+                  {showStepsBadge ? <span className="status-badge good" style={{ marginRight: 8 }}>達成</span> : null}
                   {formatRounded(displaySteps)} 歩
                 </span>
               </div>
@@ -257,38 +259,6 @@ export default function ExerciseScreen() {
               <div className="health-metric-row">
                 <span className="health-metric-label">{useAverage ? '合計距離' : '距離'}</span>
                 <span className="health-metric-value">{formatRounded(displayDistance, 1)} km</span>
-              </div>
-            ) : null}
-            {hasActiveKcalMetric ? (
-              <div className="health-metric-row">
-                <span className="health-metric-label">{useAverage ? '平均活動カロリー' : '活動カロリー'}</span>
-                <span className="health-metric-value">{formatRounded(displayActiveKcal)} kcal</span>
-              </div>
-            ) : null}
-            {hasTotalKcalMetric ? (
-              <div className="health-metric-row">
-                <span className="health-metric-label">{useAverage ? '平均総消費' : '総消費カロリー'}</span>
-                <span className="health-metric-value">{formatRounded(displayTotalKcal)} kcal</span>
-              </div>
-            ) : null}
-            {hasIntakeKcalMetric ? (
-              <div className="health-metric-row">
-                <span className="health-metric-label">{useAverage ? '平均摂取' : '摂取カロリー'}</span>
-                <span className="health-metric-value">{formatRounded(displayIntakeKcal)} kcal</span>
-              </div>
-            ) : null}
-            {hasBmrMetric ? (
-              <div className="health-metric-row">
-                <span className="health-metric-label">基礎代謝</span>
-                <span className="health-metric-value">{formatRounded(displayBmr)} kcal/日</span>
-              </div>
-            ) : null}
-            {hasCalorieBalance ? (
-              <div className="health-metric-row">
-                <span className="health-metric-label">カロリー収支</span>
-                <span className="health-metric-value">
-                  {calorieBalanceValue > 0 ? '+' : ''}{formatRounded(calorieBalanceValue)} kcal
-                </span>
               </div>
             ) : null}
           </div>
@@ -330,41 +300,6 @@ export default function ExerciseScreen() {
           </div>
         </div>
 
-        {/* Calorie Chart */}
-        <div className="health-chart-container">
-          <div className="health-chart-title">カロリー (消費 vs 摂取)</div>
-          <div className="health-chart-wrapper">
-            <ResponsiveContainer
-              width="100%"
-              height={220}
-              minWidth={1}
-              minHeight={220}
-              initialDimension={{ width: 300, height: 220 }}
-            >
-              <LineChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="date"
-                  ticks={monthTicks}
-                  interval={segment === 'month' ? 0 : undefined}
-                  tickFormatter={(v) => formatXLabel(v, segment)}
-                  tick={{ fontSize: 12, fill: '#5A7367' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
-                <Tooltip
-                  labelFormatter={(v) => formatTooltipLabel(v as string, segment)}
-                  formatter={(val: number | undefined) => typeof val === 'number' ? Math.round(val).toLocaleString() : val}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Line type="monotone" dataKey="total_kcal" name="消費" stroke="#F4A261" strokeWidth={3} dot={false} activeDot={{ r: 5 }} connectNulls={true} />
-                <Line type="monotone" dataKey="intake_kcal" name="摂取" stroke="var(--accent-color)" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls={true} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Distance Chart (month/year only) */}
         {showDistanceChart ? (
           <div className="health-chart-container">
@@ -402,6 +337,98 @@ export default function ExerciseScreen() {
           </div>
         ) : null}
 
+        {hasCalorieCard ? (
+          <div className="health-current-card">
+            {hasActiveKcalMetric ? (
+              <div className="health-metric-row">
+                <span className="health-metric-label">{useAverage ? '平均活動カロリー' : '活動カロリー'}</span>
+                <span className="health-metric-value">{formatRounded(displayActiveKcal)} kcal</span>
+              </div>
+            ) : null}
+            {hasTotalKcalMetric ? (
+              <div className="health-metric-row">
+                <span className="health-metric-label">{useAverage ? '平均総消費' : '総消費カロリー'}</span>
+                <span className="health-metric-value">{formatRounded(displayTotalKcal)} kcal</span>
+              </div>
+            ) : null}
+            {hasIntakeKcalMetric ? (
+              <div className="health-metric-row">
+                <span className="health-metric-label">{useAverage ? '平均摂取' : '摂取カロリー'}</span>
+                <span className="health-metric-value">{formatRounded(displayIntakeKcal)} kcal</span>
+              </div>
+            ) : null}
+            {hasBmrMetric ? (
+              <div className="health-metric-row">
+                <span className="health-metric-label">基礎代謝</span>
+                <span className="health-metric-value">{formatRounded(displayBmr)} kcal/日</span>
+              </div>
+            ) : null}
+            {hasCalorieBalance ? (
+              <div className="health-metric-row">
+                <span className="health-metric-label">カロリー収支</span>
+                <span className="health-metric-value">
+                  {calorieBalanceValue > 0 ? '+' : ''}{formatRounded(calorieBalanceValue)} kcal
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Calorie Chart */}
+        <div className="health-chart-container">
+          <div className="health-chart-title">{hasIntakeData ? 'カロリー収支' : '消費カロリー'}</div>
+          <div className="health-chart-wrapper">
+            <ResponsiveContainer
+              width="100%"
+              height={220}
+              minWidth={1}
+              minHeight={220}
+              initialDimension={{ width: 300, height: 220 }}
+            >
+              <BarChart data={hasIntakeData ? balanceData : series}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                <XAxis
+                  dataKey="date"
+                  ticks={monthTicks}
+                  interval={segment === 'month' ? 0 : undefined}
+                  tickFormatter={(v) => formatXLabel(v, segment)}
+                  tick={{ fontSize: 12, fill: '#5A7367' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 12, fill: '#5A7367' }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip
+                  labelFormatter={(v) => formatTooltipLabel(v as string, segment)}
+                  formatter={(val: number | undefined) => {
+                    if (typeof val !== 'number') return val
+                    if (hasIntakeData) {
+                      const sign = val > 0 ? '+' : ''
+                      return `${sign}${Math.round(val).toLocaleString()} kcal`
+                    }
+                    return `${Math.round(val).toLocaleString()} kcal`
+                  }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  cursor={{ fill: 'rgba(136, 212, 180, 0.1)' }}
+                />
+                {hasIntakeData ? (
+                  <>
+                    <ReferenceLine y={0} stroke="#999" />
+                    <Bar dataKey="balance" name="収支" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8}>
+                      {balanceData.map((entry, index) => {
+                        const balance = typeof entry.balance === 'number' ? entry.balance : null
+                        const fill = balance != null && balance >= 0 ? '#81C784' : '#E0E0E0'
+                        return <Cell key={`${entry.date}-${index}`} fill={fill} />
+                      })}
+                    </Bar>
+                  </>
+                ) : (
+                  <Bar dataKey="total_kcal" name="消費カロリー" fill="#F4A261" radius={[4, 4, 0, 0]} barSize={segment === 'week' ? 16 : segment === 'month' ? 4 : 8} />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
         {/* Period Summary */}
         {showPeriodSummary && hasSummaryList ? (
           <div className="health-list-container">
@@ -424,12 +451,6 @@ export default function ExerciseScreen() {
                   {periodSummary.calorie_balance != null && periodSummary.calorie_balance > 0 ? '+' : ''}
                   {formatRounded(periodSummary.calorie_balance)} kcal
                 </span>
-              </div>
-            ) : null}
-            {hasSummaryGoalDays ? (
-              <div className="health-list-item">
-                <span className="health-list-item-label">目標達成日数</span>
-                <span className="health-list-item-value">{periodSummary.goal_days} / {periodSummary.measured_days} 日</span>
               </div>
             ) : null}
           </div>

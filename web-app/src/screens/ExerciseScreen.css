@@ -6,6 +6,12 @@
   padding-bottom: 24px;
 }
 
+.exercise-summary-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Exercise Sessions Card */
 .exercise-sessions-card {
   margin-top: 8px;

@@ -259,19 +259,12 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
   const displayWeight = useAverageCard ? (data.periodSummary.avg_weight_kg ?? current.weight_kg) : current.weight_kg
   const displayBodyFat = useAverageCard ? (data.periodSummary.avg_body_fat_pct ?? current.body_fat_pct) : current.body_fat_pct
   const displayBmi = useAverageCard ? (data.periodSummary.avg_bmi ?? current.bmi) : current.bmi
-  const avgBmr = data.series
-    .map((item) => item.bmr_kcal)
-    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-  const displayBmr = useAverageCard
-    ? (avgBmr.length > 0 ? avgBmr.reduce((sum, value) => sum + value, 0) / avgBmr.length : current.bmr_kcal)
-    : current.bmr_kcal
   const hasWeightMetric = displayWeight != null
   const hasBodyFatMetric = displayBodyFat != null
   const hasBmiMetric = displayBmi != null
   const goalWeight = data.goalWeight
   const hasGoalWeightMetric = goalWeight != null
-  const hasBmrMetric = displayBmr != null
-  const hasCurrentCard = hasWeightMetric || hasBodyFatMetric || hasBmiMetric || hasGoalWeightMetric || hasBmrMetric
+  const hasCurrentCard = hasWeightMetric || hasBodyFatMetric || hasBmiMetric || hasGoalWeightMetric
   const monthTicks = segment === 'month' ? monthTickDates(data.series.map((item) => item.date), date) : undefined
 
   // 週次変化の計算 (for week segment)
@@ -317,12 +310,6 @@ function CompositionTab({ date, segment }: { date: string, segment: Segment }) {
             <div className="health-metric-row">
               <span className="health-metric-label">目標体重</span>
               <span className="health-metric-value">{goalWeight.toFixed(1)} kg</span>
-            </div>
-          ) : null}
-          {hasBmrMetric ? (
-            <div className="health-metric-row">
-              <span className="health-metric-label">{useAverageCard ? '平均基礎代謝' : '基礎代謝'}</span>
-              <span className="health-metric-value">{Math.round(displayBmr)} kcal/日</span>
             </div>
           ) : null}
         </div>

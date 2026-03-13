@@ -284,9 +284,12 @@ export interface HomeSufficiency {
 
 export interface HomeSummaryResponse {
   date: string
+  averages?: Record<string, number | null>
+  metrics?: Record<string, number | null>
   report: {
     reportDate: string
     headline: string | null
+    briefing?: string | null
     home: {
       yu: string | null
       saki: string | null
@@ -493,5 +496,112 @@ export interface ScoreData {
     nutrition?: number | null
     condition?: number | null
   }
+}
+
+// ----------------------------------------------------
+// 食事・栄養関連の型追加 (H5)
+// ----------------------------------------------------
+
+export interface NutrientDetails {
+  calories: number | null
+  protein_g: number | null
+  fat_g: number | null
+  carbs_g: number | null
+  // 脂質詳細
+  saturated_fat_g: number | null
+  omega3_mg: number | null
+  omega6_mg: number | null
+  trans_fat_g: number | null
+  sugar_g: number | null
+  fiber_g: number | null
+  // ビタミン
+  vitamin_a_ug: number | null
+  vitamin_d_ug: number | null
+  vitamin_e_mg: number | null
+  vitamin_k_ug: number | null
+  vitamin_b1_mg: number | null
+  vitamin_b2_mg: number | null
+  vitamin_b6_mg: number | null
+  vitamin_b12_ug: number | null
+  vitamin_c_mg: number | null
+  niacin_mg: number | null
+  folate_ug: number | null
+  pantothenic_acid_mg: number | null
+  biotin_ug: number | null
+  // ミネラル
+  sodium_mg: number | null
+  potassium_mg: number | null
+  calcium_mg: number | null
+  magnesium_mg: number | null
+  phosphorus_mg: number | null
+  iron_mg: number | null
+  zinc_mg: number | null
+  copper_mg: number | null
+  manganese_mg: number | null
+  selenium_ug: number | null
+  chromium_ug: number | null
+  molybdenum_ug: number | null
+  iodine_ug: number | null
+  // その他
+  cholesterol_mg: number | null
+  purine_mg: number | null
+  caffeine_mg: number | null
+  alcohol_g: number | null
+}
+
+export interface FoodAnalyzeResult {
+  id?: string
+  name: string
+  brand: string | null
+  amount: string
+  nutrients: NutrientDetails
+  save_to_favorites?: boolean
+}
+
+export interface FoodAnalyzeResponse {
+  items: FoodAnalyzeResult[]
+}
+
+export interface FoodHistoryItem {
+  id: string
+  name: string
+  brand: string | null
+  amount: string
+  nutrients: NutrientDetails
+  eatenAt: string
+  mealType: string | null
+}
+
+export interface FoodHistoryResponse {
+  date: string
+  items: FoodHistoryItem[]
+  summary: NutrientDetails
+}
+
+// ----------------------------------------------------
+// カスタムレポート関連の型追加 (H4)
+// ----------------------------------------------------
+
+export interface CustomReportTemplate {
+  id: string
+  label: string
+  description: string
+}
+
+export interface CustomReportHistoryItem {
+  id: number
+  date: string
+  templateLabel: string
+  excerpt: string
+  createdAt: string
+}
+
+export interface WeeklyReportItem {
+  week_start: string
+  week_end: string
+  headline: string
+  report: string
+  model: string
+  generated_at: string
 }
 
