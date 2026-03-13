@@ -1,21 +1,18 @@
 ﻿import { MAX_VALID_BMR_KCAL_PER_DAY, MIN_VALID_BMR_KCAL_PER_DAY } from '../constants'
 import type { SyncRecordInput } from '../types'
-import { parseIsoDatePart, parseIsoToMillis, parseJsonObject, toNumberOrNull } from '../utils'
+import { JST_OFFSET_MS } from '../constants'
+import { parseIsoToMillis, parseJsonObject, toNumberOrNull } from '../utils'
 
 export function isoDateFromMillis(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10)
 }
 
 export function localDayFromIso(value: string | null | undefined): string | null {
-  const day = parseIsoDatePart(value)
-  if (day) {
-    return day
-  }
   const ms = parseIsoToMillis(value)
   if (ms == null) {
     return null
   }
-  return isoDateFromMillis(ms)
+  return isoDateFromMillis(ms + JST_OFFSET_MS)
 }
 
 export function findNumber(value: unknown, keyCandidates: Set<string>, depth = 0): number | null {
@@ -180,6 +177,61 @@ export function mergedIntervalMinutes(intervals: Array<[number, number]>): numbe
   }
   totalMs += Math.max(0, curEnd - curStart)
   return totalMs / 60000
+}
+
+/**
+ * Merge overlapping step intervals using density-based segment splitting.
+ * Adjacent (non-overlapping) intervals: steps are summed.
+ * Overlapping intervals: the interval with higher step density (steps/ms) wins.
+ * Complexity: O(S * N) where S = boundary points, N = intervals. Fine for N < 1000.
+ */
+export function mergedIntervalSteps(intervals: Array<[number, number, number]>): number {
+  if (intervals.length === 0) {
+    return 0
+  }
+
+  const valid: Array<{ start: number; end: number; density: number }> = []
+  for (const [start, end, steps] of intervals) {
+    const durationMs = end - start
+    if (durationMs <= 0 || !Number.isFinite(steps) || steps <= 0) {
+      continue
+    }
+    const density = steps / durationMs
+    if (!Number.isFinite(density) || density <= 0) {
+      continue
+    }
+    valid.push({ start, end, density })
+  }
+
+  if (valid.length === 0) {
+    return 0
+  }
+
+  const boundaries = new Set<number>()
+  for (const iv of valid) {
+    boundaries.add(iv.start)
+    boundaries.add(iv.end)
+  }
+  const points = [...boundaries].sort((a, b) => a - b)
+
+  let total = 0
+  for (let i = 0; i < points.length - 1; i++) {
+    const segStart = points[i]!
+    const segEnd = points[i + 1]!
+    const segMs = segEnd - segStart
+    if (segMs <= 0) {
+      continue
+    }
+    let bestDensity = 0
+    for (const iv of valid) {
+      if (iv.start <= segStart && iv.end >= segEnd && iv.density > bestDensity) {
+        bestDensity = iv.density
+      }
+    }
+    total += bestDensity * segMs
+  }
+
+  return Math.round(total)
 }
 
 export function parseSleepStageIntervals(payload: Record<string, unknown>): {
@@ -461,7 +513,7 @@ export function extractEnergyKcal(payload: Record<string, unknown>): number | nu
 }
 
 export function extractBmrKcal(payload: Record<string, unknown>): number | null {
-  const kcal = findNumber(payload, new Set(['kilocaloriesPerDay', 'inKilocaloriesPerDay']))
+  const kcal = findNumber(payload, new Set(['kilocaloriesPerDay', 'inKilocaloriesPerDay', 'kcalPerDay']))
   if (kcal != null) {
     return kcal
   }

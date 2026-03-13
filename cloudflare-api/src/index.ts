@@ -2,10 +2,14 @@
 import { isAuthorized, jsonResponse, optionsResponse, textResponse } from './utils'
 import { handleActivityData, handleBodyData, handleSleepData, handleVitalsData } from './handlers/health'
 import { handleHomeSummary } from './handlers/home-summary'
+import { handleFoodAnalyze, handleFoodConfirm, handleFoodHistory, handleFoodSearch, handleFoodDelete, handleFoodUpdate } from './handlers/food'
 import { handleNutritionDay, handleSupplements } from './handlers/nutrition'
 import { handleNutritionLogDelete, handleNutritionLogPost } from './handlers/nutrition-log'
 import { handleProfileGet, handleProfilePut } from './handlers/profile'
+import { handleCustomReportGetById, handleCustomReportPost, handleCustomReportsGet, handleCustomReportTemplatesGet } from './handlers/custom-report'
+import { handleGeminiUsageGet } from './handlers/gemini-usage'
 import { handleDailyReportGenerate, handleDailyReportGet } from './handlers/report'
+import { generateWeeklyReport, handleWeeklyReportGenerate, handleWeeklyReportGet, handleWeeklyReportsListGet } from './handlers/weekly-report'
 import {
   handleNutrientsTargets,
   handlePrompt,
@@ -19,6 +23,7 @@ import { handleScores } from './handlers/scores'
 import { handleStatus, handleConnectionStatus } from './handlers/status'
 import { handleSummary } from './handlers/summary'
 import { handleSync, handleSyncCursor } from './handlers/sync'
+import { getLastCompletedWeekStart } from './utils'
 
 const worker: ExportedHandler<Env> = {
   async fetch(request, env, ctx): Promise<Response> {
@@ -37,12 +42,25 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/home-summary') return handleHomeSummary(url, env)
       if (key === 'GET /api/scores') return handleScores(url, env)
       if (key === 'GET /api/report') return handleDailyReportGet(url, env)
+      if (key === 'GET /api/weekly-report') return handleWeeklyReportGet(url, env)
+      if (key === 'GET /api/weekly-reports') return handleWeeklyReportsListGet(url, env)
+      if (key === 'GET /api/gemini-usage') return handleGeminiUsageGet(env)
       if (key === 'POST /api/report/generate') return handleDailyReportGenerate(request, url, env)
+      if (key === 'POST /api/weekly-report/generate') return handleWeeklyReportGenerate(request, url, env, ctx)
+      if (key === 'POST /api/custom-report') return handleCustomReportPost(request, url, env, ctx)
+      if (key === 'GET /api/custom-reports') return handleCustomReportsGet(url, env)
+      if (key === 'GET /api/custom-report-templates') return handleCustomReportTemplatesGet()
       if (key === 'GET /api/sync/cursor') return handleSyncCursor(url, env)
       if (key === 'POST /api/sync') return handleSync(request, env, ctx)
       if (key === 'GET /api/supplements') return handleSupplements()
       if (key === 'GET /api/nutrition/day') return handleNutritionDay(url, env)
       if (key === 'POST /api/nutrition/log') return handleNutritionLogPost(request, env)
+      if (key === 'POST /api/food/analyze') return handleFoodAnalyze(request, env)
+      if (key === 'POST /api/food/confirm') return handleFoodConfirm(request, env)
+      if (key === 'GET /api/food/search') return handleFoodSearch(url, env)
+      if (key === 'GET /api/food/history') return handleFoodHistory(url, env)
+      if (pathname.startsWith('/api/food/') && method === 'DELETE') return handleFoodDelete(pathname, env)
+      if (pathname.startsWith('/api/food/') && method === 'PUT') return handleFoodUpdate(pathname, request, env)
       if (key === 'GET /api/body-data') return handleBodyData(url, env)
       if (key === 'GET /api/sleep-data') return handleSleepData(url, env)
       if (key === 'GET /api/vitals-data') return handleVitalsData(url, env)
@@ -55,6 +73,10 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/reports') return handleReportsGet(url, env)
       if (key === 'POST /api/reports') return handleReportsPost(request, env)
       if (key === 'POST /api/dev/seed-mock') return handleSeedMock(request, env)
+      if (pathname.startsWith('/api/custom-report/') && method === 'GET') {
+        const id = Number.parseInt(pathname.replace('/api/custom-report/', ''), 10)
+        if (Number.isFinite(id)) return handleCustomReportGetById(id, env)
+      }
       if (pathname.startsWith('/api/nutrition/log/') && method === 'DELETE') return handleNutritionLogDelete(pathname, env)
       if (pathname.startsWith('/api/reports/') && method === 'GET') return handleReportById(pathname, env)
       if (pathname.startsWith('/api/reports/') && method === 'DELETE') return handleReportDeleteById(pathname, env)
@@ -64,7 +86,12 @@ const worker: ExportedHandler<Env> = {
       return textResponse(message, 500)
     }
   },
+  async scheduled(_event, env, ctx): Promise<void> {
+    const weekStart = getLastCompletedWeekStart()
+    ctx.waitUntil(
+      generateWeeklyReport(env, weekStart).catch(() => undefined),
+    )
+  },
 }
 
 export default worker
-

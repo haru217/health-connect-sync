@@ -1,7 +1,7 @@
-﻿import { DETAILED_RETENTION_DAYS, LAST_AGGREGATED_AT_MS_KEY, MILLIS_PER_DAY, PRUNABLE_RECORD_TYPES } from '../constants'
+﻿import { DETAILED_RETENTION_DAYS, LAST_AGGREGATED_AT_MS_KEY, MILLIS_PER_DAY, PRUNABLE_RECORD_TYPES, TRUSTED_STEPS_SOURCE } from '../constants'
 import type { D1Database, HealthRecordRow } from '../types'
 import { execute, parseIsoToMillis, parseJsonObject, queryAll, queryFirst } from '../utils'
-import { addBySource, collapseDaySourceMax, dayInOffset, extractBloodPressure, extractBmrKcal, extractDistanceKm, extractEnergyKcal, findNumber, isoDateFromMillis, localDayFromIso, mergedIntervalMinutes, normalizeBmrKcal, setLatestValue, sleepBucketDay, toPercent } from './sync-parsers'
+import { addBySource, collapseDaySourceMax, dayInOffset, extractBloodPressure, extractBmrKcal, extractDistanceKm, extractEnergyKcal, findNumber, isoDateFromMillis, localDayFromIso, mergedIntervalMinutes, mergedIntervalSteps, normalizeBmrKcal, setLatestValue, sleepBucketDay, toPercent } from './sync-parsers'
 
 export async function pruneDetailedHealthRecords(db: D1Database): Promise<void> {
   const cutoffIso = new Date(Date.now() - DETAILED_RETENTION_DAYS * MILLIS_PER_DAY).toISOString()
@@ -38,7 +38,7 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
   }
   const recordCountByDay = new Map<string, number>()
 
-  const stepsByDaySource = new Map<string, number>()
+  const stepIntervalsByDay = new Map<string, Array<[number, number, number]>>()
   const distanceByDaySource = new Map<string, number>()
   const activeByDaySource = new Map<string, number>()
   const totalByDaySource = new Map<string, number>()
@@ -105,10 +105,15 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
       let recordDay = defaultDay
 
       if (row.type === 'StepsRecord') {
+        if (row.source !== TRUSTED_STEPS_SOURCE) continue
         const day = localDayFromIso(row.start_time) ?? defaultDay
         const count = findNumber(payload, new Set(['count']))
-        if (day && count != null) {
-          addBySource(stepsByDaySource, day, source, count)
+        const startMs = parseIsoToMillis(row.start_time)
+        const endMs = parseIsoToMillis(row.end_time)
+        if (day && count != null && startMs != null && endMs != null && endMs > startMs) {
+          const intervals = stepIntervalsByDay.get(day) ?? []
+          intervals.push([startMs, endMs, count])
+          stepIntervalsByDay.set(day, intervals)
         }
         recordDay = day
       } else if (row.type === 'DistanceRecord') {
@@ -143,6 +148,8 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
         }
         recordDay = day
       } else if (row.type === 'WeightRecord') {
+        // Skip records without source — these are from unlinked apps and may be inaccurate
+        if (row.source == null) continue
         const day = defaultDay
         const kg = findNumber(payload, new Set(['inKilograms', 'kilograms', 'kg', 'weight']))
         if (day && kg != null) {
@@ -215,7 +222,10 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
     }
   }
 
-  const stepsByDay = collapseDaySourceMax(stepsByDaySource)
+  const stepsByDay = new Map<string, number>()
+  for (const [day, intervals] of stepIntervalsByDay.entries()) {
+    stepsByDay.set(day, mergedIntervalSteps(intervals))
+  }
   const distanceByDay = collapseDaySourceMax(distanceByDaySource)
   const activeByDay = collapseDaySourceMax(activeByDaySource)
   const totalByDay = collapseDaySourceMax(totalByDaySource)
@@ -262,11 +272,19 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
   const sortedDays = [...days].sort((a, b) => a.localeCompare(b))
   for (const day of sortedDays) {
     const active = activeByDay.get(day) ?? null
-    const bmr = bmrByDay.get(day)?.value ?? null
+    const bmrEntry = bmrByDay.get(day)?.value ?? null
+    const fallbackBmr = bmrEntry ?? [...bmrByDay.values()].map((e) => e.value).pop() ?? null
+    const bmr = bmrEntry
     const rawTotal = totalByDay.get(day) ?? null
     let total = rawTotal
+    if (active != null && total != null && total < active) {
+      total = null
+    }
     if (active != null && bmr != null) {
       const floor = active + bmr
+      total = total == null ? floor : Math.max(total, floor)
+    } else if (active != null && bmr == null && fallbackBmr != null) {
+      const floor = active + fallbackBmr
       total = total == null ? floor : Math.max(total, floor)
     }
     const sleepIntervals = sleepIntervalsByDay.get(day)
@@ -323,14 +341,17 @@ export async function rebuildAggregatesFromHealthRecords(db: D1Database): Promis
 }
 
 export async function ensureAggregatesUpToDate(db: D1Database): Promise<void> {
-  const latestIngestedRow = await queryFirst<{ latestMs: number | null }>(
+  const latestIngestedRow = await queryFirst<{ ingested_at: string | null }>(
     db,
     `
-    SELECT MAX(CAST(strftime('%s', ingested_at) AS INTEGER) * 1000) AS latestMs
+    SELECT ingested_at
     FROM health_records
+    WHERE ingested_at IS NOT NULL AND ingested_at <> ''
+    ORDER BY ingested_at DESC
+    LIMIT 1
     `,
   )
-  const lastAggregatedRow = await queryFirst<{ lastMs: number | null }>(
+  const lastAggregatedRow = await queryFirst<{ lastMs: number | string | null }>(
     db,
     `
     SELECT count AS lastMs
@@ -341,8 +362,9 @@ export async function ensureAggregatesUpToDate(db: D1Database): Promise<void> {
     [LAST_AGGREGATED_AT_MS_KEY],
   )
 
-  const latestIngestedAtMs = latestIngestedRow?.latestMs ?? 0
-  const lastAggregatedAtMs = lastAggregatedRow?.lastMs ?? 0
+  const latestIngestedAtMs = parseIsoToMillis(latestIngestedRow?.ingested_at ?? null) ?? 0
+  const rawLastAggregatedAtMs = Number(lastAggregatedRow?.lastMs ?? 0)
+  const lastAggregatedAtMs = Number.isFinite(rawLastAggregatedAtMs) ? rawLastAggregatedAtMs : 0
   if (latestIngestedAtMs > lastAggregatedAtMs) {
     await rebuildAggregatesFromHealthRecords(db)
   }

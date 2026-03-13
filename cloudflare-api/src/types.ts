@@ -2,13 +2,23 @@
 export interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void
 }
+
+export interface ScheduledEvent {
+  cron: string
+  type: string
+  scheduledTime: number
+}
+
 export type ExportedHandler<E> = {
   fetch(request: Request, env: E, ctx: ExecutionContext): Promise<Response>
+  scheduled?(event: ScheduledEvent, env: E, ctx: ExecutionContext): Promise<void> | void
 }
 
 export interface Env {
   DB: D1Database
   API_KEY?: string
+  GEMINI_API_KEY?: string
+  GEMINI_MODEL?: string
   MOCK_SEED_TOKEN?: string
   LLM_API_KEY?: string
   LLM_MODEL?: string
@@ -55,6 +65,7 @@ export interface NutritionEventRow {
   carbs_g: number | null
   micros_json: string | null
   note: string | null
+  meal_type: string | null
 }
 
 export interface ProfileRow {
@@ -103,6 +114,7 @@ export interface ReportRow {
 export interface DailyReportRow {
   date: string
   headline: string
+  briefing: string | null
   yu_comment: string
   saki_comment: string
   mai_comment: string
@@ -117,6 +129,7 @@ export interface DailyReportRow {
 }
 
 export interface DailyReportGeneratedPayload {
+  briefing: string
   headline: string
   yu_comment: string
   saki_comment: string
@@ -124,6 +137,39 @@ export interface DailyReportGeneratedPayload {
   condition_comment: string
   activity_comment: string
   meal_comment: string
+}
+
+export type CustomReportTemplateId =
+  | 'weight'
+  | 'sleep'
+  | 'blood_pressure'
+  | 'activity'
+  | 'nutrition'
+  | 'general'
+
+export interface CustomReportTemplate {
+  id: CustomReportTemplateId
+  label: string
+  prompt: string
+}
+
+export interface CustomReportRow {
+  id: number
+  template_id: CustomReportTemplateId | string
+  report: string
+  created_at: string
+}
+
+export interface WeeklyReportRow {
+  week_start: string
+  week_end: string
+  headline: string
+  report: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  generated_at: string
+  created_at: string
 }
 
 export interface AnthropicMessageResponse {

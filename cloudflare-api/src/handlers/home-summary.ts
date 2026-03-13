@@ -40,6 +40,12 @@ export function formatRoundedWithUnit(value: number | null, unit: string): strin
   return `${Math.round(value).toLocaleString('ja-JP')}${unit}`
 }
 
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  if (value == null) return null
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
 export async function buildHomeSummary(db: D1Database, date: string): Promise<Record<string, unknown>> {
   const [
     dayRow,
@@ -106,6 +112,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     queryFirst<{
       date: string
       headline: string | null
+      briefing: string | null
       yu_comment: string | null
       saki_comment: string | null
       mai_comment: string | null
@@ -113,9 +120,10 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     }>(
       db,
       `
-      SELECT date, headline, yu_comment, saki_comment, mai_comment, generated_at
+      SELECT date, headline, briefing, yu_comment, saki_comment, mai_comment, generated_at
       FROM daily_reports
-      WHERE date = ?
+      WHERE date <= ?
+      ORDER BY date DESC
       LIMIT 1
       `,
       [date],
@@ -228,15 +236,16 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     date,
     report: reportRow
       ? {
-          reportDate: reportRow.date,
-          headline: reportRow.headline,
-          home: {
-            yu: reportRow.yu_comment,
-            saki: reportRow.saki_comment,
-            mai: reportRow.mai_comment,
-          },
-          generated_at: reportRow.generated_at,
-        }
+        reportDate: reportRow.date,
+        headline: reportRow.headline,
+        briefing: normalizeOptionalText(reportRow.briefing),
+        home: {
+          yu: normalizeOptionalText(reportRow.yu_comment),
+          saki: normalizeOptionalText(reportRow.saki_comment),
+          mai: normalizeOptionalText(reportRow.mai_comment),
+        },
+        generated_at: reportRow.generated_at,
+      }
       : null,
     sufficiency,
     evidences,

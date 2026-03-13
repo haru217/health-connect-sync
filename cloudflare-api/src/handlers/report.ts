@@ -194,14 +194,14 @@ function buildDailyReportHeadline(briefing: string): string {
   return firstSentence.length <= 30 ? firstSentence : `${firstSentence.slice(0, 30)}…`
 }
 
-function formatPromptNumber(value: number | null | undefined, digits = 1): string {
+export function formatPromptNumber(value: number | null | undefined, digits = 1): string {
   if (value == null || !Number.isFinite(value)) {
     return '-'
   }
   return value.toFixed(digits)
 }
 
-function formatPromptInteger(value: number | null | undefined): string {
+export function formatPromptInteger(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) {
     return '-'
   }
@@ -225,7 +225,7 @@ function buildDateRange(date: string, days: number): string[] {
   return Array.from({ length: days }, (_, index) => shiftIsoDateByDays(startDate, index))
 }
 
-function buildTrendRowsTable(date: string, trendRows: DailyReportTrendRow[]): { header: string; body: string } {
+export function buildTrendRowsTable(date: string, trendRows: DailyReportTrendRow[]): { header: string; body: string } {
   const rowMap = new Map<string, DailyReportTrendRow>(trendRows.map((row) => [row.date, row]))
   const hasAnyIntake = trendRows.some((r) => r.intake_kcal != null)
   const days = buildDateRange(date, 14)
@@ -365,14 +365,14 @@ export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string 
     '',
     '# 構造',
     '- 最初の段落: 挨拶と昨日の一言まとめ（見出しなし）',
-    '- 本文: 2〜3つの【セクション見出し】で構造化（例:【からだの様子】【食事と栄養】【運動と活動】【ハルからのアドバイス】）',
+    '- 本文: 2〜3つの【セクション見出し】で構造化（例:【からだの様子】【食事と栄養】【運動と活動】）',
     '- セクション見出しは必ず【】で囲む',
     '- 最後: 励ましの一言で自然に締める',
     '',
     '# スタイル',
     '- 友人の医師として話す。専門用語や医学的メカニズムの説明は避け、日常の言葉で伝える',
     '- です/ます調だけど堅くない。心配な数値でも「こうすれば大丈夫」と前向きに伝える',
-    '- 必須: 各【セクション】の中で、最も伝えたいポイント1箇所を必ず**太字**にする。太字がないセクションは不可',
+    '- 絶対ルール: 全ての【セクション】に必ず1箇所だけ**太字**を入れること。太字が0個のセクションがあった場合、出力をやり直すこと',
     '- 箇条書き（-や・）は使わない。文章で自然に書く',
     '- 段落は適宜分け、長すぎる文の塊を作らない',
     '',
@@ -380,7 +380,7 @@ export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string 
     '- データが悪い日でも「ダメ」「危険」「懸念」のような否定的な表現は避ける。改善の余地として前向きに伝える',
     '- 体重・血圧・活動・睡眠・食事など、データにある主要指標をバランスよく触れる',
     '- 指標同士の関連を自然に織り込む（「動いた分が体脂肪の改善に出ていますね」のように）',
-    '- 摂取カロリーが消費カロリーを上回る場合は「黒字」「しっかり摂れた」ではなく、改善の余地として前向きな提案につなげる',
+    '- カロリー収支: 摂取が消費を上回る場合は「黒字」「プラス」などポジティブに聞こえる表現は禁止。「消費を少し上回っています」と事実を述べ、具体的な改善提案（一品置き換え等）につなげる',
     '- 数値は根拠として必要最小限添える程度。数値だけの文は書かない',
     '',
     '# 出力',
@@ -391,7 +391,7 @@ export function buildHaruSystemPrompt(options: HaruSystemPromptOptions): string 
 const DEFAULT_BMR_KCAL = 1500
 const INTAKE_COMPLETENESS_RATIO = 0.7
 
-function maskIncompleteIntake(trendRows: DailyReportTrendRow[]): DailyReportTrendRow[] {
+export function maskIncompleteIntake(trendRows: DailyReportTrendRow[]): DailyReportTrendRow[] {
   const fallbackBmr = trendRows
     .filter((r) => r.bmr_kcal != null && Number.isFinite(r.bmr_kcal))
     .map((r) => r.bmr_kcal as number)
@@ -444,7 +444,7 @@ export function buildHaruUserPrompt(options: HaruUserPromptOptions): string {
     '',
     ...(showNutritionDetail
       ? ['# データ対象日の食事記録', formatNutritionEventsForPrompt(options.nutritionEvents)]
-      : []),
+      : [`# データ対象日(${dataDate})の食事記録: データなし（食事・栄養に関するコメントは書かないこと。14日間テーブルの他の日の食事データも言及しないこと）`]),
     '',
     '# データ対象日のスコア参考',
     formatScoreSummaryForPrompt(options.scores, !showNutritionDetail),
@@ -515,12 +515,21 @@ export async function queryDailyNutritionEvents(db: D1Database, date: string): P
 
 export async function loadHaruPromptContext(db: D1Database, date: string): Promise<HaruPromptContext> {
   const dataDate = shiftIsoDateByDays(date, -1)
-  const [profile, scores, trendRows, nutritionEvents] = await Promise.all([
+  const [profile, activityScores, sleepScores, trendRows, nutritionEvents] = await Promise.all([
     getUserProfile(db),
     getScores(db, dataDate),
+    getScores(db, date),  // sleep is bucketed to wake-up date = report date
     queryDailyReportTrendRows(db, dataDate),
     queryDailyNutritionEvents(db, dataDate),
   ])
+
+  // Use sleep domain from report date (wake-up date); activity/nutrition from previous day
+  const activityDomains = activityScores.domains as Record<string, unknown> | undefined
+  const sleepDomains = sleepScores.domains as Record<string, unknown> | undefined
+  const scores: Record<string, unknown> =
+    activityDomains && sleepDomains
+      ? { ...activityScores, domains: { ...activityDomains, sleep: sleepDomains.sleep } }
+      : activityScores
 
   return {
     profile,

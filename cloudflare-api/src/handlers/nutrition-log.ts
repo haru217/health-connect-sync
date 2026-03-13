@@ -1,7 +1,6 @@
 ﻿import { SUPPLEMENT_CATALOG } from '../constants'
 import type { Env } from '../types'
 import { execute, jsonResponse, readJsonBody, toNumberOrNull, toPositiveCount } from '../utils'
-import { rebuildAggregatesFromHealthRecords } from './sync-aggregate'
 import { resolveDateAndTime } from './nutrition'
 
 export async function handleNutritionLog(request: Request, env: Env): Promise<Response> {
@@ -76,9 +75,7 @@ export async function handleNutritionLog(request: Request, env: Env): Promise<Re
 
 
 export async function handleNutritionLogPost(request: Request, env: Env): Promise<Response> {
-  const response = await handleNutritionLog(request, env)
-  await rebuildAggregatesFromHealthRecords(env.DB)
-  return response
+  return handleNutritionLog(request, env)
 }
 
 export async function handleNutritionLogDelete(pathname: string, env: Env): Promise<Response> {
@@ -91,6 +88,5 @@ export async function handleNutritionLogDelete(pathname: string, env: Env): Prom
   if ((result.meta.changes ?? 0) === 0) {
     return jsonResponse({ detail: 'Event not found' }, 404)
   }
-  await rebuildAggregatesFromHealthRecords(env.DB)
   return jsonResponse({ ok: true, deleted_id: id })
 }

@@ -1,5 +1,6 @@
 ﻿import { CORS_HEADERS, CURSOR_REPAIR_SAFETY_MS, DATE_RE, EXERCISE_FREQ_VALUES, EXERCISE_INTENSITY_VALUES, EXERCISE_TYPE_VALUES, GENDER_VALUES, PROFILE_USER_ID, RECORD_TYPE_META_PREFIX, WEIGHT_GOAL_VALUES } from './constants'
 import type { D1Database, Env, MetricPeriod, UserProfileRow } from './types'
+import { JST_OFFSET_MS } from './constants'
 
 export function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -283,6 +284,20 @@ export function shiftIsoDateByDays(value: string, deltaDays: number): string {
   const base = utcDateFromIsoDate(value)
   base.setUTCDate(base.getUTCDate() + deltaDays)
   return base.toISOString().slice(0, 10)
+}
+
+export function getWeekStartMonday(date: string): string {
+  const base = utcDateFromIsoDate(date)
+  const day = base.getUTCDay()
+  const deltaDays = day === 0 ? -6 : 1 - day
+  return shiftIsoDateByDays(date, deltaDays)
+}
+
+export function getLastCompletedWeekStart(): string {
+  const jstNow = new Date(Date.now() + JST_OFFSET_MS)
+  const jstToday = jstNow.toISOString().slice(0, 10)
+  const currentWeekStart = getWeekStartMonday(jstToday)
+  return shiftIsoDateByDays(currentWeekStart, -7)
 }
 
 export function toYearMonth(value: string): string {
