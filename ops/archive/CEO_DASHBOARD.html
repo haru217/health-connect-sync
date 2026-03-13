@@ -512,6 +512,15 @@
                     <div class="health-dot"></div> 正常稼働中
                 </div>
             </div>
+            <div class="panel">
+                <div class="panel-header">技術負債 (ops/TECH_DEBT.md)</div>
+                <div class="activity-list">
+                    <div class="activity-item" style="border-left:3px solid var(--warning)">
+                        <div class="act-title">未対応: 8件</div>
+                        <div class="act-time">フロント型安全性(3), コード分割(3), バリデーション(2)</div>
+                    </div>
+                </div>
+            </div>
         </aside>
     </div>
 
@@ -550,6 +559,9 @@
                 { id: "E1-ATTENTION", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-03", track: "iter" },
                 // Phase F: バグ修正
                 { id: "F1-SLEEP-STAGE", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-04", track: "iter" },
+                // Phase H: ハルUX v2
+                { id: "H1-HARU", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-04", track: "iter" },
+                { id: "H2-CUSTOM-REPORT", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-04", track: "iter" },
                 // タブ強化
                 { id: "I2-CODEX", defaultStatus: "done", defaultStamp: "Claude @ 2026-03-03", track: "iter" }, { id: "I2-GEMINI", defaultStatus: "done", defaultStamp: "Gemini @ 2026-03-03", track: "iter" },
                 { id: "I2v2-HEALTH", defaultStatus: "done", defaultStamp: "Codex @ 2026-03-03", track: "iter" },
@@ -557,6 +569,11 @@
                 { id: "I2v3-UI", defaultStatus: "todo", track: "iter" },
                 { id: "I3-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I3-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "I4-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I4-GEMINI", defaultStatus: "todo", track: "iter" },
+                // Phase U: UX改善（2026-03-05）
+                { id: "U4-API", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-05", track: "iter" },
+                { id: "U4-UI", defaultStatus: "in_progress", defaultStamp: "Gemini（リクエスト待ち）", track: "iter" },
+                { id: "U5-SYNC", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-05", track: "iter" },
+                { id: "U6-DATE", defaultStatus: "done", defaultStamp: "Codex-shinsekai @ 2026-03-05", track: "iter" },
                 // Phase D: マイページ・仕上げ
                 { id: "I5-CODEX", defaultStatus: "todo", track: "iter" }, { id: "I5-GEMINI", defaultStatus: "todo", track: "iter" },
                 { id: "P1-2-1", defaultStatus: "todo" }, { id: "P1-2-2", defaultStatus: "todo" }, { id: "P1-2-3", defaultStatus: "todo" },
@@ -597,9 +614,15 @@
                 "D2-REFACTOR": "index.ts（5600行）を機能別ファイルに分割し、各800行以下に整理しました。",
                 "E1-ATTENTION": "ホーム画面「注目のポイント」欄を廃止。スコア→専門家コメントの2層構成に簡素化。",
                 "F1-SLEEP-STAGE": "睡眠ステージの二重カウントを修正。重複セッション日でもチャート高さが異常にならないよう補正。",
+                "H1-HARU": "日次コメントを「ハル」1本に統一し、日付の扱いを修正。前日のデータを基準に自然な文章で出す形へ変更。",
+                "H2-CUSTOM-REPORT": "テーマ選択で追加レポートを作れるAPIを追加。体重・睡眠・血圧などの深掘り分析を呼び出せるようにする。",
                 "I2v2-HEALTH": "からだタブ改修: 内タブ名変更（体重/血圧・心拍/睡眠）、睡眠ステージ独立カード、SpO2サマリー追加、null非表示。",
                 "I2v3-ADVICE": "からだタブにルールベースのアドバイスカードを最上段に配置。BMI・血圧分類・睡眠時間に応じたコメントを自動生成。",
                 "I2v3-UI": "からだタブのアドバイスカードのデザイン改善。状態別カラーリング、SVGアイコン、質感向上。",
+                "U4-API": "食事の編集・削除API（DELETE/PUT /api/food/:id）を追加。バリデーション・daily_metrics再計算付き。",
+                "U4-UI": "食事タブUXをあすけん方式に改善。検索ファースト（お気に入り直接選択）+ 編集・削除モーダル。",
+                "U5-SYNC": "sync後のdaily_metrics集計バグ修正。rebuildAggregatesの明示呼び出し + タイムスタンプ比較修正。",
+                "U6-DATE": "レポート日付モデルを「読む日」ベースに変更。date=3/5朝→データ対象=3/4、睡眠=3/5(起床日)。",
             };
 
             const TASK_META = {
@@ -633,9 +656,15 @@
                 "D2-REFACTOR": "担当はCodex-shinsekai。index.tsをhandlers/*, types, utils, constantsに分割。API仕様変更なし。",
                 "E1-ATTENTION": "担当はCodex。注目のポイント欄をフロント・バックエンド両方から削除。デッドコードクリーンアップ。",
                 "F1-SLEEP-STAGE": "担当はCodex。重複する睡眠セッションがある日のステージ集計を補正し、異常な棒グラフ表示を解消。",
+                "H1-HARU": "担当はCodex。日次コメントの主役をハルに統一し、日付ズレを解消。過去コメント用の列は残したまま運用。",
+                "H2-CUSTOM-REPORT": "担当はCodex。追加レポート作成APIを新設し、履歴取得とテンプレート一覧取得まで一式実装。",
                 "I2v2-HEALTH": "担当はCodex。内タブ名変更、睡眠ステージ独立カード、期間SpO2サマリー、null非表示ロジック追加。",
                 "I2v3-ADVICE": "担当はCodex。LLMコメントをルールベースに置換。各内タブの最上段にデータ即時のアドバイスを表示。",
                 "I2v3-UI": "担当はGemini。Codex実装済みのアドバイスカードの見た目を改善。状態別色分け・SVGアイコン・質感向上。",
+                "U4-API": "担当はCodex-shinsekai。DELETE/PUTエンドポイント追加。バリデーション再利用、daily_metrics自動再計算。",
+                "U4-UI": "担当はGemini。あすけん方式のフロントエンド実装。FoodInput.tsx + FoodScreen.tsx 修正。",
+                "U5-SYNC": "担当はCodex-shinsekai。handleSync内でrebuildAggregatesを直接呼び出し。ensureAggregatesUpToDateのタイムスタンプ修正。",
+                "U6-DATE": "担当はCodex-shinsekai。loadHaruPromptContextでdataDate=date-1を使用。buildHaruUserPromptのヘッダー更新。既存レポート移行。",
             };
 
             function getTaskLabel(id) { if (TASK_LABELS[id]) return TASK_LABELS[id]; if (id.startsWith("C-")) return `引き継ぎタスク ${id} を進めます。`; return `タスク ${id} を進めます。`; }
@@ -664,6 +693,8 @@
                 "D2-REFACTOR": "low",
                 "E1-ATTENTION": "mid",
                 "F1-SLEEP-STAGE": "high",
+                "H1-HARU": "high",
+                "H2-CUSTOM-REPORT": "high",
                 "A1v3-VALUES": "mid",
                 "I2v2-HEALTH": "mid",
                 "I2v3-ADVICE": "mid",
@@ -675,9 +706,9 @@
                 { name: "ホーム画面", status: "ok", summary: "スコア表示・専門家アバター配置完了。注目のポイント廃止済み（E1）。スコア→専門家コメントの2層構成", owner: "Gemini / Codex", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR","E1-ATTENTION"] },
                 { name: "健康タブ", status: "ok", summary: "体重・血圧・睡眠の各タブ上部に、データに応じて内容が変わるアドバイス表示を追加。未取得日は表示しない動きに統一。", owner: "Codex", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","I2v2-HEALTH","I2v3-ADVICE","D1-REFACTOR"] },
                 { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
-                { name: "食事タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR"] },
+                { name: "食事タブ", status: "wip", summary: "DELETE/PUT API完了(U4-API)。あすけん方式UX改善中(U4-UI): 検索ファースト+編集・削除モーダル", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR","U4-API","U4-UI"] },
                 { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "本番デプロイ完了。モジュール分割済み（D2）。スコアAPI・AIレポート・同期後自動生成が稼働中", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE"] },
+                { name: "API（サーバー）", status: "ok", summary: "食事DELETE/PUT API追加(U4)。sync集計バグ修正(U5)。レポート日付モデルを読む日ベースに変更(U6)。全てデプロイ済み。", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];

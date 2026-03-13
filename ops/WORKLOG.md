@@ -13,6 +13,27 @@ Legacy note:
 - Files:
 - Risk/Follow-up:
 
+### 2026-03-05
+- Owner: Codex
+- Scope: H4 Gemini API 月額上限制御（1000円/月）
+- Result: 食事解析と日次レポートで、外部AIを使う前に月額上限を確認し、使った後に利用量を記録する制御を追加。上限を超えた場合は呼び出しを止め、利用状況（今月の想定金額と上限）を返すようにした。現在の月次利用状況を確認できる取得口も追加。型整合性確認と配布前チェックは成功。
+- Files: 月次利用量の保存先、共通利用量ユーティリティ、食事解析処理、日次レポート処理、API入口、引き継ぎメモ
+- Risk/Follow-up: 既存の本番環境へ保存先追加の反映が必要。上限到達時の画面案内は別タスクで接続すると利用者に分かりやすい。
+
+### 2026-03-05 (2)
+- Owner: Codex-shinsekai
+- Scope: U7 日次歩数のタイムゾーンずれ修正
+- Result: 深夜から朝に計測した歩数が前日に寄る問題を修正し、日本時間の日付で日次集計される状態に統一。型整合性確認は成功。
+- Files: 時差の共通定義、日付変換の共通処理、引き継ぎメモ
+- Risk/Follow-up: 本番で過去データの表示を正しくそろえるには、反映後の再集計が必要。ソース重複の調整は別課題（U8）で対応予定。
+
+### 2026-03-05 (3)
+- Owner: Codex-shinsekai
+- Scope: U10 レポート表示フォーマット改善
+- Result: 日次レポートを見出し付きの3部構成で出力できるように改善し、装飾記号が混ざった場合でも自動で除去されるようにした。ホームのハル表示とカスタムレポート履歴も段落・見出し表示に対応し、旧形式の文章も表示できる状態を維持。型整合性確認はAPI側・Web側とも成功。
+- Files: レポート生成指示、レポート整形処理、ホーム表示、カスタムレポート表示、引き継ぎメモ
+- Risk/Follow-up: 実データで見出しあり/なし両ケースの最終目視確認を行うと安全。
+
 ### 2026-03-03 (5)
 - Owner: Claude (CTO)
 - Scope: C1 LLMモデル選定・マルチプロバイダ対応・品質検証
@@ -241,3 +262,31 @@ Legacy note:
 - Result: 重複する睡眠セッションがある日に、睡眠ステージ合計が実睡眠時間を超えてチャートが過大表示される問題を修正。日次最終化でステージ合計が実睡眠時間を超える場合のみ比率補正するように変更。
 - Files: `cloudflare-api/src/handlers/health.ts`, `ops/archive/CEO_DASHBOARD.html`, `handoff/incoming/20260304-codex-f1-sleep-stage-double-count.md`
 - Risk/Follow-up: 補正は重複日でのみ発動。実データで3/3周辺のグラフ表示を最終確認すると安全。
+
+### 2026-03-04 (3)
+- Owner: Codex-shinsekai
+- Scope: H3 食事のAI解析と食品再利用機能
+- Result: 食事入力時に、まず過去に使った食品候補を先に探し、見つからない場合だけ外部AIで解析する流れを実装。確認後の保存で当日の摂取カロリー合計が更新されるようにし、よく使う食品は再利用しやすく蓄積される状態にした。栄養素のキーは画面側と一致する固定仕様で統一。
+- Files: 食事解析処理、保存処理、検索処理、履歴処理、食品マスター定義、設定定義、引き継ぎメモ
+- Risk/Follow-up: 画面側の食事入力フォームと接続する最終確認が未実施。外部AIキーは本番では秘密情報として設定が必要。
+
+### 2026-03-04 (4)
+- Owner: Codex
+- Scope: H1 ハルLLMプロンプトと日付モデル修正
+- Result: 日次コメントをハル1本に統一。同期後の自動生成を前日基準に戻し、対象日の扱いを統一。コメント出力をプレーンテキスト化し、既存のyu/saki/mai列は保持したまま運用できる状態に更新。
+- Files: `cloudflare-api/src/handlers/report.ts`, `cloudflare-api/src/handlers/sync.ts`, `cloudflare-api/src/handlers/home-summary.ts`, `cloudflare-api/src/types.ts`, `cloudflare-api/migrations/0011_haru_briefing.sql`, `ops/archive/CEO_DASHBOARD.html`, `requests/codex/20260304-H1-haru-llm-and-date-model.md`, `handoff/incoming/20260304-codex-h1-haru-llm-and-date-model.md`
+- Risk/Follow-up: 本番データで `briefing` 文面と日付表示の最終確認を実施すると安全。
+
+### 2026-03-04 (5)
+- Owner: Codex
+- Scope: H2 カスタムレポートAPI
+- Result: テンプレート一覧取得・レポート生成・履歴取得の3APIを追加。固定テンプレートで追加分析を生成し、結果を保存して再表示できる流れを実装。
+- Files: `cloudflare-api/src/constants/custom-report-templates.ts`, `cloudflare-api/src/handlers/custom-report.ts`, `cloudflare-api/src/index.ts`, `cloudflare-api/src/types.ts`, `cloudflare-api/migrations/0012_custom_reports.sql`, `ops/archive/CEO_DASHBOARD.html`, `requests/codex/20260304-H2-custom-report-api.md`, `handoff/incoming/20260304-codex-h2-custom-report-api.md`
+- Risk/Follow-up: 実運用キーを使った生成品質確認（テンプレート別）を別途行う。
+
+### 2026-03-04 (6)
+- Owner: Codex
+- Scope: H1/H2レビュー修正（forbidToday 誤拒否・改行保持）
+- Result: 提案文での「今日」を許容できるよう日次生成の `forbidToday` を無効化し、System promptに「提案のみ今日OK」を追記。あわせてプレーンテキスト正規化で改行を保持するように変更し、段落構造が失われないよう修正。
+- Files: `cloudflare-api/src/handlers/report.ts`, `requests/codex/20260304-H1H2-review-fixes.md`, `handoff/incoming/20260304-codex-h1h2-review-fixes.md`
+- Risk/Follow-up: 実データで段落改行がUI表示で崩れないことを最終確認すると安全。

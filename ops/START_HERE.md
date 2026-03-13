@@ -35,4 +35,5 @@ Last updated: 2026-03-02
 - File map: `ops/FILE_MAP.md`
 - CEO dashboard: `ops/archive/CEO_DASHBOARD.html`
 - Dashboard update guide: `ops/CEO_DASHBOARD_UPDATE.md`
+- Tech debt tracker: `ops/TECH_DEBT.md`
 - Health OS設計: `docs/plans/2026-03-02-health-os-design.md`
