@@ -381,7 +381,7 @@
             <header class="hero">
                 <h1 class="hero-h1">AIエージェント・マルチタスク・コントロールパネル</h1>
                 <div class="meta-row">
-                    <span class="tag">最終更新日: 2026-02-26</span>
+                    <span class="tag">最終更新日: 2026-03-17</span>
                     <span class="tag">ゴール: Android正式リリース</span>
                     <span class="tag">更新責任: CTO（Codex）</span>
                 </div>
@@ -493,16 +493,16 @@
                 <div class="panel-header">最新アクティビティフィード</div>
                 <div class="activity-list">
                     <div class="activity-item active">
-                        <div class="act-title">エージェントガンマ: 新しいモデルを提案</div>
-                        <div class="act-time">2分前</div>
+                        <div class="act-title">Claude(CTO): マイページ設計完了→Codex-shinsekaiに実装依頼(M1)</div>
+                        <div class="act-time">2026-03-17 00:25</div>
                     </div>
                     <div class="activity-item">
-                        <div class="act-title">エージェントエプシロン: メッセージングの方向性を承認</div>
-                        <div class="act-time">5分前</div>
+                        <div class="act-title">Claude(CTO): 技術負債8件を全解消(TD-001〜TD-008)</div>
+                        <div class="act-time">2026-03-17 00:00</div>
                     </div>
                     <div class="activity-item">
-                        <div class="act-title">エージェントゼータ: ネーミング案を提出</div>
-                        <div class="act-time">105分前</div>
+                        <div class="act-title">Claude(CTO): 食事タブ完了確認・レポート生成停止調査</div>
+                        <div class="act-time">2026-03-16 23:30</div>
                     </div>
                 </div>
             </div>
@@ -515,9 +515,9 @@
             <div class="panel">
                 <div class="panel-header">技術負債 (ops/TECH_DEBT.md)</div>
                 <div class="activity-list">
-                    <div class="activity-item" style="border-left:3px solid var(--warning)">
-                        <div class="act-title">未対応: 8件</div>
-                        <div class="act-time">フロント型安全性(3), コード分割(3), バリデーション(2)</div>
+                    <div class="activity-item" style="border-left:3px solid var(--accent)">
+                        <div class="act-title">全8件解消済み ✓</div>
+                        <div class="act-time">2026-03-16 解消完了</div>
                     </div>
                 </div>
             </div>
@@ -706,9 +706,9 @@
                 { name: "ホーム画面", status: "ok", summary: "スコア表示・専門家アバター配置完了。注目のポイント廃止済み（E1）。スコア→専門家コメントの2層構成", owner: "Gemini / Codex", type: "frontend", relatedTasks: ["A1-SCORE","A2-INSIGHT","B1-HOME","B3-AVATAR","E1-ATTENTION"] },
                 { name: "健康タブ", status: "ok", summary: "体重・血圧・睡眠の各タブ上部に、データに応じて内容が変わるアドバイス表示を追加。未取得日は表示しない動きに統一。", owner: "Codex", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","I2v2-HEALTH","I2v3-ADVICE","D1-REFACTOR"] },
                 { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
-                { name: "食事タブ", status: "wip", summary: "DELETE/PUT API完了(U4-API)。あすけん方式UX改善中(U4-UI): 検索ファースト+編集・削除モーダル", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR","U4-API","U4-UI"] },
-                { name: "マイページ", status: "not_started", summary: "プロフィールと同期状況の表示を準備中", owner: "Codex-1 / Gemini", type: "frontend", relatedTasks: ["I5-CODEX","I5-GEMINI","P1-2-1","P1-2-2"] },
-                { name: "API（サーバー）", status: "ok", summary: "食事DELETE/PUT API追加(U4)。sync集計バグ修正(U5)。レポート日付モデルを読む日ベースに変更(U6)。全てデプロイ済み。", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE"] },
+                { name: "食事タブ", status: "ok", summary: "検索ファースト+編集・削除モーダル+DELETE/PUT API完了。技術負債（型アサーション・ミューテーション・バリデーション等）も全て解消済み", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR","U4-API","U4-UI"] },
+                { name: "マイページ", status: "wip", summary: "4セクション構成（プロフィール・目標設定・データの状態・AIレポート）で設計完了。Codex-shinsekaiに実装依頼済み(M1)", owner: "Codex-shinsekai", type: "frontend", relatedTasks: ["M1-MYPAGE"] },
+                { name: "API（サーバー）", status: "ok", summary: "食事DELETE/PUT API完了。技術負債8件全解消（LLMプロバイダー分離・chart共通化等）。レポート自動生成の監視ログ強化済み。/api/ai-config追加予定(M1)", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE","M1-MYPAGE"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
