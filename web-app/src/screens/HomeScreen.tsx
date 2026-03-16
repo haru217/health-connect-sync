@@ -184,67 +184,130 @@ function HaruBriefing({
     ? new Date(normalizedReportDate as string).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
     : null
 
+  const [isVisible, setIsVisible] = useState(false); // コンポーネント全体のフェードイン
+  const [revealedParagraphs, setRevealedParagraphs] = useState<number[]>([]); // 段落ごとの表示制御
+
+  useEffect(() => {
+    setIsVisible(true); // マウント時にフェードイン開始
+
+    if (briefing) {
+      const paragraphs = briefing.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0);
+      paragraphs.forEach((_, index) => {
+        setTimeout(() => {
+          setRevealedParagraphs((prev) => [...prev, index]);
+        }, 300 + index * 150); // 全体のフェードイン後、0.15秒ごとに段落を表示
+      });
+    }
+
+    return () => {
+      setIsVisible(false);
+      setRevealedParagraphs([]);
+    };
+  }, [briefing]);
+
+  // セクションごとのアイコンとカラーのマッピングを定義
+  const sectionConfig = {
+    'からだ': { icon: 'favorite', color: 'var(--accent-red)' },
+    '運動': { icon: 'directions_run', color: 'var(--accent-blue)' },
+    '食事': { icon: 'restaurant', color: 'var(--accent-color)' }, // デフォルトのaccent-color
+    '睡眠': { icon: 'bedtime', color: 'var(--accent-yellow)' },
+    'まとめ': { icon: 'psychology', color: 'var(--accent-indigo)' },
+    // 他のセクションも必要に応じて追加
+    'その他': { icon: 'info', color: 'var(--text-muted)' }, // デフォルト/不明なセクション用
+  };
+
   if (briefing) {
     const paragraphs = briefing.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0)
     return (
-      <section className="haru-briefing-section" style={{ margin: '16px 16px 32px 16px' }}>
+      <section className="haru-briefing-section" style={{ flexGrow: 1 }}>
         <div style={{
+          position: 'relative',
           background: 'var(--surface)',
-          borderRadius: '24px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+          borderRadius: '20px 20px 20px 6px', // 左下を少し角張らせて吹き出し感を出す
+          boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
           border: '1px solid var(--border-color)',
-          overflow: 'hidden',
+          padding: '0', // ヘッダーと本文で内部パディングを調整するため0に
+          maxWidth: 'calc(100%)', // 親要素でマージンが調整されるため100%に
+          display: 'flex',
+          flexDirection: 'column',
+          opacity: isVisible ? 1 : 0, // フェードインアニメーション
+          transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
+          transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
         }}>
-          {/* キャラクターヘッダー */}
+          {/* 吹き出しの三角 */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px 20px 16px',
-            background: 'linear-gradient(135deg, rgba(45,139,111,0.08) 0%, rgba(45,139,111,0.02) 100%)',
-          }}>
-            <div style={{
-              width: '100px', height: '100px', borderRadius: '50%',
-              overflow: 'hidden',
-              border: '4px solid white',
-              boxShadow: '0 8px 24px rgba(45,139,111,0.18)',
-              background: 'white',
-            }}>
-              <img
-                src="/haru-avatar.png"
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-          </div>
+            position: 'absolute',
+            left: '-8px', // アバターに近づける
+            top: '25px', // アバターの高さに合わせて調整
+            width: '0',
+            height: '0',
+            borderStyle: 'solid',
+            borderWidth: '10px 10px 10px 0',
+            borderColor: 'transparent var(--border-color) transparent transparent',
+            filter: 'drop-shadow(-1px 0px 1px rgba(0,0,0,0.05))', // 影
+          }} />
+          <div style={{ // 内側の背景部分の三角 (borderの上に乗る形)
+            position: 'absolute',
+            left: '-6px',
+            top: '26px',
+            width: '0',
+            height: '0',
+            borderStyle: 'solid',
+            borderWidth: '9px 9px 9px 0',
+            borderColor: 'transparent var(--surface) transparent transparent',
+          }} />
 
           {/* ブリーフィング本文 */}
-          <div style={{ padding: '16px 20px 24px', fontSize: '15px', lineHeight: '1.7', color: 'var(--text-primary)' }}>
+          <div style={{
+            padding: '18px 20px 20px', // 上下左右のパディングを微調整し、ゆったりとした印象に
+            fontSize: '15.5px', // 読みやすいようにわずかに大きく
+            lineHeight: '1.75', // 行間を広げ、ゆったりと読みやすく
+            color: 'var(--text-primary)',
+          }}>
             {showReportDateLabel && reportDateLabel ? (
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', textAlign: 'center' }}>
+              <div style={{
+                fontSize: '12.5px', // 日付ラベルも少し大きく
+                color: 'var(--text-muted)',
+                marginBottom: '14px', // 下のテキストとの余白を増やす
+                textAlign: 'center',
+                fontWeight: '500', // 少し太くして視認性を上げる
+              }}>
                 {reportDateLabel}の分析レポート
               </div>
             ) : null}
             {paragraphs.map((para, i) => {
               const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
+              const isRevealed = revealedParagraphs.includes(i); // この段落が表示されるべきか
+
+              // アニメーションスタイル
+              const paragraphAnimStyle = {
+                opacity: isRevealed ? 1 : 0,
+                transform: isRevealed ? 'translateY(0)' : 'translateY(5px)',
+                transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
+              };
+
               if (sectionMatch) {
+                const sectionTitle = sectionMatch[1];
+                const config = sectionConfig[sectionTitle as keyof typeof sectionConfig] || sectionConfig['その他'];
                 const sectionLines = sectionMatch[2].trim().split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
                 return (
-                  <div key={i} style={{ marginBottom: i < paragraphs.length - 1 ? '16px' : 0 }}>
+                  <div key={i} style={{ ...paragraphAnimStyle, marginBottom: i < paragraphs.length - 1 ? '20px' : '0' }}>
                     <div style={{
-                      fontSize: '14px',
+                      fontSize: '16px', // セクションタイトルを本文より少し大きく
                       fontWeight: 'bold',
-                      color: 'var(--accent-color)',
-                      marginBottom: '6px',
+                      color: config.color, // セクションに応じたカラー
+                      marginBottom: '10px', // セクションタイトルと本文の余白を増やす
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px'
+                      gap: '8px'
                     }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
-                      {sectionMatch[1]}
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                        {config.icon}
+                      </span>
+                      {sectionTitle}
                     </div>
                     {sectionLines.map((line, j) => (
-                      <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '4px' : '0'} 0` }}>
+                      <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '6px' : '0'} 0` }}>
                         {renderMarkdownText(line)}
                       </p>
                     ))}
@@ -252,7 +315,7 @@ function HaruBriefing({
                 )
               }
               return (
-                <p key={i} style={{ margin: `0 0 ${i < paragraphs.length - 1 ? '12px' : '0'} 0` }}>
+                <p key={i} style={{ ...paragraphAnimStyle, margin: `0 0 ${i < paragraphs.length - 1 ? '16px' : '0'} 0` }}>
                   {renderMarkdownText(para)}
                 </p>
               )
@@ -608,12 +671,43 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
 
       {content ? (
         <>
-          <HaruBriefing
-            briefing={content.summary.report?.briefing}
-            fallbackReport={content.summary.report?.home ?? undefined}
-            reportDate={content.summary.report?.reportDate}
-            activeDate={activeDate}
-          />
+          <div style={{ display: 'flex', alignItems: 'flex-start', margin: '16px 16px 32px 16px' }}>
+            <div style={{
+              position: 'relative',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '3px solid white',
+              boxShadow: '0 4px 12px rgba(45,139,111,0.12)',
+              background: 'white',
+              flexShrink: 0,
+              marginRight: '12px',
+              marginTop: '10px',
+            }}>
+              <img
+                src="/haru-avatar.png"
+                alt="はるクロード"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <div style={{
+                position: 'absolute',
+                bottom: '2px',
+                right: '2px',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#4CAF50',
+                border: '2px solid white',
+              }} />
+            </div>
+            <HaruBriefing
+              briefing={content.summary.report?.briefing}
+              fallbackReport={content.summary.report?.home ?? undefined}
+              reportDate={content.summary.report?.reportDate}
+              activeDate={activeDate}
+            />
+          </div>
           <WeeklyReportCard report={content.latestWeeklyReport} onOpen={onViewWeeklyReport} />
           <CustomReportSection history={content.customReports} onRequest={handleRequestReport} onViewReport={onViewReport} />
           {reportError && (
