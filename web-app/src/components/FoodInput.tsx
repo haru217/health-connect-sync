@@ -26,7 +26,7 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                 const res = await searchFoodFavorites(trimmed)
                 if (active) setFavorites(res)
             } catch {
-                // ignore
+                // Favorites search failure is non-critical - input still works via AI analysis fallback
             }
         }
         const timer = setTimeout(fetchFavs, 300)

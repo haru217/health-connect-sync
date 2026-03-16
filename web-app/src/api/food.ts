@@ -1,6 +1,25 @@
 import { apiFetch } from './client'
 import type { FoodAnalyzeResponse, FoodHistoryResponse, FoodAnalyzeResult, NutrientDetails } from './types'
 
+function buildNutrients(
+        macros: { calories: number | null; protein_g: number | null; fat_g: number | null; carbs_g: number | null },
+        micros?: Partial<NutrientDetails>,
+): NutrientDetails {
+        const defaults: NutrientDetails = {
+                calories: null, protein_g: null, fat_g: null, carbs_g: null,
+                saturated_fat_g: null, omega3_mg: null, omega6_mg: null, trans_fat_g: null,
+                sugar_g: null, fiber_g: null,
+                vitamin_a_ug: null, vitamin_d_ug: null, vitamin_e_mg: null, vitamin_k_ug: null,
+                vitamin_b1_mg: null, vitamin_b2_mg: null, vitamin_b6_mg: null, vitamin_b12_ug: null,
+                vitamin_c_mg: null, niacin_mg: null, folate_ug: null, pantothenic_acid_mg: null, biotin_ug: null,
+                sodium_mg: null, potassium_mg: null, calcium_mg: null, magnesium_mg: null, phosphorus_mg: null,
+                iron_mg: null, zinc_mg: null, copper_mg: null, manganese_mg: null,
+                selenium_ug: null, chromium_ug: null, molybdenum_ug: null, iodine_ug: null,
+                cholesterol_mg: null, purine_mg: null, caffeine_mg: null, alcohol_g: null,
+        }
+        return { ...defaults, ...macros, ...micros }
+}
+
 interface FoodApiItem {
         name: string
         brand: string | null
@@ -132,15 +151,10 @@ export async function fetchFoodHistory(date: string): Promise<FoodHistoryRespons
                 name: item.name,
                 brand: item.brand,
                 amount: item.amount,
-                nutrients: {
-                        calories: item.kcal,
-                        protein_g: item.protein_g,
-                        fat_g: item.fat_g,
-                        carbs_g: item.carbs_g,
-                        ...Object.fromEntries(
-                                Object.entries(item.micros || {}).map(([k, v]) => [k, v ?? null])
-                        ),
-                } as NutrientDetails,
+                nutrients: buildNutrients(
+                        { calories: item.kcal, protein_g: item.protein_g, fat_g: item.fat_g, carbs_g: item.carbs_g },
+                        item.micros,
+                ),
                 eatenAt: item.consumed_at,
                 mealType: item.meal_type ?? null,
         }))
@@ -149,15 +163,15 @@ export async function fetchFoodHistory(date: string): Promise<FoodHistoryRespons
                 mappedItems.reduce((acc, it) => acc + ((it.nutrients[key] as number) ?? 0), 0) || null
 
         const apiSummary = res.summary
-        const summary: NutrientDetails = {
-                calories: apiSummary?.kcal ?? sum('calories'),
-                protein_g: apiSummary?.protein_g ?? sum('protein_g'),
-                fat_g: apiSummary?.fat_g ?? sum('fat_g'),
-                carbs_g: apiSummary?.carbs_g ?? sum('carbs_g'),
-                ...Object.fromEntries(
-                        Object.entries(apiSummary?.micros || {}).map(([k, v]) => [k, v ?? null])
-                ),
-        } as NutrientDetails
+        const summary: NutrientDetails = buildNutrients(
+                {
+                        calories: apiSummary?.kcal ?? sum('calories'),
+                        protein_g: apiSummary?.protein_g ?? sum('protein_g'),
+                        fat_g: apiSummary?.fat_g ?? sum('fat_g'),
+                        carbs_g: apiSummary?.carbs_g ?? sum('carbs_g'),
+                },
+                apiSummary?.micros,
+        )
 
         return { date: res.date, items: mappedItems, summary }
 }

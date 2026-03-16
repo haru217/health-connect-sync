@@ -26,14 +26,13 @@ export default function FoodConfirm({ analyzeData, onConfirmSuccess, onBack }: F
             const base = it.base_item;
             if (!base) return { ...it, multiplier: newMultiplier };
 
-            // 再計算
-            const recalcNutrients = { ...base.nutrients };
-            for (const k in recalcNutrients) {
-                const key = k as keyof typeof recalcNutrients;
-                if (typeof recalcNutrients[key] === 'number') {
-                    recalcNutrients[key] = Number(((base.nutrients[key] as number) * newMultiplier).toFixed(1));
-                }
-            }
+            // 再計算（イミュータブル）
+            const recalcNutrients = Object.fromEntries(
+                Object.entries(base.nutrients).map(([k, v]) => [
+                    k,
+                    typeof v === 'number' ? Number((v * newMultiplier).toFixed(1)) : v,
+                ])
+            ) as typeof base.nutrients;
 
             return {
                 ...it,

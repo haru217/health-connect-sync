@@ -30,7 +30,15 @@ export default function FoodEditModal({ item, editLoading, onSave, onDelete, onC
     })
     const [deleteConfirm, setDeleteConfirm] = useState(false)
 
+    const isValid = editForm.name.trim() !== '' &&
+        editForm.amount.trim() !== '' &&
+        !isNaN(Number(editForm.kcal)) &&
+        !isNaN(Number(editForm.protein_g)) &&
+        !isNaN(Number(editForm.fat_g)) &&
+        !isNaN(Number(editForm.carbs_g))
+
     const handleSave = () => {
+        if (!isValid) return
         onSave({
             name: editForm.name,
             amount: editForm.amount,
@@ -43,8 +51,8 @@ export default function FoodEditModal({ item, editLoading, onSave, onDelete, onC
     }
 
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <div style={{ background: 'var(--surface)', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', padding: '24px', boxShadow: '0 -4px 24px rgba(0,0,0,0.1)' }}>
+        <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', padding: '24px', boxShadow: '0 -4px 24px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>✕</button>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>食事を編集</h3>
@@ -104,7 +112,7 @@ export default function FoodEditModal({ item, editLoading, onSave, onDelete, onC
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                    <button onClick={handleSave} disabled={editLoading} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'var(--accent-color)', color: 'white', border: 'none', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px var(--shadow-color)' }}>
+                    <button onClick={handleSave} disabled={editLoading || !isValid} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: isValid ? 'var(--accent-color)' : 'var(--text-muted)', color: 'white', border: 'none', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px var(--shadow-color)', opacity: isValid ? 1 : 0.6 }}>
                         {editLoading ? '保存中...' : '保存する'}
                     </button>
                 </div>

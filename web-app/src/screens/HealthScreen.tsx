@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
@@ -12,88 +12,14 @@ import {
 import type {
   BodyDataResponse, SleepDataResponse, VitalsDataResponse
 } from '../api/types'
+import { formatXLabel, formatTooltipLabel, formatRounded, monthTickDates, joinAdviceSentences } from '../utils/chart'
 import './HealthScreen.css'
 
 type InnerTab = 'composition' | 'circulation' | 'sleep' | 'vital'
 
-function formatXLabel(dateStr: string, segment: Segment): string {
-  const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
-  if (!dateStr) return ''
-  if (segment === 'week') {
-    const parts = dateStr.split('-')
-    if (parts.length === 3) {
-      const [y, m, d] = parts.map(Number)
-      return WEEKDAYS[new Date(y, m - 1, d).getDay()]
-    }
-    return dateStr
-  }
-  if (segment === 'year') {
-    // dateStr は 'YYYY-MM' 形式
-    const parts = dateStr.split('-')
-    if (parts.length >= 2) return `${parseInt(parts[1], 10)}月`
-    return dateStr
-  }
-  // month: 日付表示
-  const parts = dateStr.split('-')
-  if (parts.length === 3) {
-    const m = parseInt(parts[1], 10)
-    const d = parseInt(parts[2], 10)
-    return `${m}/${d}`
-  }
-  return dateStr
-}
-
-function formatTooltipLabel(dateStr: string, segment: Segment): string {
-  const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
-  if (!dateStr) return ''
-  const parts = dateStr.split('-')
-  if (segment === 'week' || segment === 'month') {
-    if (parts.length === 3) {
-      const [y, m, d] = parts.map(Number)
-      const w = WEEKDAYS[new Date(y, m - 1, d).getDay()]
-      return `${m}/${d} (${w})`
-    }
-  }
-  if (segment === 'year') {
-    if (parts.length >= 2) return `${parseInt(parts[0], 10)}年${parseInt(parts[1], 10)}月`
-  }
-  return dateStr
-}
-
-function formatRounded(value: number | null | undefined, digits = 0): string {
-  if (value == null || !Number.isFinite(value)) {
-    return '-'
-  }
-  return digits === 0 ? String(Math.round(value)) : value.toFixed(digits)
-}
-
-function weekDayOfIsoDate(dateStr: string): number | null {
-  const parts = dateStr.split('-').map(Number)
-  if (parts.length !== 3) return null
-  const [y, m, d] = parts
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null
-  return new Date(y, m - 1, d).getDay()
-}
-
-function monthTickDates(dates: string[], anchorDate: string): string[] {
-  const anchorDay = weekDayOfIsoDate(anchorDate)
-  if (anchorDay == null) return []
-  return dates.filter((dateStr) => weekDayOfIsoDate(dateStr) === anchorDay)
-}
-
 function normalizePercent(value: number | null | undefined): number | null {
   if (value == null || !Number.isFinite(value)) return null
   return value <= 1 ? value * 100 : value
-}
-
-function joinAdviceSentences(sentences: string[]): string | null {
-  const normalized = sentences
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 0)
-    .map((sentence) => sentence.replace(/。+$/u, ''))
-
-  if (normalized.length === 0) return null
-  return `${normalized.join('。')}。`
 }
 
 function formatAdviceKg(value: number): string {
@@ -207,7 +133,6 @@ function generateSleepAdvice(
 function HealthAdviceCard({ advice }: { advice: string | null }) {
   if (!advice) return null
 
-  // 「。」で分割して複数行に（最大2文まで）
   const sentences = advice
     .split('。')
     .map(s => s.trim())
@@ -752,4 +677,3 @@ export default function HealthScreen({ initialTab = 'composition' }: { initialTa
     </div>
   )
 }
-
