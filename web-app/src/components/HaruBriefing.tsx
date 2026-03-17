@@ -36,6 +36,7 @@ function renderMarkdownText(text: string): ReactNode[] {
 const sectionConfig = {
   からだ: { icon: 'favorite', color: 'var(--accent-red)' },
   運動: { icon: 'directions_run', color: 'var(--accent-blue)' },
+  活動: { icon: 'directions_run', color: 'var(--accent-blue)' },
   食事: { icon: 'restaurant', color: 'var(--accent-color)' },
   睡眠: { icon: 'bedtime', color: 'var(--accent-yellow)' },
   まとめ: { icon: 'psychology', color: 'var(--accent-indigo)' },
