@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { CustomReportHistoryItem, WeeklyReportItem } from './types'
+import type { CustomReportHistoryItem, MonthlyReportItem, WeeklyReportItem } from './types'
 
 interface CustomReportListRow {
     id: number
@@ -52,6 +52,24 @@ export async function fetchWeeklyReports(limit = 10, offset = 0): Promise<Weekly
 export async function fetchWeeklyReportByWeekStart(weekStart: string): Promise<WeeklyReportItem> {
     const query = new URLSearchParams({ week_start: weekStart }).toString()
     return apiFetch<WeeklyReportItem>(`/api/weekly-report?${query}`)
+}
+
+export async function fetchMonthlyReports(limit = 10, offset = 0): Promise<MonthlyReportItem[]> {
+    try {
+        const query = new URLSearchParams({
+            limit: String(limit),
+            offset: String(offset),
+        }).toString()
+        const res = await apiFetch<{ reports: MonthlyReportItem[] }>(`/api/monthly-reports?${query}`)
+        return res.reports ?? []
+    } catch {
+        return []
+    }
+}
+
+export async function fetchMonthlyReportByMonth(month: string): Promise<MonthlyReportItem> {
+    const query = new URLSearchParams({ month }).toString()
+    return apiFetch<MonthlyReportItem>(`/api/monthly-report?${query}`)
 }
 
 export async function requestWeeklyReportGenerate(weekStart?: string): Promise<{ week_start: string; accepted: boolean; force?: boolean }> {

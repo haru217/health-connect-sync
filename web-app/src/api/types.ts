@@ -615,3 +615,12 @@ export interface WeeklyReportItem {
   generated_at: string
 }
 
+export interface MonthlyReportItem {
+  month: string
+  headline: string
+  report: string
+  model: string
+  generated_at: string
+  created_at: string
+}
+
