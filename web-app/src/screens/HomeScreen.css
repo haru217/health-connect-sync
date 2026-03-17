@@ -306,23 +306,10 @@
   min-width: 0;
 }
 
-.expert-role-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4px;
-}
-
 .expert-role {
   display: block;
   font-size: 12px;
   font-weight: 700;
-}
-
-.expert-timestamp {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
 }
 
 .expert-body {
