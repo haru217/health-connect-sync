@@ -1,8 +1,7 @@
-﻿import { CURSOR_REPAIR_SAFETY_MS, HEALTH_CONNECT_REQUIRED_PERMISSIONS, JST_OFFSET_MS, RECORD_PERMISSION_MAP } from '../constants'
+﻿import { CURSOR_REPAIR_SAFETY_MS, HEALTH_CONNECT_REQUIRED_PERMISSIONS, RECORD_PERMISSION_MAP } from '../constants'
 import type { Env, ExecutionContext, SyncRecordInput, SyncRequestInput } from '../types'
 import { clampCursorMillisForRepair, execute, isSmokeDeviceId, jsonResponse, normalizeStringArray, nowIso, parseBooleanFlag, parseIsoToMillis, queryFirst, readJsonBody, shiftIsoDateByDays, toIsoDate } from '../utils'
 import { computeRecordKey, stableStringify } from './sync-parsers'
-import { generateDailyReportIfNeeded } from './report'
 import { rebuildAggregatesFromHealthRecords } from './sync-aggregate'
 
 export function parseSyncRequestPayload(payload: Record<string, unknown>): SyncRequestInput {
@@ -187,16 +186,9 @@ export async function handleSync(request: Request, env: Env, ctx: ExecutionConte
     }
   }
 
-  const todayJst = new Date(Date.now() + JST_OFFSET_MS).toISOString().slice(0, 10)
-  const llmApiKey = (env.LLM_API_KEY ?? '').trim()
   if (ctx) {
     ctx.waitUntil(
       rebuildAggregatesFromHealthRecords(env.DB)
-        .then(() => {
-          if (llmApiKey) {
-            return generateDailyReportIfNeeded(env, todayJst, { force: true })
-          }
-        })
         .catch((err: unknown) =>
           console.error('Post-sync background tasks failed:', err)
         ),
