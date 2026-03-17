@@ -10,6 +10,7 @@ import { handleCustomReportGetById, handleCustomReportPost, handleCustomReportsG
 import { handleGeminiUsageGet } from './handlers/gemini-usage'
 import { handleDailyReportGenerate, handleDailyReportGet } from './handlers/report'
 import { generateWeeklyReport, handleWeeklyReportGenerate, handleWeeklyReportGet, handleWeeklyReportsListGet } from './handlers/weekly-report'
+import { generateMonthlyReport, handleMonthlyReportGenerate, handleMonthlyReportGet, handleMonthlyReportsListGet } from './handlers/monthly-report'
 import { handleAiConfigGet } from './handlers/ai-config'
 import {
   handleNutrientsTargets,
@@ -24,7 +25,7 @@ import { handleScores } from './handlers/scores'
 import { handleStatus, handleConnectionStatus } from './handlers/status'
 import { handleSummary } from './handlers/summary'
 import { handleSync, handleSyncCursor } from './handlers/sync'
-import { getLastCompletedWeekStart } from './utils'
+import { getLastCompletedMonth, getLastCompletedWeekStart } from './utils'
 
 const worker: ExportedHandler<Env> = {
   async fetch(request, env, ctx): Promise<Response> {
@@ -45,10 +46,13 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/report') return handleDailyReportGet(url, env)
       if (key === 'GET /api/weekly-report') return handleWeeklyReportGet(url, env)
       if (key === 'GET /api/weekly-reports') return handleWeeklyReportsListGet(url, env)
+      if (key === 'GET /api/monthly-report') return handleMonthlyReportGet(url, env)
+      if (key === 'GET /api/monthly-reports') return handleMonthlyReportsListGet(url, env)
       if (key === 'GET /api/gemini-usage') return handleGeminiUsageGet(env)
       if (key === 'GET /api/ai-config') return handleAiConfigGet(env)
       if (key === 'POST /api/report/generate') return handleDailyReportGenerate(request, url, env)
       if (key === 'POST /api/weekly-report/generate') return handleWeeklyReportGenerate(request, url, env, ctx)
+      if (key === 'POST /api/monthly-report/generate') return handleMonthlyReportGenerate(request, url, env)
       if (key === 'POST /api/custom-report') return handleCustomReportPost(request, url, env, ctx)
       if (key === 'GET /api/custom-reports') return handleCustomReportsGet(url, env)
       if (key === 'GET /api/custom-report-templates') return handleCustomReportTemplatesGet()
@@ -88,11 +92,19 @@ const worker: ExportedHandler<Env> = {
       return textResponse(message, 500)
     }
   },
-  async scheduled(_event, env, ctx): Promise<void> {
-    const weekStart = getLastCompletedWeekStart()
-    ctx.waitUntil(
-      generateWeeklyReport(env, weekStart).catch(() => undefined),
-    )
+  async scheduled(event, env, ctx): Promise<void> {
+    if (event.cron === '0 0 * * 1') {
+      const weekStart = getLastCompletedWeekStart()
+      ctx.waitUntil(
+        generateWeeklyReport(env, weekStart).catch(() => undefined),
+      )
+    }
+    if (event.cron === '0 0 1 * *') {
+      const lastMonth = getLastCompletedMonth()
+      ctx.waitUntil(
+        generateMonthlyReport(env, lastMonth).catch(() => undefined),
+      )
+    }
   },
 }
 
