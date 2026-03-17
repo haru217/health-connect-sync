@@ -7,10 +7,6 @@ import {
   fetchSupplements,
   logNutrition,
 } from '../api/healthApi'
-import { getExpertByTag } from '../components/ExpertCard'
-import TabAiAdvice from '../components/TabAiAdvice'
-import { useDateContext } from '../context/DateContext'
-import { useTabComment } from '../hooks/useTabComment'
 import type {
   NutrientTargetItem,
   NutritionDayResponse,
@@ -164,13 +160,10 @@ function findTodayOrLatest<T extends { date: string }>(
 }
 
 export default function MealScreen() {
-  const { activeDate } = useDateContext()
   const [activeTab, setActiveTab] = useState<TabType>('log')
   const [date, setDate] = useState<string>(todayLocal())
   const [state, setState] = useState<RequestState<MealScreenData>>({ status: 'loading' })
   const [actionError, setActionError] = useState<string | null>(null)
-  const { comment, loading } = useTabComment(activeDate, 'meal')
-  const nutritionistConfig = getExpertByTag('nutritionist')
 
   const loadData = useCallback(async () => {
     setState({ status: 'loading' })
@@ -533,7 +526,6 @@ export default function MealScreen() {
           )}
         </div>
 
-        <TabAiAdvice comment={comment} loading={loading} expert={nutritionistConfig} />
       </div>
 
       {activeTab === 'log' && (

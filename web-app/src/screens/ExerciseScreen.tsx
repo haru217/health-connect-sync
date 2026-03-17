@@ -7,9 +7,6 @@ import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
 import SegmentSelector from '../components/SegmentSelector'
 import type { Segment } from '../components/SegmentSelector'
-import TabAiAdvice from '../components/TabAiAdvice'
-import { getExpertByTag } from '../components/ExpertCard'
-import { useTabComment } from '../hooks/useTabComment'
 import { fetchActivityData } from '../api/healthApi'
 import type { ActivityDataResponse } from '../api/types'
 import { formatXLabel, formatTooltipLabel, formatRounded, monthTickDates, joinAdviceSentences } from '../utils/chart'
@@ -406,8 +403,6 @@ export default function ExerciseScreen() {
   const [data, setData] = useState<ActivityDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { comment, loading: commentLoading } = useTabComment(activeDate, 'activity')
-  const trainerConfig = getExpertByTag('trainer')
 
   useEffect(() => {
     let mounted = true
@@ -431,7 +426,6 @@ export default function ExerciseScreen() {
       <DateNavBar />
       <SegmentSelector value={segment} onChange={(v: string) => setSegment(v as Segment)} />
       {renderContent()}
-      <TabAiAdvice comment={comment} loading={commentLoading} expert={trainerConfig} />
     </div>
   )
 }
