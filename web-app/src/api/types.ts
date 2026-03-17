@@ -269,11 +269,6 @@ export interface HomeStatusItem {
   progress?: number
 }
 
-export interface PreviousReportLink {
-  date: string
-  generated_at: string
-}
-
 export interface HomeSufficiency {
   sleep: boolean
   steps: boolean
@@ -300,7 +295,6 @@ export interface HomeSummaryResponse {
   sufficiency: HomeSufficiency
   evidences?: HomeEvidence[]
   statusItems?: HomeStatusItem[]
-  previousReport?: PreviousReportLink | null
 }
 
 export interface HealthConnectPermissionStatus {
