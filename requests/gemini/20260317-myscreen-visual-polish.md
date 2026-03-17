@@ -14,7 +14,7 @@ MyScreen（マイページ）のビジュアルトーンが、他の画面（Hom
 
 ## Scope
 
-`web-app/src/screens/MyScreen.tsx` のビジュアルデザインを他画面と統一する。
+`C:/Users/senta/health-connect-sync/web-app/src/screens/MyScreen.tsx` のビジュアルデザインを他画面と統一する。
 
 具体的な改善ポイント（デザイン判断はGeminiに任せる）:
 - カードスタイル、影、border-radiusの統一
@@ -25,9 +25,9 @@ MyScreen（マイページ）のビジュアルトーンが、他の画面（Hom
 - 全体的な余白とリズムの調整
 
 参考にすべき画面:
-- `web-app/src/screens/HomeScreen.tsx` -- カードスタイルの基準
-- `web-app/src/screens/HomeScreen.css` -- CSS変数の使い方
-- `web-app/src/screens/HealthScreen.tsx` -- データ表示のトーン
+- `C:/Users/senta/health-connect-sync/web-app/src/screens/HomeScreen.tsx` -- カードスタイルの基準
+- `C:/Users/senta/health-connect-sync/web-app/src/screens/HomeScreen.css` -- CSS変数の使い方
+- `C:/Users/senta/health-connect-sync/web-app/src/screens/HealthScreen.tsx` -- データ表示のトーン
 
 使用中のCSS変数:
 - `--surface`, `--text-primary`, `--text-muted`, `--border-color`, `--accent-color`
@@ -50,8 +50,8 @@ MyScreen（マイページ）のビジュアルトーンが、他の画面（Hom
 
 ## Deliverables
 
-- `web-app/src/screens/MyScreen.tsx` の更新
-- 必要に応じて `web-app/src/screens/MyScreen.css` の新規作成
+- `C:/Users/senta/health-connect-sync/web-app/src/screens/MyScreen.tsx` の更新
+- 必要に応じて `C:/Users/senta/health-connect-sync/web-app/src/screens/MyScreen.css` の新規作成
 
 ## Notes
 
