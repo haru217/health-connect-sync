@@ -2,7 +2,7 @@
 
 Priority: high
 Assignee: codex-shinsekai
-Status: todo
+Status: done
 Spec: `docs/superpowers/specs/2026-03-17-mypage-design.md`
 
 ## 概要
