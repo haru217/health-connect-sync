@@ -140,7 +140,17 @@ const TEMPLATES = [
   { id: 'general', icon: 'health_and_safety', label: '全体の健康', desc: '総合分析' },
 ] as const
 
-function CustomReportSection({ history, onRequest, onViewReport }: { history: CustomReportHistoryItem[], onRequest: (id: string) => void, onViewReport?: (id: number) => void }) {
+function CustomReportSection({
+  history,
+  onRequest,
+  onViewReport,
+  onViewHistory,
+}: {
+  history: CustomReportHistoryItem[]
+  onRequest: (id: string) => void
+  onViewReport?: (id: number) => void
+  onViewHistory?: () => void
+}) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const styles = `
@@ -206,6 +216,15 @@ function CustomReportSection({ history, onRequest, onViewReport }: { history: Cu
     }
   }
 
+  const handleViewHistory = () => {
+    if (onViewHistory) {
+      onViewHistory()
+      return
+    }
+    if (history.length > 0) {
+      onViewReport?.(history[0].id)
+    }
+  }
 
   return (
     <section className="custom-report-section" style={{ margin: '32px 16px' }}>
@@ -237,43 +256,24 @@ function CustomReportSection({ history, onRequest, onViewReport }: { history: Cu
           </button>
         ))}
       </div>
-      {history.length > 0 ? (
-        <div style={{ marginTop: '16px' }}>
-          <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>過去のレポート</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {history.slice(0, 5).map(h => {
-              const dateLabel = h.createdAt ? new Date(h.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
-              return (
-                <div
-                  key={h.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onViewReport?.(h.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onViewReport?.(h.id)
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'var(--surface)',
-                    padding: '12px',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', flex: 1 }}>{h.templateLabel}</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>{dateLabel}</span>
-                  <span style={{ fontSize: '14px', color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : null}
+      <button
+        type="button"
+        onClick={handleViewHistory}
+        style={{
+          marginTop: '14px',
+          width: '100%',
+          border: 'none',
+          background: 'transparent',
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          textAlign: 'center',
+          padding: 0,
+        }}
+        aria-label={history.length > 0 ? '過去のレポートを見る' : '過去のレポートを見る（履歴はまだありません）'}
+      >
+        過去のレポートを見る
+      </button>
     </section>
   )
 }
@@ -283,9 +283,11 @@ function CustomReportSection({ history, onRequest, onViewReport }: { history: Cu
 function WeeklyReportCard({
   report,
   onOpen,
+  onViewHistory,
 }: {
   report: WeeklyReportItem | null
   onOpen?: (weekStart: string) => void
+  onViewHistory?: () => void
 }) {
   return (
     <section style={{ margin: '0 16px 24px' }}>
@@ -327,6 +329,23 @@ function WeeklyReportCard({
           週次レポートはまだありません
         </div>
       )}
+      <button
+        type="button"
+        onClick={onViewHistory}
+        style={{
+          marginTop: '10px',
+          width: '100%',
+          border: 'none',
+          background: 'transparent',
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          textAlign: 'center',
+          padding: 0,
+        }}
+      >
+        過去の週次を見る
+      </button>
     </section>
   )
 }
@@ -336,9 +355,11 @@ function WeeklyReportCard({
 function MonthlyReportCard({
   report,
   onOpen,
+  onViewHistory,
 }: {
   report: MonthlyReportItem | null
   onOpen?: (month: string) => void
+  onViewHistory?: () => void
 }) {
   const monthLabel = report
     ? (() => {
@@ -387,6 +408,23 @@ function MonthlyReportCard({
           月次レポートはまだありません
         </div>
       )}
+      <button
+        type="button"
+        onClick={onViewHistory}
+        style={{
+          marginTop: '10px',
+          width: '100%',
+          border: 'none',
+          background: 'transparent',
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          textAlign: 'center',
+          padding: 0,
+        }}
+      >
+        過去の月次を見る
+      </button>
     </section>
   )
 }
@@ -407,9 +445,20 @@ interface HomeScreenProps {
   onViewReport?: (id: number) => void
   onViewWeeklyReport?: (weekStart: string) => void
   onViewMonthlyReport?: (month: string) => void
+  onViewWeeklyHistory?: () => void
+  onViewMonthlyHistory?: () => void
+  onViewCustomHistory?: () => void
 }
 
-export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyReport, onViewMonthlyReport }: HomeScreenProps) {
+export default function HomeScreen({
+  onNavigate,
+  onViewReport,
+  onViewWeeklyReport,
+  onViewMonthlyReport,
+  onViewWeeklyHistory,
+  onViewMonthlyHistory,
+  onViewCustomHistory,
+}: HomeScreenProps) {
   const { activeDate } = useDateContext()
   const [state, setState] = useState<RequestState<HomeScreenData>>({ status: 'loading' })
 
@@ -565,9 +614,22 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
               generating={generating}
             />
           </div>
-          <WeeklyReportCard report={content.latestWeeklyReport} onOpen={onViewWeeklyReport} />
-          <MonthlyReportCard report={content.latestMonthlyReport} onOpen={onViewMonthlyReport} />
-          <CustomReportSection history={content.customReports} onRequest={handleRequestReport} onViewReport={onViewReport} />
+          <WeeklyReportCard
+            report={content.latestWeeklyReport}
+            onOpen={onViewWeeklyReport}
+            onViewHistory={onViewWeeklyHistory}
+          />
+          <MonthlyReportCard
+            report={content.latestMonthlyReport}
+            onOpen={onViewMonthlyReport}
+            onViewHistory={onViewMonthlyHistory}
+          />
+          <CustomReportSection
+            history={content.customReports}
+            onRequest={handleRequestReport}
+            onViewReport={onViewReport}
+            onViewHistory={onViewCustomHistory}
+          />
           {reportError && (
             <div style={{ margin: '0 16px', padding: '12px', background: 'var(--danger-bg, #fef2f2)', color: 'var(--danger-color, #dc2626)', borderRadius: '8px', fontSize: '13px' }}>
               {reportError}

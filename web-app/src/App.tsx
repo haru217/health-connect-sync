@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/HomeScreen'
 import ReportDetailScreen from './screens/ReportDetailScreen'
+import ReportHistoryScreen from './screens/ReportHistoryScreen'
 import MealScreen from './screens/MealScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 import HealthScreen from './screens/HealthScreen'
@@ -12,7 +13,7 @@ import { DateProvider } from './context/DateContext'
 import { fetchProfile } from './api/healthApi'
 import type { ProfileResponse } from './api/types'
 
-type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my' | 'food' | 'report-detail' | 'weekly-report-detail' | 'monthly-report-detail'
+type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my' | 'food' | 'report-detail' | 'weekly-report-detail' | 'monthly-report-detail' | 'report-history'
 type InstallChoice = 'accepted' | 'dismissed'
 type SetupGate = 'checking' | 'required' | 'completed'
 
@@ -30,6 +31,7 @@ function App() {
   const [reportDetailId, setReportDetailId] = useState<number | null>(null)
   const [weeklyReportWeekStart, setWeeklyReportWeekStart] = useState<string | null>(null)
   const [monthlyReportMonth, setMonthlyReportMonth] = useState<string | null>(null)
+  const [reportHistoryTab, setReportHistoryTab] = useState<'weekly' | 'monthly' | 'custom'>('weekly')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showInstallHint, setShowInstallHint] = useState(false)
@@ -156,6 +158,15 @@ function App() {
         }} onViewMonthlyReport={(month) => {
           setMonthlyReportMonth(month)
           setCurrentScreen('monthly-report-detail')
+        }} onViewWeeklyHistory={() => {
+          setReportHistoryTab('weekly')
+          setCurrentScreen('report-history')
+        }} onViewMonthlyHistory={() => {
+          setReportHistoryTab('monthly')
+          setCurrentScreen('report-history')
+        }} onViewCustomHistory={() => {
+          setReportHistoryTab('custom')
+          setCurrentScreen('report-history')
         }} />
       case 'food':
         return <FoodScreen />
@@ -179,6 +190,23 @@ function App() {
         return monthlyReportMonth != null ? (
           <ReportDetailScreen monthlyReportMonth={monthlyReportMonth} onBack={() => setCurrentScreen('home')} />
         ) : <HomeScreen />
+      case 'report-history':
+        return <ReportHistoryScreen
+          initialTab={reportHistoryTab}
+          onBack={() => setCurrentScreen('home')}
+          onViewWeeklyReport={(weekStart) => {
+            setWeeklyReportWeekStart(weekStart)
+            setCurrentScreen('weekly-report-detail')
+          }}
+          onViewMonthlyReport={(month) => {
+            setMonthlyReportMonth(month)
+            setCurrentScreen('monthly-report-detail')
+          }}
+          onViewCustomReport={(id) => {
+            setReportDetailId(id)
+            setCurrentScreen('report-detail')
+          }}
+        />
       default:
         return <HomeScreen />
     }
