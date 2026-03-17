@@ -145,3 +145,17 @@ export async function fetchScores(date: string): Promise<ScoreData> {
   const query = new URLSearchParams({ date }).toString()
   return apiFetch<ScoreData>(`/api/scores?${query}`)
 }
+
+export interface GenerateDailyReportResponse {
+  date: string
+  generated: boolean
+  cached: boolean
+  generated_at?: string
+}
+
+export async function generateDailyReport(date: string): Promise<GenerateDailyReportResponse> {
+  return apiFetch<GenerateDailyReportResponse>('/api/report/generate', {
+    method: 'POST',
+    body: JSON.stringify({ date }),
+  })
+}
