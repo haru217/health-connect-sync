@@ -324,6 +324,21 @@ export interface ConnectionStatusResponse {
   health_connect_permissions?: HealthConnectPermissionStatus
 }
 
+export interface GeminiUsageResponse {
+  month: string
+  total_calls: number
+  total_prompt_tokens: number
+  total_completion_tokens: number
+  estimated_cost_jpy: number
+  limit_jpy: number
+}
+
+export interface AiConfigResponse {
+  provider: string
+  model: string
+  display_name: string
+}
+
 // ���� /api/body-data ����
 export interface BodyDataPoint {
   date: string

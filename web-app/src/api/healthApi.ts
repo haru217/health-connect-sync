@@ -1,8 +1,10 @@
 ﻿import { apiFetch } from './client'
 import type {
   ActivityDataResponse,
+  AiConfigResponse,
   ConnectionStatusResponse,
   DailyTabReportResponse,
+  GeminiUsageResponse,
   HomeSummaryResponse,
   NutrientTargetsResponse,
   NutritionDayResponse,
@@ -23,6 +25,14 @@ import type {
 
 export async function fetchConnectionStatus(): Promise<ConnectionStatusResponse> {
   return apiFetch<ConnectionStatusResponse>('/api/connection-status')
+}
+
+export async function fetchGeminiUsage(): Promise<GeminiUsageResponse> {
+  return apiFetch<GeminiUsageResponse>('/api/gemini-usage')
+}
+
+export async function fetchAiConfig(): Promise<AiConfigResponse> {
+  return apiFetch<AiConfigResponse>('/api/ai-config')
 }
 
 export async function fetchSummary(): Promise<SummaryResponse> {
