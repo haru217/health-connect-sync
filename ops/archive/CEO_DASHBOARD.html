@@ -707,7 +707,7 @@
                 { name: "健康タブ", status: "ok", summary: "体重・血圧・睡眠の各タブ上部に、データに応じて内容が変わるアドバイス表示を追加。未取得日は表示しない動きに統一。", owner: "Codex", type: "frontend", relatedTasks: ["I2-CODEX","I2-GEMINI","I2v2-HEALTH","I2v3-ADVICE","D1-REFACTOR"] },
                 { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
                 { name: "食事タブ", status: "ok", summary: "検索ファースト+編集・削除モーダル+DELETE/PUT API完了。技術負債（型アサーション・ミューテーション・バリデーション等）も全て解消済み", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR","U4-API","U4-UI"] },
-                { name: "マイページ", status: "wip", summary: "4セクション構成（プロフィール・目標設定・データの状態・AIレポート）で設計完了。Codex-shinsekaiに実装依頼済み(M1)", owner: "Codex-shinsekai", type: "frontend", relatedTasks: ["M1-MYPAGE"] },
+                { name: "マイページ", status: "ok", summary: "プロフィール編集、目標設定、データ状態、AI利用状況を1画面で確認・更新可能", owner: "Codex", type: "frontend", relatedTasks: ["M1-MYPAGE"] },
                 { name: "API（サーバー）", status: "ok", summary: "食事DELETE/PUT API完了。技術負債8件全解消（LLMプロバイダー分離・chart共通化等）。レポート自動生成の監視ログ強化済み。/api/ai-config追加予定(M1)", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE","M1-MYPAGE"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
@@ -729,7 +729,8 @@
                 { id: "A-001", screen: "ホーム画面", title: "3専門家のアバター画像作成（Geminiへ依頼）", description: "ユウ先生（医師・男性・穏やか・青緑系）、サキさん（管理栄養士・女性・明るい・オレンジピンク系）、マイコーチ（トレーナー・女性・元気・黄緑系）の3人分。日本のヘルスケアアプリ風のフラットイラスト、円形アバター用、透明背景PNG。あすけん・FiNC等を参考に、清潔感と親しみやすさのあるデザイン。", status: "approved", from: "Gemini" },
                 { id: "A-002", screen: "ホーム画面", title: "B1: スコア表示UIの追加", description: "CTO承認完了: 総合スコア+ドメインカード追加、StatusBar削除、アバター差替。実装完了・本番デプロイ済み", status: "approved", from: "Gemini" },
                 { id: "A-003", screen: "ホーム画面", title: "E1: 注目のポイント廃止", description: "CEO決定: スコア→専門家コメントの2層構成に簡素化。Codex実装完了・本番デプロイ済み", status: "approved", from: "Codex" },
-                { id: "A-004", screen: "健康タブ", title: "I2v3-UI: アドバイスカードのデザイン改善", description: "Codex実装済みのルールベースアドバイスカード（体重/血圧/睡眠）のUI改善をGeminiに依頼。状態別カラーリング・SVGアイコン・質感向上", status: "pending", from: "Gemini" }
+                { id: "A-004", screen: "健康タブ", title: "I2v3-UI: アドバイスカードのデザイン改善", description: "Codex実装済みのルールベースアドバイスカード（体重/血圧/睡眠）のUI改善をGeminiに依頼。状態別カラーリング・SVGアイコン・質感向上", status: "pending", from: "Gemini" },
+                { id: "A-005", screen: "マイページ", title: "マイページ全面書き換え", description: "プロフィール編集、目標設定、データ状態、AI利用状況を1画面で管理できる形に更新", status: "pending", from: "Codex" }
             ];
 
             const SIGNAL_MAP = { ok: "\u{1F7E2}", wip: "\u{1F7E1}", not_started: "\u{1F534}" };
@@ -1068,6 +1069,8 @@
 </body>
 
 </html>
+
+
 
 
 
