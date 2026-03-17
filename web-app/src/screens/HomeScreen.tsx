@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { fetchHomeSummary, fetchScores, fetchSummary } from '../api/healthApi'
+import { fetchHomeSummary, fetchScores, fetchSummary, generateDailyReport } from '../api/healthApi'
 import { fetchCustomReportsHistory, fetchWeeklyReports, requestCustomReport } from '../api/reports'
 import type {
   HomeSummaryResponse,
@@ -13,8 +13,9 @@ import type {
 } from '../api/types'
 import { useDateContext } from '../context/DateContext'
 import DateNavBar from '../components/DateNavBar'
-import ExpertCard, { EXPERT_CONFIG, type ExpertTag } from '../components/ExpertCard'
+import HaruBriefing from '../components/HaruBriefing'
 import ScoreCircle from '../components/ScoreCircle'
+import Toast from '../components/Toast'
 import './HomeScreen.css'
 
 export type HomeNavigateTarget = {
@@ -79,43 +80,6 @@ const DOMAIN_CONFIG: ReadonlyArray<{
     },
   ]
 
-interface HomeReport {
-  yu: string | null
-  saki: string | null
-  mai: string | null
-}
-
-function ExpertSection({ home }: { home: HomeReport }) {
-  const sectionMap: Record<ExpertTag, string | null> = {
-    doctor: home.yu ?? null,
-    nutritionist: home.saki ?? null,
-    trainer: home.mai ?? null,
-  }
-
-  const hasAny = Boolean(home.yu || home.saki || home.mai)
-  if (!hasAny) return null
-
-  return (
-    <section className="expert-section">
-      <div className="expert-section-header">
-        <div className="expert-section-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span>エージェントアドバイス</span>
-        </div>
-      </div>
-      <div className="expert-cards-list">
-        {EXPERT_CONFIG.map((cfg) => {
-          const text = sectionMap[cfg.tag]
-          if (!text) return null
-          return <ExpertCard key={cfg.tag} {...cfg} content={text} />
-        })}
-      </div>
-    </section>
-  )
-}
-
 function EmptyState() {
   return (
     <div className="home-empty-state">
@@ -166,174 +130,6 @@ function computeAveragesFallback(full: SummaryResponse): Record<string, number |
   }
 }
 
-function HaruBriefing({
-  briefing,
-  fallbackReport,
-  reportDate,
-  activeDate,
-}: {
-  briefing?: string | null
-  fallbackReport?: HomeReport
-  reportDate?: string | null
-  activeDate?: string
-}) {
-  const normalizedReportDate = reportDate?.slice(0, 10)
-  const normalizedActiveDate = activeDate?.slice(0, 10)
-  const showReportDateLabel = Boolean(normalizedReportDate && normalizedActiveDate && normalizedReportDate !== normalizedActiveDate)
-  const reportDateLabel = showReportDateLabel
-    ? new Date(normalizedReportDate as string).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
-    : null
-
-  const [isVisible, setIsVisible] = useState(false); // コンポーネント全体のフェードイン
-  const [revealedParagraphs, setRevealedParagraphs] = useState<number[]>([]); // 段落ごとの表示制御
-
-  useEffect(() => {
-    setIsVisible(true); // マウント時にフェードイン開始
-
-    if (briefing) {
-      const paragraphs = briefing.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0);
-      paragraphs.forEach((_, index) => {
-        setTimeout(() => {
-          setRevealedParagraphs((prev) => [...prev, index]);
-        }, 300 + index * 150); // 全体のフェードイン後、0.15秒ごとに段落を表示
-      });
-    }
-
-    return () => {
-      setIsVisible(false);
-      setRevealedParagraphs([]);
-    };
-  }, [briefing]);
-
-  // セクションごとのアイコンとカラーのマッピングを定義
-  const sectionConfig = {
-    'からだ': { icon: 'favorite', color: 'var(--accent-red)' },
-    '運動': { icon: 'directions_run', color: 'var(--accent-blue)' },
-    '食事': { icon: 'restaurant', color: 'var(--accent-color)' }, // デフォルトのaccent-color
-    '睡眠': { icon: 'bedtime', color: 'var(--accent-yellow)' },
-    'まとめ': { icon: 'psychology', color: 'var(--accent-indigo)' },
-    // 他のセクションも必要に応じて追加
-    'その他': { icon: 'info', color: 'var(--text-muted)' }, // デフォルト/不明なセクション用
-  };
-
-  if (briefing) {
-    const paragraphs = briefing.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0)
-    return (
-      <section className="haru-briefing-section" style={{ flexGrow: 1 }}>
-        <div style={{
-          position: 'relative',
-          background: 'var(--surface)',
-          borderRadius: '20px 20px 20px 6px', // 左下を少し角張らせて吹き出し感を出す
-          boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-          border: '1px solid var(--border-color)',
-          padding: '0', // ヘッダーと本文で内部パディングを調整するため0に
-          maxWidth: 'calc(100%)', // 親要素でマージンが調整されるため100%に
-          display: 'flex',
-          flexDirection: 'column',
-          opacity: isVisible ? 1 : 0, // フェードインアニメーション
-          transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
-          transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
-        }}>
-          {/* 吹き出しの三角 */}
-          <div style={{
-            position: 'absolute',
-            left: '-8px', // アバターに近づける
-            top: '25px', // アバターの高さに合わせて調整
-            width: '0',
-            height: '0',
-            borderStyle: 'solid',
-            borderWidth: '10px 10px 10px 0',
-            borderColor: 'transparent var(--border-color) transparent transparent',
-            filter: 'drop-shadow(-1px 0px 1px rgba(0,0,0,0.05))', // 影
-          }} />
-          <div style={{ // 内側の背景部分の三角 (borderの上に乗る形)
-            position: 'absolute',
-            left: '-6px',
-            top: '26px',
-            width: '0',
-            height: '0',
-            borderStyle: 'solid',
-            borderWidth: '9px 9px 9px 0',
-            borderColor: 'transparent var(--surface) transparent transparent',
-          }} />
-
-          {/* ブリーフィング本文 */}
-          <div style={{
-            padding: '18px 20px 20px', // 上下左右のパディングを微調整し、ゆったりとした印象に
-            fontSize: '15.5px', // 読みやすいようにわずかに大きく
-            lineHeight: '1.75', // 行間を広げ、ゆったりと読みやすく
-            color: 'var(--text-primary)',
-          }}>
-            {showReportDateLabel && reportDateLabel ? (
-              <div style={{
-                fontSize: '12.5px', // 日付ラベルも少し大きく
-                color: 'var(--text-muted)',
-                marginBottom: '14px', // 下のテキストとの余白を増やす
-                textAlign: 'center',
-                fontWeight: '500', // 少し太くして視認性を上げる
-              }}>
-                {reportDateLabel}の分析レポート
-              </div>
-            ) : null}
-            {paragraphs.map((para, i) => {
-              const sectionMatch = para.match(/^【(.+?)】([\s\S]*)/)
-              const isRevealed = revealedParagraphs.includes(i); // この段落が表示されるべきか
-
-              // アニメーションスタイル
-              const paragraphAnimStyle = {
-                opacity: isRevealed ? 1 : 0,
-                transform: isRevealed ? 'translateY(0)' : 'translateY(5px)',
-                transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
-              };
-
-              if (sectionMatch) {
-                const sectionTitle = sectionMatch[1];
-                const config = sectionConfig[sectionTitle as keyof typeof sectionConfig] || sectionConfig['その他'];
-                const sectionLines = sectionMatch[2].trim().split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
-                return (
-                  <div key={i} style={{ ...paragraphAnimStyle, marginBottom: i < paragraphs.length - 1 ? '20px' : '0' }}>
-                    <div style={{
-                      fontSize: '16px', // セクションタイトルを本文より少し大きく
-                      fontWeight: 'bold',
-                      color: config.color, // セクションに応じたカラー
-                      marginBottom: '10px', // セクションタイトルと本文の余白を増やす
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
-                        {config.icon}
-                      </span>
-                      {sectionTitle}
-                    </div>
-                    {sectionLines.map((line, j) => (
-                      <p key={j} style={{ margin: `0 0 ${j < sectionLines.length - 1 ? '6px' : '0'} 0` }}>
-                        {renderMarkdownText(line)}
-                      </p>
-                    ))}
-                  </div>
-                )
-              }
-              return (
-                <p key={i} style={{ ...paragraphAnimStyle, margin: `0 0 ${i < paragraphs.length - 1 ? '16px' : '0'} 0` }}>
-                  {renderMarkdownText(para)}
-                </p>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  if (fallbackReport) {
-    return <ExpertSection home={fallbackReport} />
-  }
-
-  return null
-}
-
-
 const TEMPLATES = [
   { id: 'weight', icon: 'monitor_weight', label: '体重の変化', desc: '体重推移を分析' },
   { id: 'sleep', icon: 'bedtime', label: '睡眠の質', desc: 'パターンを分析' },
@@ -342,27 +138,6 @@ const TEMPLATES = [
   { id: 'nutrition', icon: 'restaurant', label: '食事バランス', desc: '栄養を分析' },
   { id: 'general', icon: 'health_and_safety', label: '全体の健康', desc: '総合分析' },
 ] as const
-
-/**
- * テキスト内の **太字** などの簡易Markdown記法をパースしてReact要素の配列を返す
- */
-function renderMarkdownText(text: string): React.ReactNode[] {
-  // `**text**` にマッチする正規表現
-  const parts = text.split(/(\*\*.*?\*\*)/g)
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      // ** に囲まれている場合は太字にする（色は変えない）
-      const content = part.slice(2, -2)
-      return (
-        <strong key={index} style={{ fontWeight: 'bold' }}>
-          {content}
-        </strong>
-      )
-    }
-    return <span key={index}>{part}</span>
-  })
-}
-
 
 function CustomReportSection({ history, onRequest, onViewReport }: { history: CustomReportHistoryItem[], onRequest: (id: string) => void, onViewReport?: (id: number) => void }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -615,6 +390,8 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
   }, [activeDate])
 
   const [reportError, setReportError] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const handleRequestReport = useCallback(async (templateId: string) => {
     setReportError(null)
@@ -630,13 +407,28 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
     }
   }, [])
 
+  const handleGenerateBriefing = useCallback(async () => {
+    setGenerating(true)
+    try {
+      await generateDailyReport(activeDate)
+      const summaryRes = await fetchHomeSummary(activeDate)
+      setState((prev) => {
+        if (prev.status !== 'success') return prev
+        return { ...prev, data: { ...prev.data, summary: summaryRes } }
+      })
+    } catch {
+      setToastMessage('ブリーフィングの生成に失敗しました')
+    } finally {
+      setGenerating(false)
+    }
+  }, [activeDate])
+
   const content = useMemo(() => {
     if (state.status !== 'success') return null
 
     const { summary, scores, fullSummary, customReports, latestWeeklyReport } = state.data
     const sufficiency = summary.sufficiency
     const hasSomeData = Boolean(sufficiency.sleep || sufficiency.steps || sufficiency.weight || sufficiency.meal || sufficiency.bp)
-    const hasReport = summary.report != null
     const diff = computeDiff(scores)
     const heroDesc = bestDomainSummary(scores)
 
@@ -648,7 +440,6 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
       summary,
       scores,
       hasSomeData,
-      hasReport,
       diff,
       heroDesc,
       averages,
@@ -703,9 +494,9 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
             </div>
             <HaruBriefing
               briefing={content.summary.report?.briefing}
-              fallbackReport={content.summary.report?.home ?? undefined}
-              reportDate={content.summary.report?.reportDate}
               activeDate={activeDate}
+              onGenerate={handleGenerateBriefing}
+              generating={generating}
             />
           </div>
           <WeeklyReportCard report={content.latestWeeklyReport} onOpen={onViewWeeklyReport} />
@@ -793,14 +584,13 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
                 })}
               </section>
 
-              {content!.hasReport ? (
-                <ExpertSection home={content!.summary.report!.home} />
-              ) : null}
-
               {!content!.hasSomeData ? <EmptyState /> : null}
             </>
           ) : null}
         </>
+      ) : null}
+      {toastMessage ? (
+        <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
       ) : null}
     </div>
   )
