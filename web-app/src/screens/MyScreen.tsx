@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import DateNavBar from '../components/DateNavBar'
 import { fetchAiConfig, fetchConnectionStatus, fetchGeminiUsage, fetchProfile, saveProfile } from '../api/healthApi'
 import type {
@@ -9,6 +9,7 @@ import type {
   ProfileUpdateRequest,
   RequestState,
 } from '../api/types'
+import './MyScreen.css'
 
 type GenderValue = 'male' | 'female' | 'other'
 type ExerciseFreqValue = 'none' | 'weekly12' | 'weekly35' | 'daily'
@@ -35,8 +36,6 @@ const EXERCISE_FREQ_OPTIONS: ReadonlyArray<{ value: ExerciseFreqValue; label: st
 const EXERCISE_TYPE_OPTIONS: ReadonlyArray<{ value: ExerciseTypeValue; label: string }> = [{ value: 'walk', label: 'ウォーキング' }, { value: 'gym', label: 'ジム' }, { value: 'run', label: 'ランニング' }, { value: 'bodyweight', label: '自重' }, { value: 'none', label: 'なし' }]
 const EXERCISE_INTENSITY_OPTIONS: ReadonlyArray<{ value: ExerciseIntensityValue; label: string }> = [{ value: 'light', label: '軽い' }, { value: 'moderate', label: '中程度' }, { value: 'high', label: '高い' }]
 const LENS_ITEMS: ReadonlyArray<{ key: LensKey; label: string }> = [{ key: 'lens_weight', label: 'ダイエット' }, { key: 'lens_bp', label: '血圧改善' }, { key: 'lens_sleep', label: '睡眠改善' }, { key: 'lens_performance', label: 'パフォーマンス' }]
-const SECTION_CARD_STYLE: CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border-color, rgba(0,0,0,0.1))', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }
-const INPUT_STYLE: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(0,0,0,0.15))', fontSize: '14px', color: 'var(--text-primary)', background: 'var(--surface)' }
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -186,10 +185,6 @@ function formatRelativeTime(value: string | null): string {
   return new Date(time).toLocaleDateString('ja-JP')
 }
 
-function formatYen(value: number): string {
-  return `¥${Math.round(value).toLocaleString('ja-JP')}`
-}
-
 function usageRate(usage: GeminiUsageResponse): number {
   if (usage.limit_jpy <= 0) {
     return 0
@@ -212,11 +207,16 @@ function createLensPatch(key: LensKey, enabled: boolean): ProfileUpdateRequest {
   return { lens_performance: flag }
 }
 
-function SectionCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function SectionCard({ title, iconName, action, children }: { title: string; iconName?: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section style={SECTION_CARD_STYLE}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-primary)' }}>{title}</h3>
+    <section className="my-section-card">
+      <div className="my-section-header">
+        <h3 className="my-section-title">
+          {iconName && (
+            <span className="material-symbols-outlined my-section-title-icon" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
+          )}
+          {title}
+        </h3>
         {action}
       </div>
       {children}
@@ -226,17 +226,17 @@ function SectionCard({ title, action, children }: { title: string; action?: Reac
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '14px' }}>
-      <span style={{ color: 'var(--text-secondary, var(--text-muted))' }}>{label}</span>
-      <span style={{ color: 'var(--text-primary)', textAlign: 'right' }}>{value}</span>
+    <div className="my-info-row">
+      <span className="my-info-label">{label}</span>
+      <span className="my-info-value">{value}</span>
     </div>
   )
 }
 
 function FormField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label style={{ display: 'grid', gap: '6px' }}>
-      <span style={{ fontSize: '13px', color: 'var(--text-secondary, var(--text-muted))' }}>{label}</span>
+    <label className="my-form-group">
+      <span className="my-label">{label}</span>
       {children}
     </label>
   )
@@ -244,26 +244,15 @@ function FormField({ label, children }: { label: string; children: ReactNode }) 
 
 function StatusFlag({ ok }: { ok: boolean }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '18px',
-        height: '18px',
-        color: ok ? '#10b981' : '#9ca3af',
-        fontWeight: 700,
-      }}
-      aria-label={ok ? 'OK' : '不足'}
-    >
-      {ok ? '✓' : '△'}
+    <span className={`my-status-flag ${ok ? 'ok' : 'ng'}`}>
+      {ok ? '✓' : '!'}
     </span>
   )
 }
 
 function ProfileView({ profile }: { profile: ProfileResponse }) {
   return (
-    <div style={{ display: 'grid', gap: '10px' }}>
+    <div>
       {buildProfileRows(profile).map((item) => (
         <InfoRow key={item.label} label={item.label} value={item.value} />
       ))}
@@ -281,15 +270,15 @@ function ProfileBasicFields({
   return (
     <>
       <FormField label="性別">
-        <select value={form.gender} onChange={(event) => onChange({ ...form, gender: event.target.value as GenderValue | '' })} style={INPUT_STYLE}>
+        <select className="my-select" value={form.gender} onChange={(event) => onChange({ ...form, gender: event.target.value as GenderValue | '' })}>
           {GENDER_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
         </select>
       </FormField>
       <FormField label="生年月（西暦）">
-        <input type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} value={form.birthYear} onChange={(event) => onChange({ ...form, birthYear: event.target.value })} style={INPUT_STYLE} placeholder="例: 1990" />
+        <input className="my-input" type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} value={form.birthYear} onChange={(event) => onChange({ ...form, birthYear: event.target.value })} placeholder="例: 1990" />
       </FormField>
       <FormField label="身長（cm）">
-        <input type="number" inputMode="decimal" min={80} max={250} value={form.heightCm} onChange={(event) => onChange({ ...form, heightCm: event.target.value })} style={INPUT_STYLE} placeholder="例: 170" />
+        <input className="my-input" type="number" inputMode="decimal" min={80} max={250} value={form.heightCm} onChange={(event) => onChange({ ...form, heightCm: event.target.value })} placeholder="例: 170" />
       </FormField>
     </>
   )
@@ -305,17 +294,17 @@ function ProfileExerciseFields({
   return (
     <>
       <FormField label="運動頻度">
-        <select value={form.exerciseFreq} onChange={(event) => onChange({ ...form, exerciseFreq: event.target.value as ExerciseFreqValue })} style={INPUT_STYLE}>
+        <select className="my-select" value={form.exerciseFreq} onChange={(event) => onChange({ ...form, exerciseFreq: event.target.value as ExerciseFreqValue })}>
           {EXERCISE_FREQ_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </FormField>
       <FormField label="運動種目">
-        <select value={form.exerciseType} onChange={(event) => onChange({ ...form, exerciseType: event.target.value as ExerciseTypeValue })} style={INPUT_STYLE}>
+        <select className="my-select" value={form.exerciseType} onChange={(event) => onChange({ ...form, exerciseType: event.target.value as ExerciseTypeValue })}>
           {EXERCISE_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </FormField>
       <FormField label="運動強度">
-        <select value={form.exerciseIntensity} onChange={(event) => onChange({ ...form, exerciseIntensity: event.target.value as ExerciseIntensityValue })} style={INPUT_STYLE}>
+        <select className="my-select" value={form.exerciseIntensity} onChange={(event) => onChange({ ...form, exerciseIntensity: event.target.value as ExerciseIntensityValue })}>
           {EXERCISE_INTENSITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </FormField>
@@ -331,7 +320,7 @@ function ProfileEditForm({
   onChange: (value: ProfileFormState) => void
 }) {
   return (
-    <div style={{ display: 'grid', gap: '12px' }}>
+    <div style={{ display: 'grid', gap: '4px' }}>
       <ProfileBasicFields form={form} onChange={onChange} />
       <ProfileExerciseFields form={form} onChange={onChange} />
     </div>
@@ -348,11 +337,11 @@ function ProfileEditActions({
   onSave: () => void
 }) {
   return (
-    <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-      <button type="button" onClick={onCancelEdit} disabled={saving} style={ghostButtonStyle}>
+    <div className="my-btn-group">
+      <button type="button" onClick={onCancelEdit} disabled={saving} className="my-btn-ghost">
         キャンセル
       </button>
-      <button type="button" onClick={onSave} disabled={saving} style={primaryButtonStyle}>
+      <button type="button" onClick={onSave} disabled={saving} className="my-btn-primary">
         {saving ? '保存中...' : '保存'}
       </button>
     </div>
@@ -381,23 +370,23 @@ function ProfileSection({
   onFormChange: (value: ProfileFormState) => void
 }) {
   if (state.status === 'loading') {
-    return <SectionCard title="プロフィール">読み込み中...</SectionCard>
+    return <SectionCard title="プロフィール" iconName="person">読み込み中...</SectionCard>
   }
   if (state.status === 'error') {
-    return <SectionCard title="プロフィール">読み込み失敗: {state.error}</SectionCard>
+    return <SectionCard title="プロフィール" iconName="person">読み込み失敗: {state.error}</SectionCard>
   }
 
   const editButton = !isEditing ? (
-    <button type="button" onClick={onStartEdit} style={ghostButtonStyle}>
+    <button type="button" onClick={onStartEdit} className="my-btn-ghost" style={{ padding: '6px 12px', fontSize: '12px' }}>
       編集
     </button>
   ) : undefined
 
   return (
-    <SectionCard title="プロフィール" action={editButton}>
+    <SectionCard title="プロフィール" iconName="person" action={editButton}>
       {!isEditing ? <ProfileView profile={state.data} /> : null}
       {isEditing && form ? <ProfileEditForm form={form} onChange={onFormChange} /> : null}
-      {error ? <div style={errorTextStyle}>{error}</div> : null}
+      {error ? <div className="my-error-text">{error}</div> : null}
       {isEditing ? <ProfileEditActions saving={saving} onCancelEdit={onCancelEdit} onSave={onSave} /> : null}
     </SectionCard>
   )
@@ -417,9 +406,9 @@ function GoalWeightEditor({
   return (
     <FormField label="目標体重（kg）">
       <div style={{ display: 'flex', gap: '8px' }}>
-        <input type="number" inputMode="decimal" step={0.1} min={20} max={300} value={goalWeightInput} onChange={(event) => onGoalWeightInput(event.target.value)} style={{ ...INPUT_STYLE, flex: 1 }} placeholder="例: 62.5" />
-        <button type="button" onClick={onGoalSave} disabled={goalSaving} style={primaryButtonStyle}>
-          {goalSaving ? '保存中...' : '保存'}
+        <input className="my-input" type="number" inputMode="decimal" step={0.1} min={20} max={300} value={goalWeightInput} onChange={(event) => onGoalWeightInput(event.target.value)} style={{ flex: 1 }} placeholder="例: 62.5" />
+        <button type="button" onClick={onGoalSave} disabled={goalSaving} className="my-btn-primary">
+          {goalSaving ? '...' : '保存'}
         </button>
       </div>
     </FormField>
@@ -436,12 +425,18 @@ function LensToggleList({
   onLensToggle: (key: LensKey, enabled: boolean) => void
 }) {
   return (
-    <div style={{ display: 'grid', gap: '8px' }}>
-      <div style={{ fontSize: '13px', color: 'var(--text-secondary, var(--text-muted))' }}>関心レンズ</div>
+    <div className="my-lens-list">
+      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary, var(--text-muted))', marginTop: '12px', marginBottom: '4px' }}>AIアシスタントの重点テーマ</div>
       {LENS_ITEMS.map((lens) => (
-        <label key={lens.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(0,0,0,0.1))' }}>
-          <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{lens.label}</span>
-          <input type="checkbox" checked={profile[lens.key] === 1} disabled={lensPending.has(lens.key)} onChange={(event) => onLensToggle(lens.key, event.target.checked)} style={{ width: '18px', height: '18px' }} />
+        <label key={lens.key} className={`my-lens-item ${profile[lens.key] === 1 ? 'active' : ''}`}>
+          <span className="my-lens-label">{lens.label}</span>
+          <input
+            type="checkbox"
+            className="my-lens-checkbox"
+            checked={profile[lens.key] === 1}
+            disabled={lensPending.has(lens.key)}
+            onChange={(event) => onLensToggle(lens.key, event.target.checked)}
+          />
         </label>
       ))}
     </div>
@@ -470,30 +465,28 @@ function GoalSection({
   onLensToggle: (key: LensKey, enabled: boolean) => void
 }) {
   if (state.status === 'loading') {
-    return <SectionCard title="目標設定">読み込み中...</SectionCard>
+    return <SectionCard title="目標設定" iconName="flag">読み込み中...</SectionCard>
   }
   if (state.status === 'error') {
-    return <SectionCard title="目標設定">読み込み失敗: {state.error}</SectionCard>
+    return <SectionCard title="目標設定" iconName="flag">読み込み失敗: {state.error}</SectionCard>
   }
 
   return (
-    <SectionCard title="目標設定">
-      <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
-        <GoalWeightEditor goalWeightInput={goalWeightInput} goalSaving={goalSaving} onGoalWeightInput={onGoalWeightInput} onGoalSave={onGoalSave} />
-      </div>
+    <SectionCard title="目標設定" iconName="flag">
+      <GoalWeightEditor goalWeightInput={goalWeightInput} goalSaving={goalSaving} onGoalWeightInput={onGoalWeightInput} onGoalSave={onGoalSave} />
       <LensToggleList profile={state.data} lensPending={lensPending} onLensToggle={onLensToggle} />
-      {goalError ? <div style={errorTextStyle}>{goalError}</div> : null}
-      {lensError ? <div style={errorTextStyle}>{lensError}</div> : null}
+      {goalError ? <div className="my-error-text">{goalError}</div> : null}
+      {lensError ? <div className="my-error-text">{lensError}</div> : null}
     </SectionCard>
   )
 }
 
 function DataStatusSection({ state }: { state: RequestState<ConnectionStatusResponse> }) {
   if (state.status === 'loading') {
-    return <SectionCard title="データの状態">読み込み中...</SectionCard>
+    return <SectionCard title="データの状態" iconName="sync">読み込み中...</SectionCard>
   }
   if (state.status === 'error') {
-    return <SectionCard title="データの状態">読み込み失敗: {state.error}</SectionCard>
+    return <SectionCard title="データの状態" iconName="sync">読み込み失敗: {state.error}</SectionCard>
   }
 
   const statusItems = [
@@ -505,24 +498,14 @@ function DataStatusSection({ state }: { state: RequestState<ConnectionStatusResp
   ]
 
   return (
-    <SectionCard title="データの状態">
-      <div style={{ marginBottom: '12px', color: 'var(--text-secondary, var(--text-muted))', fontSize: '14px' }}>
-        最終同期日時: {formatRelativeTime(state.data.last_sync_at)}
+    <SectionCard title="データの状態" iconName="sync">
+      <div style={{ marginBottom: '12px', color: 'var(--text-secondary, var(--text-muted))', fontSize: '13px', textAlign: 'right' }}>
+        最終同期: {formatRelativeTime(state.data.last_sync_at)}
       </div>
-      <div style={{ display: 'grid', gap: '8px' }}>
+      <div className="my-status-grid">
         {statusItems.map((item) => (
-          <div
-            key={item.label}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '8px 10px',
-              borderRadius: '10px',
-              background: 'var(--bg-color)',
-            }}
-          >
-            <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{item.label}</span>
+          <div key={item.label} className="my-status-item">
+            <span className="my-status-label">{item.label}</span>
             <StatusFlag ok={item.ok} />
           </div>
         ))}
@@ -533,27 +516,25 @@ function DataStatusSection({ state }: { state: RequestState<ConnectionStatusResp
 
 function AiReportSection({ state }: { state: RequestState<AiReportState> }) {
   if (state.status === 'loading') {
-    return <SectionCard title="AIレポート">読み込み中...</SectionCard>
+    return <SectionCard title="AIシステム" iconName="smart_toy">読み込み中...</SectionCard>
   }
   if (state.status === 'error') {
-    return <SectionCard title="AIレポート">読み込み失敗: {state.error}</SectionCard>
+    return <SectionCard title="AIシステム" iconName="smart_toy">読み込み失敗: {state.error}</SectionCard>
   }
 
   const rate = usageRate(state.data.usage)
   const color = usageBarColor(rate)
 
   return (
-    <SectionCard title="AIレポート">
-      <div style={{ display: 'grid', gap: '12px' }}>
-        <InfoRow label="使用モデル" value={state.data.config.display_name} />
-        <div style={{ display: 'grid', gap: '6px' }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-secondary, var(--text-muted))' }}>Gemini利用状況</div>
-          <div style={{ height: '10px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${rate}%`, background: color, transition: 'width 0.2s ease' }} />
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-            {formatYen(state.data.usage.estimated_cost_jpy)} / {formatYen(state.data.usage.limit_jpy)}
-          </div>
+    <SectionCard title="AIシステム" iconName="smart_toy">
+      <InfoRow label="使用モデル" value={state.data.config.display_name} />
+      <div style={{ marginTop: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary, var(--text-muted))', marginBottom: '4px' }}>
+          <span>今月の利用</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{Math.round(rate)}%</span>
+        </div>
+        <div className="my-usage-bar-container">
+          <div className="my-usage-bar" style={{ width: `${rate}%`, backgroundColor: color }} />
         </div>
       </div>
     </SectionCard>
@@ -568,32 +549,6 @@ function updatePendingSet(current: Set<LensKey>, key: LensKey, pending: boolean)
     next.delete(key)
   }
   return next
-}
-
-const primaryButtonStyle: CSSProperties = {
-  border: 'none',
-  borderRadius: '10px',
-  background: 'var(--accent-color)',
-  color: '#fff',
-  fontSize: '13px',
-  fontWeight: 700,
-  padding: '10px 14px',
-}
-
-const ghostButtonStyle: CSSProperties = {
-  border: '1px solid var(--border-color, rgba(0,0,0,0.15))',
-  borderRadius: '10px',
-  background: 'var(--surface)',
-  color: 'var(--text-primary)',
-  fontSize: '13px',
-  fontWeight: 700,
-  padding: '10px 14px',
-}
-
-const errorTextStyle: CSSProperties = {
-  color: 'var(--danger-color, #dc2626)',
-  fontSize: '13px',
-  marginTop: '10px',
 }
 
 function useConnectionResource(): RequestState<ConnectionStatusResponse> {
@@ -738,12 +693,10 @@ export default function MyScreen() {
   const goalState = useGoalState(profileState, applyProfileUpdate)
   const lensState = useLensState(applyProfileUpdate)
 
-  const pageStyle = useMemo<CSSProperties>(() => ({ padding: '16px', paddingBottom: '28px', display: 'grid', gap: '14px' }), [])
-
   return (
     <div className="home-container">
       <DateNavBar />
-      <div style={pageStyle}>
+      <div className="my-container">
         <ProfileSection
           state={profileState}
           isEditing={profileEditor.isEditingProfile}

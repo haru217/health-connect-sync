@@ -1,0 +1,307 @@
+.my-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 16px 32px;
+}
+
+/* Section Card Style - Matching Home/Health */
+.my-section-card {
+  background-color: var(--surface);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.my-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.my-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-section-title-icon {
+  color: var(--accent-color);
+  font-size: 20px;
+}
+
+/* Form Styles */
+.my-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.my-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.my-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary, var(--text-muted));
+  margin-left: 2px;
+}
+
+.my-input,
+.my-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background-color: var(--bg-color, #f9fafb);
+  color: var(--text-primary);
+  font-size: 15px;
+  transition: all 0.2s ease;
+  appearance: none;
+}
+
+.my-input:focus,
+.my-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(45, 139, 111, 0.1);
+}
+
+.my-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Info Row Style */
+.my-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.my-info-row:last-child {
+  border-bottom: none;
+}
+
+.my-info-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, var(--text-muted));
+}
+
+.my-info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* Button Styles */
+.my-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.my-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.my-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--text-secondary, var(--text-muted));
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-btn-ghost:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  color: var(--text-primary);
+}
+
+.my-btn-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Toggle/Checkbox List */
+.my-lens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-lens-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  background-color: var(--bg-color, #f9fafb);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-lens-item:active {
+  transform: scale(0.99);
+}
+
+.my-lens-item.active {
+  background-color: rgba(45, 139, 111, 0.05);
+  border-color: rgba(45, 139, 111, 0.2);
+}
+
+.my-lens-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.my-lens-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  appearance: none;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.my-lens-checkbox:checked {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.my-lens-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Status Items */
+.my-status-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.my-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background-color: var(--bg-color, #f9fafb);
+  border-radius: 12px;
+}
+
+.my-status-label {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.my-status-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-status-flag.ok {
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.my-status-flag.ng {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* AI Usage Bar */
+.my-usage-bar-container {
+  height: 8px;
+  background-color: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.my-usage-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.my-error-text {
+  color: var(--danger-color);
+  font-size: 13px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: rgba(239, 68, 68, 0.05);
+  border-radius: 8px;
+}
+
+/* Icon Placeholders (Material Symbols) */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
