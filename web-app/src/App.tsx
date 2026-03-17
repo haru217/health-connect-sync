@@ -219,6 +219,12 @@ function App() {
               isActive={currentScreen === 'food'}
               onClick={() => setCurrentScreen('food')}
             />
+            <NavItem
+              icon="person"
+              label="マイページ"
+              isActive={currentScreen === 'my'}
+              onClick={() => setCurrentScreen('my')}
+            />
           </nav>
         ) : null}
       </div>
