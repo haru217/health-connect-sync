@@ -180,6 +180,7 @@ export interface ProfileUpdateRequest {
   age?: number | null
   gender?: 'male' | 'female' | 'other' | null
   height_cm?: number | null
+  goal_weight_kg?: number | null
   weight_goal?: 'lose' | 'gain' | 'maintain' | null
   bp_goal_systolic?: number | null
   bp_goal_diastolic?: number | null
