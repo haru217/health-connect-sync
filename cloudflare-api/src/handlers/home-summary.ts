@@ -54,7 +54,6 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     mealRow,
     profileRow,
     reportRow,
-    previousReportRow,
   ] = await Promise.all([
     queryFirst<{
       steps: number | null
@@ -122,19 +121,7 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
       `
       SELECT date, headline, briefing, yu_comment, saki_comment, mai_comment, generated_at
       FROM daily_reports
-      WHERE date <= ?
-      ORDER BY date DESC
-      LIMIT 1
-      `,
-      [date],
-    ),
-    queryFirst<{ date: string; generated_at: string }>(
-      db,
-      `
-      SELECT date, generated_at
-      FROM daily_reports
-      WHERE date < ?
-      ORDER BY date DESC
+      WHERE date = ?
       LIMIT 1
       `,
       [date],
@@ -250,12 +237,6 @@ export async function buildHomeSummary(db: D1Database, date: string): Promise<Re
     sufficiency,
     evidences,
     statusItems,
-    previousReport: previousReportRow
-      ? {
-          date: previousReportRow.date,
-          generated_at: previousReportRow.generated_at,
-        }
-      : null,
   }
 }
 
