@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { fetchHomeSummary, fetchScores, fetchSummary, generateDailyReport } from '../api/healthApi'
-import { fetchCustomReportsHistory, fetchWeeklyReports, requestCustomReport } from '../api/reports'
+import { fetchCustomReportsHistory, fetchMonthlyReports, fetchWeeklyReports, requestCustomReport } from '../api/reports'
 import type {
   HomeSummaryResponse,
   RequestState,
@@ -9,6 +9,7 @@ import type {
   ScoreDomain,
   SummaryResponse,
   CustomReportHistoryItem,
+  MonthlyReportItem,
   WeeklyReportItem,
 } from '../api/types'
 import { useDateContext } from '../context/DateContext'
@@ -332,21 +333,83 @@ function WeeklyReportCard({
 
 // ----------------------------------------------------------------------------
 
+function MonthlyReportCard({
+  report,
+  onOpen,
+}: {
+  report: MonthlyReportItem | null
+  onOpen?: (month: string) => void
+}) {
+  const monthLabel = report
+    ? (() => {
+      const [y, m] = report.month.split('-').map(Number)
+      return `${y}年${m}月`
+    })()
+    : null
+
+  return (
+    <section style={{ margin: '0 16px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <span className="material-symbols-outlined" style={{ color: 'var(--accent-indigo)', fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
+          date_range
+        </span>
+        <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 'bold' }}>月次レポート</h3>
+      </div>
+      {report ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpen?.(report.month)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onOpen?.(report.month)
+            }
+          }}
+          style={{
+            background: 'var(--surface)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '14px 16px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          }}
+        >
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+            {monthLabel}
+          </div>
+          <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+            {report.headline}
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
+          月次レポートはまだありません
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ----------------------------------------------------------------------------
+
 type HomeScreenData = {
   summary: HomeSummaryResponse
   scores: ScoreData
   fullSummary: SummaryResponse
   customReports: CustomReportHistoryItem[]
   latestWeeklyReport: WeeklyReportItem | null
+  latestMonthlyReport: MonthlyReportItem | null
 }
 
 interface HomeScreenProps {
   onNavigate?: (target: HomeNavigateTarget) => void
   onViewReport?: (id: number) => void
   onViewWeeklyReport?: (weekStart: string) => void
+  onViewMonthlyReport?: (month: string) => void
 }
 
-export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyReport }: HomeScreenProps) {
+export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyReport, onViewMonthlyReport }: HomeScreenProps) {
   const { activeDate } = useDateContext()
   const [state, setState] = useState<RequestState<HomeScreenData>>({ status: 'loading' })
 
@@ -360,8 +423,9 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
       fetchSummary(),
       fetchCustomReportsHistory(),
       fetchWeeklyReports(1),
+      fetchMonthlyReports(1),
     ])
-      .then(([summaryRes, scoresRes, fullSummaryRes, reportsRes, weeklyReports]) => {
+      .then(([summaryRes, scoresRes, fullSummaryRes, reportsRes, weeklyReports, monthlyReports]) => {
         if (alive) {
           setState({
             status: 'success',
@@ -371,6 +435,7 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
               fullSummary: fullSummaryRes,
               customReports: reportsRes,
               latestWeeklyReport: weeklyReports[0] ?? null,
+              latestMonthlyReport: monthlyReports[0] ?? null,
             },
           })
         }
@@ -426,7 +491,7 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
   const content = useMemo(() => {
     if (state.status !== 'success') return null
 
-    const { summary, scores, fullSummary, customReports, latestWeeklyReport } = state.data
+    const { summary, scores, fullSummary, customReports, latestWeeklyReport, latestMonthlyReport } = state.data
     const sufficiency = summary.sufficiency
     const hasSomeData = Boolean(sufficiency.sleep || sufficiency.steps || sufficiency.weight || sufficiency.meal || sufficiency.bp)
     const diff = computeDiff(scores)
@@ -445,6 +510,7 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
       averages,
       customReports,
       latestWeeklyReport,
+      latestMonthlyReport,
     }
   }, [state])
 
@@ -500,6 +566,7 @@ export default function HomeScreen({ onNavigate, onViewReport, onViewWeeklyRepor
             />
           </div>
           <WeeklyReportCard report={content.latestWeeklyReport} onOpen={onViewWeeklyReport} />
+          <MonthlyReportCard report={content.latestMonthlyReport} onOpen={onViewMonthlyReport} />
           <CustomReportSection history={content.customReports} onRequest={handleRequestReport} onViewReport={onViewReport} />
           {reportError && (
             <div style={{ margin: '0 16px', padding: '12px', background: 'var(--danger-bg, #fef2f2)', color: 'var(--danger-color, #dc2626)', borderRadius: '8px', fontSize: '13px' }}>

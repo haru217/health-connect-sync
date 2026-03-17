@@ -12,7 +12,7 @@ import { DateProvider } from './context/DateContext'
 import { fetchProfile } from './api/healthApi'
 import type { ProfileResponse } from './api/types'
 
-type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my' | 'food' | 'report-detail' | 'weekly-report-detail'
+type ScreenType = 'home' | 'meal' | 'exercise' | 'health' | 'my' | 'food' | 'report-detail' | 'weekly-report-detail' | 'monthly-report-detail'
 type InstallChoice = 'accepted' | 'dismissed'
 type SetupGate = 'checking' | 'required' | 'completed'
 
@@ -29,6 +29,7 @@ function App() {
   const [healthInitialTab, setHealthInitialTab] = useState<'composition' | 'circulation' | 'sleep' | 'vital'>('composition')
   const [reportDetailId, setReportDetailId] = useState<number | null>(null)
   const [weeklyReportWeekStart, setWeeklyReportWeekStart] = useState<string | null>(null)
+  const [monthlyReportMonth, setMonthlyReportMonth] = useState<string | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showInstallHint, setShowInstallHint] = useState(false)
@@ -152,6 +153,9 @@ function App() {
         }} onViewWeeklyReport={(weekStart) => {
           setWeeklyReportWeekStart(weekStart)
           setCurrentScreen('weekly-report-detail')
+        }} onViewMonthlyReport={(month) => {
+          setMonthlyReportMonth(month)
+          setCurrentScreen('monthly-report-detail')
         }} />
       case 'food':
         return <FoodScreen />
@@ -170,6 +174,10 @@ function App() {
       case 'weekly-report-detail':
         return weeklyReportWeekStart != null ? (
           <ReportDetailScreen weeklyReportWeekStart={weeklyReportWeekStart} onBack={() => setCurrentScreen('home')} />
+        ) : <HomeScreen />
+      case 'monthly-report-detail':
+        return monthlyReportMonth != null ? (
+          <ReportDetailScreen monthlyReportMonth={monthlyReportMonth} onBack={() => setCurrentScreen('home')} />
         ) : <HomeScreen />
       default:
         return <HomeScreen />

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { fetchCustomReportById, fetchWeeklyReportByWeekStart } from '../api/reports'
-import type { WeeklyReportItem } from '../api/types'
+import { fetchCustomReportById, fetchMonthlyReportByMonth, fetchWeeklyReportByWeekStart } from '../api/reports'
+import type { MonthlyReportItem, WeeklyReportItem } from '../api/types'
 
 interface ReportDetailScreenProps {
   readonly reportId?: number | null
   readonly weeklyReportWeekStart?: string | null
+  readonly monthlyReportMonth?: string | null
   readonly onBack: () => void
 }
 
@@ -69,7 +70,7 @@ type FetchState =
   | { status: 'success'; text: string; title: string }
   | { status: 'error'; message: string }
 
-export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, onBack }: ReportDetailScreenProps) {
+export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, monthlyReportMonth, onBack }: ReportDetailScreenProps) {
   const [state, setState] = useState<FetchState>({ status: 'loading' })
 
   useEffect(() => {
@@ -84,6 +85,24 @@ export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, on
               status: 'success',
               text: row.report,
               title: `週次レポート: ${row.week_start}〜${row.week_end}`,
+            })
+          }
+        })
+        .catch((err) => {
+          if (alive) setState({ status: 'error', message: err instanceof Error ? err.message : 'レポートを読み込めませんでした' })
+        })
+      return () => { alive = false }
+    }
+
+    if (monthlyReportMonth) {
+      fetchMonthlyReportByMonth(monthlyReportMonth)
+        .then((row: MonthlyReportItem) => {
+          if (alive) {
+            const [year, month] = row.month.split('-').map(Number)
+            setState({
+              status: 'success',
+              text: row.report,
+              title: `月次レポート: ${year}年${month}月`,
             })
           }
         })
@@ -109,13 +128,15 @@ export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, on
       })
 
     return () => { alive = false }
-  }, [reportId, weeklyReportWeekStart])
+  }, [monthlyReportMonth, reportId, weeklyReportWeekStart])
 
   const headerTitle = state.status === 'success'
     ? state.title
     : weeklyReportWeekStart
       ? `週次レポート: ${weeklyReportWeekStart}`
-      : 'レポート詳細'
+      : monthlyReportMonth
+        ? `月次レポート: ${monthlyReportMonth}`
+        : 'レポート詳細'
 
   return (
     <div style={{ padding: '0 16px 32px' }}>
