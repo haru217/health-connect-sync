@@ -86,26 +86,6 @@ export default function HaruBriefing({ briefing, activeDate, onGenerate, generat
         transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
       }}>
         <div style={{
-          position: 'absolute',
-          left: '-8px',
-          top: '25px',
-          width: '0',
-          height: '0',
-          borderStyle: 'solid',
-          borderWidth: '10px 10px 10px 0',
-          borderColor: 'transparent var(--border-color) transparent transparent',
-        }} />
-        <div style={{
-          position: 'absolute',
-          left: '-6px',
-          top: '26px',
-          width: '0',
-          height: '0',
-          borderStyle: 'solid',
-          borderWidth: '9px 9px 9px 0',
-          borderColor: 'transparent var(--surface) transparent transparent',
-        }} />
-        <div style={{
           padding: '18px 20px 20px',
           fontSize: '15.5px',
           lineHeight: '1.75',
