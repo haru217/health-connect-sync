@@ -10,6 +10,7 @@ import { handleCustomReportGetById, handleCustomReportPost, handleCustomReportsG
 import { handleGeminiUsageGet } from './handlers/gemini-usage'
 import { handleDailyReportGenerate, handleDailyReportGet } from './handlers/report'
 import { generateWeeklyReport, handleWeeklyReportGenerate, handleWeeklyReportGet, handleWeeklyReportsListGet } from './handlers/weekly-report'
+import { handleAiConfigGet } from './handlers/ai-config'
 import {
   handleNutrientsTargets,
   handlePrompt,
@@ -45,6 +46,7 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/weekly-report') return handleWeeklyReportGet(url, env)
       if (key === 'GET /api/weekly-reports') return handleWeeklyReportsListGet(url, env)
       if (key === 'GET /api/gemini-usage') return handleGeminiUsageGet(env)
+      if (key === 'GET /api/ai-config') return handleAiConfigGet(env)
       if (key === 'POST /api/report/generate') return handleDailyReportGenerate(request, url, env)
       if (key === 'POST /api/weekly-report/generate') return handleWeeklyReportGenerate(request, url, env, ctx)
       if (key === 'POST /api/custom-report') return handleCustomReportPost(request, url, env, ctx)
