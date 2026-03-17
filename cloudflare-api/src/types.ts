@@ -172,6 +172,17 @@ export interface WeeklyReportRow {
   created_at: string
 }
 
+export interface MonthlyReportRow {
+  month: string
+  headline: string
+  report: string
+  model: string
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  generated_at: string
+  created_at: string
+}
+
 export interface AnthropicMessageResponse {
   id?: string
   model?: string

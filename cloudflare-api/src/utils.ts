@@ -315,6 +315,27 @@ export function shiftYearMonth(value: string, deltaMonths: number): string {
   return d.toISOString().slice(0, 7)
 }
 
+const YEAR_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
+
+export function isValidMonth(value: string): boolean {
+  return YEAR_MONTH_RE.test(value)
+}
+
+export function getLastCompletedMonth(): string {
+  const jstNow = new Date(Date.now() + JST_OFFSET_MS)
+  return shiftYearMonth(jstNow.toISOString().slice(0, 7), -1)
+}
+
+export function monthStartDate(month: string): string {
+  return `${month}-01`
+}
+
+export function monthEndDate(month: string): string {
+  const [year, m] = month.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year!, m!, 0)).getUTCDate()
+  return `${month}-${String(lastDay).padStart(2, '0')}`
+}
+
 export function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
