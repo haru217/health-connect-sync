@@ -284,11 +284,11 @@ function CustomReportSection({
           }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5, marginBottom: '6px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
               {latestCustomReport.templateLabel}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              {extractHeadline(latestCustomReport.excerpt)}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              {new Date(latestCustomReport.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
             <button hidden
               type="button"
