@@ -146,12 +146,10 @@ function CustomReportSection({
   history,
   onRequest,
   onViewReport,
-  onViewHistory,
 }: {
   history: CustomReportHistoryItem[]
   onRequest: (id: string) => void
   onViewReport?: (id: number) => void
-  onViewHistory?: () => void
 }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const recentCustomReports = history.slice(0, 3)
@@ -278,19 +276,6 @@ function CustomReportSection({
                   chevron_right
                 </span>
               </div>
-              <button
-                type="button"
-                className="home-history-link"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onViewHistory?.()
-                }}
-                onKeyDown={(event) => event.stopPropagation()}
-                style={{ marginTop: '16px' }}
-              >
-                <span className="material-symbols-outlined home-history-link-icon">history</span>
-                履歴を見る
-              </button>
             </div>
           ))}
         </div>
@@ -304,11 +289,9 @@ function CustomReportSection({
 function WeeklyReportCard({
   report,
   onOpen,
-  onViewHistory,
 }: {
   report: WeeklyReportItem | null
   onOpen?: (weekStart: string) => void
-  onViewHistory?: () => void
 }) {
   return (
     <section style={{ margin: '0 16px 24px' }}>
@@ -344,32 +327,10 @@ function WeeklyReportCard({
               chevron_right
             </span>
           </div>
-          <button
-            type="button"
-            className="home-history-link"
-            onClick={(event) => {
-              event.stopPropagation()
-              onViewHistory?.()
-            }}
-            onKeyDown={(event) => event.stopPropagation()}
-            style={{ marginTop: '16px' }}
-          >
-            <span className="material-symbols-outlined home-history-link-icon">history</span>
-            履歴を見る
-          </button>
         </div>
       ) : (
         <div className="home-report-card" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>週次レポートはまだありません</div>
-          <button
-            type="button"
-            className="home-history-link"
-            onClick={onViewHistory}
-            style={{ marginTop: '16px' }}
-          >
-            <span className="material-symbols-outlined home-history-link-icon">history</span>
-            履歴を見る
-          </button>
         </div>
       )}
     </section>
@@ -381,11 +342,9 @@ function WeeklyReportCard({
 function MonthlyReportCard({
   report,
   onOpen,
-  onViewHistory,
 }: {
   report: MonthlyReportItem | null
   onOpen?: (month: string) => void
-  onViewHistory?: () => void
 }) {
   const monthLabel = report
     ? (() => {
@@ -428,32 +387,10 @@ function MonthlyReportCard({
               chevron_right
             </span>
           </div>
-          <button
-            type="button"
-            className="home-history-link"
-            onClick={(event) => {
-              event.stopPropagation()
-              onViewHistory?.()
-            }}
-            onKeyDown={(event) => event.stopPropagation()}
-            style={{ marginTop: '16px' }}
-          >
-            <span className="material-symbols-outlined home-history-link-icon">history</span>
-            履歴を見る
-          </button>
         </div>
       ) : (
         <div className="home-report-card" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>月次レポートはまだありません</div>
-          <button
-            type="button"
-            className="home-history-link"
-            onClick={onViewHistory}
-            style={{ marginTop: '16px' }}
-          >
-            <span className="material-symbols-outlined home-history-link-icon">history</span>
-            履歴を見る
-          </button>
         </div>
       )}
     </section>
