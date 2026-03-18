@@ -64,6 +64,16 @@ const sectionConfig: Record<string, { icon: string; color: string }> = {
   '来月': { icon: 'event', color: 'var(--accent-indigo)' },
   '今週': { icon: 'trending_up', color: 'var(--accent-blue)' },
   '今月': { icon: 'trending_up', color: 'var(--accent-blue)' },
+  '体重': { icon: 'monitor_weight', color: 'var(--accent-color)' },
+  '体脂肪': { icon: 'monitor_weight', color: 'var(--accent-color)' },
+  '血圧': { icon: 'favorite', color: 'var(--accent-red)' },
+  '相関': { icon: 'insights', color: 'var(--accent-indigo)' },
+  '改善': { icon: 'lightbulb', color: 'var(--accent-yellow)' },
+  '提案': { icon: 'lightbulb', color: 'var(--accent-yellow)' },
+  '現在': { icon: 'info', color: 'var(--accent-blue)' },
+  '重要': { icon: 'priority_high', color: 'var(--accent-red)' },
+  '良い': { icon: 'check_circle', color: 'var(--accent-color)' },
+  '検証': { icon: 'search', color: 'var(--accent-blue)' },
 }
 
 function findSectionConfig(title: string): { icon: string; color: string } {
@@ -82,15 +92,22 @@ function renderReportBody(text: string) {
   return (
     <div style={{ fontSize: '15px', lineHeight: '1.7', color: 'var(--text-primary)' }}>
       {paragraphs.map((paragraph, index) => {
+        // 【セクション見出し】形式
         const sectionMatch = paragraph.match(/^【(.+?)】([\s\S]*)/)
-        if (sectionMatch) {
-          const sectionLines = sectionMatch[2]
-            .trim()
-            .split(/\n/)
-            .map((line) => stripMarkdownHeadings(line.trim()))
-            .filter((line) => line.length > 0)
+        // **太字見出し**だけの行（本文なし）もセクション見出しとして扱う
+        const boldHeadingMatch = !sectionMatch ? paragraph.match(/^\*\*(.+?)\*\*\s*$/) : null
+        // **太字見出し** + 本文（同じ段落内）
+        const boldHeadingWithBody = !sectionMatch && !boldHeadingMatch ? paragraph.match(/^\*\*(.+?)\*\*\s*[-:：]\s*([\s\S]+)/) : null
 
-          const config = findSectionConfig(sectionMatch[1])
+        const headingTitle = sectionMatch?.[1] ?? boldHeadingMatch?.[1] ?? boldHeadingWithBody?.[1]
+        const bodyText = sectionMatch?.[2] ?? boldHeadingWithBody?.[2] ?? null
+
+        if (headingTitle) {
+          const config = findSectionConfig(headingTitle)
+          const sectionLines = bodyText
+            ? bodyText.trim().split(/\n/).map((line) => stripMarkdownHeadings(line.trim())).filter((line) => line.length > 0)
+            : []
+
           return (
             <div key={index} style={{ marginBottom: index < paragraphs.length - 1 ? '20px' : 0 }}>
               <div
@@ -107,7 +124,7 @@ function renderReportBody(text: string) {
                 <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
                   {config.icon}
                 </span>
-                {sectionMatch[1]}
+                {headingTitle}
               </div>
               {sectionLines.map((line, lineIndex) => (
                 <p key={lineIndex} style={{ margin: `0 0 ${lineIndex < sectionLines.length - 1 ? '4px' : '0'} 0` }}>
