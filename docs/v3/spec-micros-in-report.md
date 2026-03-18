@@ -80,7 +80,7 @@ ORDER BY consumed_at ASC, id ASC
 
 - 1食品あたり micros 行 +50〜100トークン
 - 1日5食品 × 100tok = +500tok/レポート
-- Claude Haiku: +500tok × ¥0.00012 = +¥0.06/レポート（誤差の範囲）
+- GPT-5.4 mini: +500tok × ~¥0.00006 = +¥0.03/レポート（誤差の範囲）
 
 ## テスト
 

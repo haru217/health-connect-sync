@@ -14,7 +14,7 @@ v1.0ではアプリ内で完結する食事登録フローが必要。
 
 | エンドポイント | 用途 |
 |---|---|
-| `POST /api/food/analyze` | テキスト or 画像 → Gemini解析 → 栄養データ返却 |
+| `POST /api/food/analyze` | テキスト or 画像 → AI解析 → 栄養データ返却（テキスト: web検索+自動キャッシュ、画像: GPT-5.4 mini） |
 | `POST /api/food/confirm` | 解析結果を nutrition_events に保存 |
 | `GET /api/food/search` | food_items DB検索（過去食品のキャッシュ） |
 | `GET /api/food/history?date=YYYY-MM-DD` | 日別食事履歴取得 |
@@ -83,7 +83,7 @@ v1.0ではアプリ内で完結する食事登録フローが必要。
 1. カメラ/ギャラリーから画像選択
 2. オプション: テキスト補足入力（例: 「松屋の牛丼」）
 3. POST /api/food/analyze { image_base64, text }
-4. Gemini解析結果を表示（品目リスト + 栄養値）
+4. AI解析結果を表示（品目リスト + 栄養値）
 5. ユーザーが確認・編集
 6. POST /api/food/confirm { local_date, consumed_at, meal_type, items }
 7. 食事タブに反映
@@ -96,7 +96,7 @@ v1.0ではアプリ内で完結する食事登録フローが必要。
 2. GET /api/food/search?q=白米
 3. DB結果あり → 候補リスト表示 → 選択 → confirm
 4. DB結果なし → POST /api/food/analyze { text: "白米" }
-5. Gemini解析結果表示 → 確認 → confirm
+5. AI解析結果表示（web検索で公式データ取得 → 自動キャッシュ） → 確認 → confirm
 ```
 
 ### パターンC: サプリ登録
@@ -115,45 +115,26 @@ v1.0ではアプリ内で完結する食事登録フローが必要。
 2. 入力 → POST /api/food/confirm で保存
 ```
 
-## Gemプロンプトとの統合
+## 食事解析アーキテクチャ（実装済み）
 
-### 現状の差分
+### 3層フロー
 
-CEOが使っているGemプロンプトは28栄養素CSVを出力する。
-APIの `food/analyze` はJSON形式で37項目のmicrosを返す。
+```
+テキスト入力の場合:
+  1. DBキャッシュ検索（無料・即時）
+  2. キャッシュなし → web検索で公式データ取得 → 自動キャッシュ
+  3. 微量栄養素が不足 → LLMで補完
 
-**フィールドマッピング**:
+画像入力の場合:
+  1. GPT-5.4 mini で画像解析（全栄養素推定）
+```
 
-| Gem CSV列 | API micros key | 備考 |
-|---|---|---|
-| salt_g | sodium_mg | 変換必要: sodium_mg = salt_g × 393.7 |
-| P_mg | phosphorus_mg | |
-| Mg_mg | magnesium_mg | |
-| K_mg | potassium_mg | |
-| Ca_mg | calcium_mg | |
-| Fe_mg | iron_mg | |
-| Zn_mg | zinc_mg | |
-| vA_μg | vitamin_a_ug | |
-| vB1_mg | vitamin_b1_mg | |
-| vB2_mg | vitamin_b2_mg | |
-| vB6_mg | vitamin_b6_mg | |
-| vB12_μg | vitamin_b12_ug | |
-| vC_mg | vitamin_c_mg | |
-| vD_μg | vitamin_d_ug | |
-| vE_mg | vitamin_e_mg | |
-| niacin_mg | niacin_mg | |
-| folate_μg | folate_ug | |
-| fiber_g | fiber_g | |
-| alcohol_g | alcohol_g | |
+### プロバイダー
 
-→ Gemの出力はAPIでそのまま受け取れる（salt→sodium変換のみ注意）
-→ APIのanalyzeプロンプトは既にGemより広い栄養素をカバーしている
-
-### 変更不要な理由
-
-`food/analyze` の `buildAnalyzePrompt()` は既に全37 MICRO_KEYS をスキーマとして
-Gemini APIに送信しており、Gemのプロンプトを再利用する必要はない。
-APIのプロンプトの方がカバー範囲が広い。
+- **テキスト解析**: OpenAI Responses API（web検索） + Chat Completions API（微量栄養素補完）
+- **画像解析**: OpenAI GPT-5.4 mini（Chat Completions API）
+- `FOOD_LLM_PROVIDER` 環境変数で切替可能（デフォルト: openai）
+- 37項目の微量栄養素（MICRO_KEYS）をスキーマとして送信
 
 ## API側の追加変更（任意）
 

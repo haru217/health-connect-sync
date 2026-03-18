@@ -1,6 +1,6 @@
 # 仕様: Firebase Auth マルチユーザー対応
 
-**ステータス**: CEO承認待ち
+**ステータス**: CEO承認済み（2026-03-18）
 **担当**: Codex
 **影響範囲**: cloudflare-api（全ハンドラー）, android-sync
 
@@ -144,15 +144,15 @@ implementation("com.google.firebase:firebase-auth")
 │         Health OS               │
 │        🌱 はる                   │
 │                                 │
-│  [Googleでログイン]              │ ← 推奨（1タップ）
+│  [Googleでログイン]              │ ← ワンタップ
 │                                 │
-│  [メールアドレスでログイン]       │ ← 補助
 └─────────────────────────────────┘
 ```
 
 認証方法:
-- **Google Sign-In**（推奨、ワンタップ）
-- **メール+パスワード**（補助）
+- **Google Sign-In のみ**（v1.0）
+- AndroidユーザーはGoogleアカウント必須のため、カバー率は実質100%
+- メール+パスワードはv1.0では実装しない（管理コスト増のため）
 
 ### 2-3. SyncApiClient にトークン付与
 
@@ -176,11 +176,14 @@ Firebase IDトークンは1時間で失効。
 
 ```
 初回起動
-  → ログイン画面
+  → Google Sign-In（ワンタップ）
   → プロフィール入力（身長・体重・生年月日・性別）
-  → Health Connect権限許可
+  → Health Connect権限許可（Androidランタイム権限）
   → ホームタブへ
 ```
+
+- Health Connect権限はAndroid OSの標準権限システムで取得（OAuthとは無関係）
+- 権限拒否時はホームタブに遷移するが、健康データ同期は無効化される
 
 ## セキュリティ考慮
 
