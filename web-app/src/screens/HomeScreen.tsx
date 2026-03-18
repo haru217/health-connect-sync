@@ -135,12 +135,6 @@ function stripMarkdown(text: string): string {
   return text.replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').trim()
 }
 
-function extractHeadline(text: string): string {
-  const stripped = stripMarkdown(text)
-  const firstSentence = stripped.split('\u3002').map(s => s.trim()).find(s => s.length > 0) ?? ''
-  if (!firstSentence) return stripped.slice(0, 30)
-  return firstSentence.length <= 40 ? firstSentence : `${firstSentence.slice(0, 40)}...`
-}
 
 const TEMPLATES = [
   { id: 'weight', icon: 'monitor_weight', label: '体重の変化', desc: '体重推移を分析' },
