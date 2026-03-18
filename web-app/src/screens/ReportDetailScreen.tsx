@@ -13,6 +13,7 @@ import type {
   MonthlyReportItem,
   WeeklyReportItem,
 } from '../api/types'
+import './HomeScreen.css'
 
 interface ReportDetailScreenProps {
   readonly reportId?: number | null
@@ -224,14 +225,11 @@ function HistoryCardButton({
   return (
     <button
       type="button"
+      className="home-report-card"
       onClick={onClick}
       disabled={disabled}
       style={{
         width: '100%',
-        background: 'var(--surface)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '14px 16px',
         cursor: disabled ? 'default' : 'pointer',
         display: 'flex',
         alignItems: 'center',
@@ -562,26 +560,11 @@ export default function ReportDetailScreen({
           {onViewHistory ? (
             <button
               type="button"
+              className="home-history-link"
               onClick={onViewHistory}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                width: '100%',
-                marginTop: '16px',
-                padding: '12px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                background: 'var(--surface)',
-                fontSize: '13px',
-                color: 'var(--accent-color)',
-                cursor: 'pointer',
-              }}
+              style={{ marginTop: '16px' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                history
-              </span>
+              <span className="material-symbols-outlined home-history-link-icon">history</span>
               履歴を見る
             </button>
           ) : null}

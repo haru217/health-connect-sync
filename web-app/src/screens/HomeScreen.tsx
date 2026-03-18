@@ -256,6 +256,7 @@ function CustomReportSection({
               key={report.id}
               role="button"
               tabIndex={0}
+              className="home-report-card"
               onClick={() => onViewReport?.(report.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -263,51 +264,33 @@ function CustomReportSection({
                   onViewReport?.(report.id)
                 }
               }}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '16px',
-                border: '1px solid var(--border-color)',
-                padding: '14px 16px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                gap: '12px',
-              }}
             >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                  {report.templateLabel}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+                    {report.templateLabel}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {new Date(report.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {new Date(report.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </div>
-                <button hidden
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onViewHistory?.()
-                  }}
-                  onKeyDown={(event) => event.stopPropagation()}
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--accent-color)',
-                    marginTop: '8px',
-                    textAlign: 'right',
-                    cursor: 'pointer',
-                    width: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                    padding: 0,
-                  }}
-                >
-                  履歴を見る
-                </button>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  chevron_right
+                </span>
               </div>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                chevron_right
-              </span>
+              <button
+                type="button"
+                className="home-history-link"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onViewHistory?.()
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+                style={{ marginTop: '16px' }}
+              >
+                <span className="material-symbols-outlined home-history-link-icon">history</span>
+                履歴を見る
+              </button>
             </div>
           ))}
         </div>
@@ -339,20 +322,13 @@ function WeeklyReportCard({
         <div
           role="button"
           tabIndex={0}
+          className="home-report-card"
           onClick={() => onOpen?.(report.week_start)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
               onOpen?.(report.week_start)
             }
-          }}
-          style={{
-            background: 'var(--surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '14px 16px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -368,46 +344,30 @@ function WeeklyReportCard({
               chevron_right
             </span>
           </div>
-          <button hidden
+          <button
             type="button"
+            className="home-history-link"
             onClick={(event) => {
               event.stopPropagation()
               onViewHistory?.()
             }}
             onKeyDown={(event) => event.stopPropagation()}
-            style={{
-              fontSize: '12px',
-              color: 'var(--accent-color)',
-              marginTop: '8px',
-              textAlign: 'right',
-              cursor: 'pointer',
-              width: '100%',
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-            }}
+            style={{ marginTop: '16px' }}
           >
+            <span className="material-symbols-outlined home-history-link-icon">history</span>
             履歴を見る
           </button>
         </div>
       ) : (
-        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
+        <div className="home-report-card" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>週次レポートはまだありません</div>
-          <button hidden
+          <button
             type="button"
+            className="home-history-link"
             onClick={onViewHistory}
-            style={{
-              fontSize: '12px',
-              color: 'var(--accent-color)',
-              marginTop: '8px',
-              textAlign: 'right',
-              cursor: 'pointer',
-              width: '100%',
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-            }}
+            style={{ marginTop: '16px' }}
           >
+            <span className="material-symbols-outlined home-history-link-icon">history</span>
             履歴を見る
           </button>
         </div>
@@ -446,20 +406,13 @@ function MonthlyReportCard({
         <div
           role="button"
           tabIndex={0}
+          className="home-report-card"
           onClick={() => onOpen?.(report.month)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
               onOpen?.(report.month)
             }
-          }}
-          style={{
-            background: 'var(--surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '14px 16px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -475,46 +428,30 @@ function MonthlyReportCard({
               chevron_right
             </span>
           </div>
-          <button hidden
+          <button
             type="button"
+            className="home-history-link"
             onClick={(event) => {
               event.stopPropagation()
               onViewHistory?.()
             }}
             onKeyDown={(event) => event.stopPropagation()}
-            style={{
-              fontSize: '12px',
-              color: 'var(--accent-color)',
-              marginTop: '8px',
-              textAlign: 'right',
-              cursor: 'pointer',
-              width: '100%',
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-            }}
+            style={{ marginTop: '16px' }}
           >
+            <span className="material-symbols-outlined home-history-link-icon">history</span>
             履歴を見る
           </button>
         </div>
       ) : (
-        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
+        <div className="home-report-card" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>月次レポートはまだありません</div>
-          <button hidden
+          <button
             type="button"
+            className="home-history-link"
             onClick={onViewHistory}
-            style={{
-              fontSize: '12px',
-              color: 'var(--accent-color)',
-              marginTop: '8px',
-              textAlign: 'right',
-              cursor: 'pointer',
-              width: '100%',
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-            }}
+            style={{ marginTop: '16px' }}
           >
+            <span className="material-symbols-outlined home-history-link-icon">history</span>
             履歴を見る
           </button>
         </div>
@@ -727,22 +664,9 @@ export default function HomeScreen({
             <button
               type="button"
               onClick={onViewHistory}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                width: '100%',
-                marginTop: '16px',
-                padding: '8px 0',
-                border: 'none',
-                background: 'transparent',
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-              }}
+              className="home-history-link"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>history</span>
+              <span className="material-symbols-outlined home-history-link-icon">history</span>
               履歴を見る
             </button>
           ) : null}
