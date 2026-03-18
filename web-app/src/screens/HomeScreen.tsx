@@ -131,6 +131,10 @@ function computeAveragesFallback(full: SummaryResponse): Record<string, number |
   }
 }
 
+function stripMarkdown(text: string): string {
+  return text.replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').trim()
+}
+
 const TEMPLATES = [
   { id: 'weight', icon: 'monitor_weight', label: '体重の変化', desc: '体重推移を分析' },
   { id: 'sleep', icon: 'bedtime', label: '睡眠の質', desc: 'パターンを分析' },
@@ -217,16 +221,6 @@ function CustomReportSection({
     }
   }
 
-  const handleViewHistory = () => {
-    if (onViewHistory) {
-      onViewHistory()
-      return
-    }
-    if (history.length > 0) {
-      onViewReport?.(history[0].id)
-    }
-  }
-
   return (
     <section className="custom-report-section" style={{ margin: '32px 16px' }}>
       <style>{styles}</style>
@@ -287,23 +281,35 @@ function CustomReportSection({
               {latestCustomReport.templateLabel}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              {latestCustomReport.excerpt}
+              {stripMarkdown(latestCustomReport.excerpt)}
             </div>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onViewHistory?.()
+              }}
+              onKeyDown={(event) => event.stopPropagation()}
+              style={{
+                fontSize: '12px',
+                color: 'var(--accent-color)',
+                marginTop: '8px',
+                textAlign: 'right',
+                cursor: 'pointer',
+                width: '100%',
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+              }}
+            >
+              履歴を見る
+            </button>
           </div>
           <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
             chevron_right
           </span>
         </div>
       ) : null}
-      <button
-        type="button"
-        onClick={handleViewHistory}
-        className="home-history-link"
-        aria-label={history.length > 0 ? '過去のレポートを見る' : '過去のレポートを見る（履歴はまだありません）'}
-      >
-        <span className="material-symbols-outlined home-history-link-icon">history</span>
-        <span>過去のレポートを見る</span>
-      </button>
     </section>
   )
 }
@@ -360,29 +366,50 @@ function WeeklyReportCard({
               chevron_right
             </span>
           </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onViewHistory?.()
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+            style={{
+              fontSize: '12px',
+              color: 'var(--accent-color)',
+              marginTop: '8px',
+              textAlign: 'right',
+              cursor: 'pointer',
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+            }}
+          >
+            履歴を見る
+          </button>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
-          週次レポートはまだありません
+          <div>週次レポートはまだありません</div>
+          <button
+            type="button"
+            onClick={onViewHistory}
+            style={{
+              fontSize: '12px',
+              color: 'var(--accent-color)',
+              marginTop: '8px',
+              textAlign: 'right',
+              cursor: 'pointer',
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+            }}
+          >
+            履歴を見る
+          </button>
         </div>
       )}
-      <button
-        type="button"
-        onClick={onViewHistory}
-        style={{
-          marginTop: '10px',
-          width: '100%',
-          border: 'none',
-          background: 'transparent',
-          fontSize: '13px',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          textAlign: 'center',
-          padding: 0,
-        }}
-      >
-        過去の週次を見る
-      </button>
     </section>
   )
 }
@@ -446,29 +473,50 @@ function MonthlyReportCard({
               chevron_right
             </span>
           </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onViewHistory?.()
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+            style={{
+              fontSize: '12px',
+              color: 'var(--accent-color)',
+              marginTop: '8px',
+              textAlign: 'right',
+              cursor: 'pointer',
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+            }}
+          >
+            履歴を見る
+          </button>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
-          月次レポートはまだありません
+          <div>月次レポートはまだありません</div>
+          <button
+            type="button"
+            onClick={onViewHistory}
+            style={{
+              fontSize: '12px',
+              color: 'var(--accent-color)',
+              marginTop: '8px',
+              textAlign: 'right',
+              cursor: 'pointer',
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+            }}
+          >
+            履歴を見る
+          </button>
         </div>
       )}
-      <button
-        type="button"
-        onClick={onViewHistory}
-        style={{
-          marginTop: '10px',
-          width: '100%',
-          border: 'none',
-          background: 'transparent',
-          fontSize: '13px',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          textAlign: 'center',
-          padding: 0,
-        }}
-      >
-        過去の月次を見る
-      </button>
     </section>
   )
 }

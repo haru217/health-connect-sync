@@ -107,23 +107,6 @@
   color: var(--text-primary);
 }
 
-.header-settings {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.header-settings:active {
-  transform: scale(0.95);
-}
-
 .content {
   flex: 1;
   padding: 0 24px 24px 24px;

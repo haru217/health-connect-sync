@@ -232,7 +232,6 @@ function App() {
         {/* Header */}
         <header className="header">
           <div className="header-title">{isSetupActive ? '初回セットアップ' : 'Health AI Advisor'}</div>
-          <div className="header-settings" />
         </header>
 
         {/* Main Content Area */}
