@@ -677,6 +677,9 @@ async function upsertFavoriteFoodItem(
   item: FoodItemNormalized,
   source: string = 'gemini',
 ): Promise<void> {
+  // kcalが0以下・未設定の場合はfavoritesに保存しない（ゴミデータ防止）
+  if (!item.kcal || item.kcal <= 0) return
+
   const current = await queryFirst<{ id: number }>(
     db,
     `

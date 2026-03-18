@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { searchFoodFavorites, analyzeFoodText, analyzeFoodImage } from '../api/food'
-import type { FoodAnalyzeResponse, FoodAnalyzeResult } from '../api/types'
+import type { FoodAnalyzeResponse, FoodAnalyzeResult, NutrientDetails } from '../api/types'
 
 interface FoodInputProps {
     onAnalyzeSuccess: (data: FoodAnalyzeResponse) => void
     onCancel: () => void
 }
 
-type InputMode = 'text' | 'photo'
+type InputMode = 'text' | 'photo' | 'manual'
 
 export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps) {
     const [mode, setMode] = useState<InputMode>('text')
@@ -21,6 +21,14 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
     const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [photoHint, setPhotoHint] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // 手入力用
+    const [manualName, setManualName] = useState('')
+    const [manualAmount, setManualAmount] = useState('')
+    const [manualKcal, setManualKcal] = useState('')
+    const [manualProtein, setManualProtein] = useState('')
+    const [manualFat, setManualFat] = useState('')
+    const [manualCarbs, setManualCarbs] = useState('')
 
     useEffect(() => {
         if (mode !== 'text') return
@@ -88,10 +96,40 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
+    const handleManualSubmit = () => {
+        if (!manualName.trim()) return
+        const emptyNutrients: NutrientDetails = {
+            calories: null, protein_g: null, fat_g: null, carbs_g: null,
+            saturated_fat_g: null, omega3_mg: null, omega6_mg: null, trans_fat_g: null,
+            sugar_g: null, fiber_g: null,
+            vitamin_a_ug: null, vitamin_d_ug: null, vitamin_e_mg: null, vitamin_k_ug: null,
+            vitamin_b1_mg: null, vitamin_b2_mg: null, vitamin_b6_mg: null, vitamin_b12_ug: null,
+            vitamin_c_mg: null, niacin_mg: null, folate_ug: null, pantothenic_acid_mg: null, biotin_ug: null,
+            sodium_mg: null, potassium_mg: null, calcium_mg: null, magnesium_mg: null, phosphorus_mg: null,
+            iron_mg: null, zinc_mg: null, copper_mg: null, manganese_mg: null,
+            selenium_ug: null, chromium_ug: null, molybdenum_ug: null, iodine_ug: null,
+            cholesterol_mg: null, purine_mg: null, caffeine_mg: null, alcohol_g: null,
+        }
+        const item: FoodAnalyzeResult = {
+            name: manualName.trim(),
+            brand: null,
+            amount: manualAmount.trim() || '1食',
+            nutrients: {
+                ...emptyNutrients,
+                calories: manualKcal ? Number(manualKcal) : null,
+                protein_g: manualProtein ? Number(manualProtein) : null,
+                fat_g: manualFat ? Number(manualFat) : null,
+                carbs_g: manualCarbs ? Number(manualCarbs) : null,
+            },
+        }
+        onAnalyzeSuccess({ items: [item] })
+    }
+
     const onSubmit = (e: FormEvent) => {
         e.preventDefault()
         if (mode === 'text') handleAnalyze(text)
-        else handleImageAnalyze()
+        else if (mode === 'photo') handleImageAnalyze()
+        else handleManualSubmit()
     }
 
     const switchMode = (newMode: InputMode) => {
@@ -106,22 +144,67 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                 <button onClick={onCancel} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '16px' }}>✕</button>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                <button
-                    onClick={() => switchMode('text')}
-                    style={{ flex: 1, padding: '12px', background: 'var(--surface)', border: `2px solid ${mode === 'text' ? 'var(--accent-color)' : 'transparent'}`, borderRadius: '12px', color: mode === 'text' ? 'var(--accent-color)' : 'var(--text-muted)', fontWeight: 'bold' }}
-                >
-                    文字で入力
-                </button>
-                <button
-                    onClick={() => switchMode('photo')}
-                    style={{ flex: 1, padding: '12px', background: 'var(--surface)', border: `2px solid ${mode === 'photo' ? 'var(--accent-color)' : 'transparent'}`, borderRadius: '12px', color: mode === 'photo' ? 'var(--accent-color)' : 'var(--text-muted)', fontWeight: 'bold' }}
-                >
-                    写真で入力
-                </button>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
+                {(['text', 'photo', 'manual'] as const).map(m => (
+                    <button
+                        key={m}
+                        onClick={() => switchMode(m)}
+                        style={{ flex: 1, padding: '10px 4px', background: 'var(--surface)', border: `2px solid ${mode === m ? 'var(--accent-color)' : 'transparent'}`, borderRadius: '12px', color: mode === m ? 'var(--accent-color)' : 'var(--text-muted)', fontWeight: 'bold', fontSize: '14px' }}
+                    >
+                        {m === 'text' ? '文字で入力' : m === 'photo' ? '写真で入力' : '手入力'}
+                    </button>
+                ))}
             </div>
 
-            {mode === 'text' ? (
+            {mode === 'manual' ? (
+                <form onSubmit={onSubmit}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <input
+                            type="text"
+                            value={manualName}
+                            onChange={e => setManualName(e.target.value)}
+                            placeholder="食品名 (例: 鶏むね肉)"
+                            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }}
+                        />
+                        <input
+                            type="text"
+                            value={manualAmount}
+                            onChange={e => setManualAmount(e.target.value)}
+                            placeholder="分量 (例: 100g) ※任意"
+                            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>カロリー (kcal)</label>
+                                <input type="number" value={manualKcal} onChange={e => setManualKcal(e.target.value)} placeholder="0" inputMode="decimal"
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>タンパク質 (g)</label>
+                                <input type="number" value={manualProtein} onChange={e => setManualProtein(e.target.value)} placeholder="0" inputMode="decimal"
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>脂質 (g)</label>
+                                <input type="number" value={manualFat} onChange={e => setManualFat(e.target.value)} placeholder="0" inputMode="decimal"
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>炭水化物 (g)</label>
+                                <input type="number" value={manualCarbs} onChange={e => setManualCarbs(e.target.value)} placeholder="0" inputMode="decimal"
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', fontSize: '16px', boxSizing: 'border-box' }} />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={!manualName.trim()}
+                            style={{ width: '100%', padding: '16px', background: 'var(--accent-color)', color: 'white', borderRadius: '12px', border: 'none', fontSize: '15px', fontWeight: 'bold', opacity: manualName.trim() ? 1 : 0.5, marginTop: '8px' }}
+                        >
+                            確認画面へ
+                        </button>
+                    </div>
+                </form>
+            ) : mode === 'text' ? (
                 <>
                     <form onSubmit={onSubmit} style={{ marginBottom: '16px' }}>
                         <input
