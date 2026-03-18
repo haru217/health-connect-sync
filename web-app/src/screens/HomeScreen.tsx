@@ -135,6 +135,13 @@ function stripMarkdown(text: string): string {
   return text.replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').trim()
 }
 
+function extractHeadline(text: string): string {
+  const stripped = stripMarkdown(text)
+  const firstSentence = stripped.split('\u3002').map(s => s.trim()).find(s => s.length > 0) ?? ''
+  if (!firstSentence) return stripped.slice(0, 30)
+  return firstSentence.length <= 40 ? firstSentence : `${firstSentence.slice(0, 40)}...`
+}
+
 const TEMPLATES = [
   { id: 'weight', icon: 'monitor_weight', label: '体重の変化', desc: '体重推移を分析' },
   { id: 'sleep', icon: 'bedtime', label: '睡眠の質', desc: 'パターンを分析' },
@@ -281,7 +288,7 @@ function CustomReportSection({
               {latestCustomReport.templateLabel}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              {stripMarkdown(latestCustomReport.excerpt)}
+              {extractHeadline(latestCustomReport.excerpt)}
             </div>
             <button hidden
               type="button"
