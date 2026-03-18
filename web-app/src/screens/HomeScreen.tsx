@@ -259,20 +259,11 @@ function CustomReportSection({
       <button
         type="button"
         onClick={handleViewHistory}
-        style={{
-          marginTop: '14px',
-          width: '100%',
-          border: 'none',
-          background: 'transparent',
-          fontSize: '13px',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          textAlign: 'center',
-          padding: 0,
-        }}
+        className="home-history-link"
         aria-label={history.length > 0 ? '過去のレポートを見る' : '過去のレポートを見る（履歴はまだありません）'}
       >
-        過去のレポートを見る
+        <span className="material-symbols-outlined home-history-link-icon">history</span>
+        <span>過去のレポートを見る</span>
       </button>
     </section>
   )

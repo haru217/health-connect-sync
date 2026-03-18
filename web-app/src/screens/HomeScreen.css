@@ -214,3 +214,45 @@
   text-align: center;
   color: var(--text-muted);
 }
+
+/* ── History Links ── */
+.home-history-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-history-link:hover {
+  background: var(--bg-color);
+  color: var(--text-primary);
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.home-history-link:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.home-history-link-icon {
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.home-history-link:hover .home-history-link-icon {
+  color: var(--accent-color);
+}

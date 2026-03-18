@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchCustomReportsHistory, fetchMonthlyReports, fetchWeeklyReports } from '../api/reports'
 import type { CustomReportHistoryItem, MonthlyReportItem, WeeklyReportItem } from '../api/types'
+import './ReportHistoryScreen.css'
 
 type ReportHistoryTab = 'weekly' | 'monthly' | 'custom'
 
@@ -42,18 +43,9 @@ function formatDateTime(value: string): string {
 
 function EmptyList() {
   return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        borderRadius: '16px',
-        border: '1px solid var(--border-color)',
-        padding: '18px 16px',
-        color: 'var(--text-muted)',
-        fontSize: '13px',
-        textAlign: 'center',
-      }}
-    >
-      レポートがありません
+    <div className="report-history-empty">
+      <span className="material-symbols-outlined report-history-empty-icon">history_toggle_off</span>
+      <div>レポート履歴がありません</div>
     </div>
   )
 }
@@ -109,67 +101,28 @@ export default function ReportHistoryScreen({
   }, [])
 
   return (
-    <div style={{ padding: '0 16px 32px' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '12px 0',
-          marginBottom: '8px',
-        }}
-      >
+    <div className="report-history-container">
+      <div className="report-history-header">
         <button
           type="button"
           onClick={onBack}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            border: 'none',
-            background: 'var(--surface)',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className="report-history-back-btn"
           aria-label="戻る"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-primary)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
             arrow_back
           </span>
         </button>
-        <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary)' }}>レポート履歴</span>
+        <span className="report-history-title">レポート履歴</span>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '12px',
-          padding: '4px',
-          marginBottom: '14px',
-        }}
-      >
+      <div className="report-history-tabs">
         {TAB_OPTIONS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            style={{
-              flex: 1,
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 0',
-              fontSize: '13px',
-              fontWeight: activeTab === tab.key ? 700 : 500,
-              cursor: 'pointer',
-              background: activeTab === tab.key ? 'var(--accent-color)' : 'transparent',
-              color: activeTab === tab.key ? '#fff' : 'var(--text-muted)',
-            }}
+            className={`report-history-tab ${activeTab === tab.key ? 'active' : ''}`}
           >
             {tab.label}
           </button>
@@ -177,17 +130,18 @@ export default function ReportHistoryScreen({
       </div>
 
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>読み込み中...</div>
+        <div className="report-history-loading">読み込み中...</div>
       ) : null}
 
       {!loading && activeTab === 'weekly' ? (
         weeklyReports.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="report-history-list">
             {weeklyReports.map((report) => (
               <div
                 key={report.week_start}
                 role="button"
                 tabIndex={0}
+                className="report-history-card"
                 onClick={() => onViewWeeklyReport(report.week_start)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -195,20 +149,16 @@ export default function ReportHistoryScreen({
                     onViewWeeklyReport(report.week_start)
                   }
                 }}
-                style={{
-                  background: 'var(--surface)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-color)',
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                }}
               >
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  {report.week_start}〜{report.week_end}
+                <div className="report-history-card-content">
+                  <div className="report-history-date">
+                    {report.week_start}〜{report.week_end}
+                  </div>
+                  <div className="report-history-headline">
+                    {report.headline}
+                  </div>
                 </div>
-                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                  {report.headline}
-                </div>
+                <span className="material-symbols-outlined report-history-arrow">chevron_right</span>
               </div>
             ))}
           </div>
@@ -219,12 +169,13 @@ export default function ReportHistoryScreen({
 
       {!loading && activeTab === 'monthly' ? (
         monthlyReports.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="report-history-list">
             {monthlyReports.map((report) => (
               <div
                 key={report.month}
                 role="button"
                 tabIndex={0}
+                className="report-history-card"
                 onClick={() => onViewMonthlyReport(report.month)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -232,20 +183,16 @@ export default function ReportHistoryScreen({
                     onViewMonthlyReport(report.month)
                   }
                 }}
-                style={{
-                  background: 'var(--surface)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-color)',
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                }}
               >
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  {formatMonthLabel(report.month)}
+                <div className="report-history-card-content">
+                  <div className="report-history-date">
+                    {formatMonthLabel(report.month)}
+                  </div>
+                  <div className="report-history-headline">
+                    {report.headline}
+                  </div>
                 </div>
-                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                  {report.headline}
-                </div>
+                <span className="material-symbols-outlined report-history-arrow">chevron_right</span>
               </div>
             ))}
           </div>
@@ -256,12 +203,13 @@ export default function ReportHistoryScreen({
 
       {!loading && activeTab === 'custom' ? (
         customReports.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="report-history-list">
             {customReports.map((report) => (
               <div
                 key={report.id}
                 role="button"
                 tabIndex={0}
+                className="report-history-card"
                 onClick={() => onViewCustomReport(report.id)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -269,20 +217,16 @@ export default function ReportHistoryScreen({
                     onViewCustomReport(report.id)
                   }
                 }}
-                style={{
-                  background: 'var(--surface)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-color)',
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                }}
               >
-                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '6px' }}>
-                  {report.templateLabel}
+                <div className="report-history-card-content">
+                  <div className="report-history-headline" style={{ marginBottom: '6px' }}>
+                    {report.templateLabel}
+                  </div>
+                  <div className="report-history-date">
+                    {formatDateTime(report.createdAt)}
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {formatDateTime(report.createdAt)}
-                </div>
+                <span className="material-symbols-outlined report-history-arrow">chevron_right</span>
               </div>
             ))}
           </div>
