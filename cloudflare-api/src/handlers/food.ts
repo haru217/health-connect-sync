@@ -301,7 +301,19 @@ function toFoodAnalyzeItemFromDb(row: FoodDbRow): Record<string, unknown> {
 }
 
 async function queryFoodItemsLike(db: D1Database, text: string, limit: number): Promise<FoodDbRow[]> {
-  const like = `%${escapeLike(text)}%`
+  const tokens = text.trim().split(/\s+/).filter((token) => token.length > 0)
+  if (tokens.length === 0) {
+    return []
+  }
+
+  const conditions: string[] = []
+  const params: unknown[] = []
+  for (const token of tokens) {
+    const like = `%${escapeLike(token)}%`
+    conditions.push(`(name LIKE ? ESCAPE '\\' OR COALESCE(brand, '') LIKE ? ESCAPE '\\')`)
+    params.push(like, like)
+  }
+
   return queryAll<FoodDbRow>(
     db,
     `
@@ -309,11 +321,11 @@ async function queryFoodItemsLike(db: D1Database, text: string, limit: number): 
       id, name, brand, amount, kcal, protein_g, fat_g, carbs_g, micros_json,
       source, verified, use_count, last_used_at
     FROM food_items
-    WHERE name LIKE ? ESCAPE '\\' OR COALESCE(brand, '') LIKE ? ESCAPE '\\'
+    WHERE ${conditions.join(' AND ')}
     ORDER BY use_count DESC, last_used_at DESC, id DESC
     LIMIT ?
     `,
-    [like, like, limit],
+    [...params, limit],
   )
 }
 
@@ -734,6 +746,69 @@ async function recalculateDailyIntakeKcal(db: D1Database, localDate: string): Pr
   return intakeKcal
 }
 
+function hasMostlyMissingMicros(micros: MicrosPayload): boolean {
+  const missingCount = MICRO_KEYS.filter((key) => micros[key] == null).length
+  return missingCount > MICRO_KEYS.length / 2
+}
+
+function buildMicrosSupplementText(item: FoodItemNormalized): string {
+  const brandPart = item.brand ? `${item.brand} ` : ''
+  return `${brandPart}${item.name} ${item.amount}`.trim()
+}
+
+function fillMissingMicros(base: MicrosPayload, supplement: MicrosPayload): MicrosPayload {
+  const merged: Partial<MicrosPayload> = {}
+  for (const key of MICRO_KEYS) {
+    merged[key] = base[key] ?? supplement[key] ?? null
+  }
+  return merged as MicrosPayload
+}
+
+async function supplementOpenAISearchMicros(
+  apiKey: string,
+  model: string,
+  result: GeminiFoodAnalyzeResult,
+): Promise<GeminiFoodAnalyzeResult> {
+  let promptTokens = result.promptTokens
+  let completionTokens = result.completionTokens
+  const items: FoodItemNormalized[] = []
+
+  for (const item of result.items) {
+    if (!hasMostlyMissingMicros(item.micros)) {
+      items.push(item)
+      continue
+    }
+
+    try {
+      const supplement = await callOpenAIFoodAnalyze(
+        apiKey,
+        model,
+        buildAnalyzePrompt(buildMicrosSupplementText(item)),
+        null,
+      )
+      promptTokens += supplement.promptTokens
+      completionTokens += supplement.completionTokens
+      const supplementItem = supplement.items[0]
+      items.push(
+        supplementItem
+          ? {
+              ...item,
+              micros: fillMissingMicros(item.micros, supplementItem.micros),
+            }
+          : item,
+      )
+    } catch {
+      items.push(item)
+    }
+  }
+
+  return {
+    items,
+    promptTokens,
+    completionTokens,
+  }
+}
+
 export async function handleFoodAnalyze(request: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>
   try {
@@ -779,6 +854,7 @@ export async function handleFoodAnalyze(request: Request, env: Env): Promise<Res
     try {
       if (text && !image) {
         result = await callOpenAIFoodAnalyzeWithSearch(apiKey, model, buildWebSearchPrompt(text))
+        result = await supplementOpenAISearchMicros(apiKey, model, result)
         for (const item of result.items) {
           try {
             await upsertFavoriteFoodItem(env.DB, item, 'web_search')
