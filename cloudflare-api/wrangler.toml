@@ -10,5 +10,9 @@ database_id = "4f34f044-357e-4d00-bca6-85365ae2210b"
 remote = false
 migrations_dir = "migrations"
 
+[vars]
+LLM_PROVIDER = "openai"
+LLM_MODEL = "gpt-5.4-mini"
+
 [triggers]
 crons = ["0 0 * * 1", "0 0 1 * *"]
