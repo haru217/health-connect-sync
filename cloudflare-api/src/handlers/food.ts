@@ -1,5 +1,5 @@
 import { LLM_TIMEOUT_MS } from '../constants'
-import type { D1Database, Env, GeminiResponse, NutritionEventRow } from '../types'
+import type { D1Database, Env, GeminiResponse, NutritionEventRow, OpenAICompatibleResponse } from '../types'
 import { execute, isValidDate, jsonResponse, nowIso, queryAll, queryFirst, readJsonBody, toNumberOrNull } from '../utils'
 import { checkMonthlyLimit, recordGeminiUsage } from './gemini-usage'
 import { resolveDateAndTime } from './nutrition'
@@ -357,12 +357,47 @@ function buildAnalyzePrompt(userText: string | null): string {
   return [
     'Analyze the meal and return nutrition estimates as JSON.',
     'For chain restaurants, prioritize official nutrition data when available.',
-    'For general foods, use standard Japanese food composition references.',
-    'Return all available nutrients, and set unknown values to null.',
+    'For general foods, use standard Japanese food composition references (文科省食品成分表).',
+    '',
+    'IMPORTANT: ALWAYS estimate micronutrients based on the ingredients and cooking method.',
+    'Use Japanese food composition tables as reference for estimation.',
+    'Do NOT return null for common nutrients like sodium, potassium, calcium, iron, zinc, fiber, or B vitamins - these can always be estimated from ingredients.',
+    'Only return null for nutrients that truly cannot be estimated from the given information.',
     '',
     `Input text: "${inputLine}"`,
     '',
     'Output schema (strict JSON object only):',
+    '{',
+    '  "items": [',
+    '    {',
+    '      "name": "Food name",',
+    '      "brand": "Brand name or null",',
+    '      "amount": "Serving amount (e.g., 1 bowl, 200g)",',
+    '      "kcal": number,',
+    '      "protein_g": number,',
+    '      "fat_g": number,',
+    '      "carbs_g": number,',
+    '      "micros": {',
+    schemaLines,
+    '      }',
+    '    }',
+    '  ]',
+    '}',
+  ].join('\n')
+}
+
+function buildWebSearchPrompt(userText: string): string {
+  const schemaLines = MICRO_KEYS.map((key) => `        "${key}": number | null`).join('\n')
+  return [
+    `Search the web for the official nutrition data of "${userText}" and return it as JSON.`,
+    'Prioritize the official restaurant website or reliable nutrition databases.',
+    'Use the exact official values - do not estimate or round.',
+    '',
+    'IMPORTANT: For micronutrients not available from official sources,',
+    'estimate based on Japanese food composition tables (文科省食品成分表) and the known ingredients.',
+    'Do NOT return null for common nutrients like sodium, potassium, calcium, iron, zinc, fiber, or B vitamins.',
+    '',
+    'Return ONLY a JSON object (no markdown, no explanation):',
     '{',
     '  "items": [',
     '    {',
@@ -459,7 +494,175 @@ async function callGeminiFoodAnalyze(
   }
 }
 
-async function upsertFavoriteFoodItem(db: D1Database, item: FoodItemNormalized): Promise<void> {
+async function callOpenAIFoodAnalyze(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  image: ParsedInlineImage | null,
+): Promise<GeminiFoodAnalyzeResult> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
+
+  const content: Array<Record<string, unknown>> = [{ type: 'text', text: prompt }]
+  if (image) {
+    content.push({
+      type: 'image_url',
+      image_url: {
+        url: `data:${image.mimeType};base64,${image.base64Data}`,
+        detail: 'high',
+      },
+    })
+  }
+
+  let rawResponse = ''
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content }],
+        response_format: { type: 'json_object' },
+        max_completion_tokens: 4096,
+      }),
+      signal: controller.signal,
+    })
+    rawResponse = await response.text()
+    if (!response.ok) {
+      throw new Error(`OpenAI API error (${response.status}): ${rawResponse.slice(0, 240)}`)
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('OpenAI API request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  let parsed: OpenAICompatibleResponse
+  try {
+    parsed = JSON.parse(rawResponse) as OpenAICompatibleResponse
+  } catch {
+    throw new Error('OpenAI API returned invalid JSON')
+  }
+
+  const generatedText = parsed.choices?.[0]?.message?.content?.trim() ?? ''
+  if (!generatedText) {
+    throw new Error('OpenAI returned empty content')
+  }
+
+  return {
+    items: parseGeminiFoodItems(generatedText),
+    promptTokens: typeof parsed.usage?.prompt_tokens === 'number' ? parsed.usage.prompt_tokens : 0,
+    completionTokens: typeof parsed.usage?.completion_tokens === 'number' ? parsed.usage.completion_tokens : 0,
+  }
+}
+
+async function callOpenAIFoodAnalyzeWithSearch(
+  apiKey: string,
+  model: string,
+  prompt: string,
+): Promise<GeminiFoodAnalyzeResult> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS)
+
+  let rawResponse = ''
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        tools: [
+          {
+            type: 'web_search',
+            user_location: {
+              type: 'approximate',
+              country: 'JP',
+            },
+          },
+        ],
+        input: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    })
+    rawResponse = await response.text()
+    if (!response.ok) {
+      throw new Error(`OpenAI Responses API error (${response.status}): ${rawResponse.slice(0, 240)}`)
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('OpenAI API request timed out')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(rawResponse) as Record<string, unknown>
+  } catch {
+    throw new Error('OpenAI Responses API returned invalid JSON')
+  }
+
+  const output = Array.isArray(parsed.output) ? parsed.output as Array<Record<string, unknown>> : []
+  let generatedText = ''
+  for (const item of output) {
+    if (item.type !== 'message' || !Array.isArray(item.content)) {
+      continue
+    }
+    for (const contentItem of item.content as Array<Record<string, unknown>>) {
+      if (contentItem.type === 'output_text' && typeof contentItem.text === 'string') {
+        generatedText = contentItem.text.trim()
+      }
+    }
+  }
+  if (!generatedText) {
+    throw new Error('OpenAI Responses API returned empty content')
+  }
+
+  let jsonText = generatedText
+  const fenced = jsonText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+  if (fenced?.[1]) {
+    jsonText = fenced[1]
+  } else if (!jsonText.startsWith('{')) {
+    const start = jsonText.indexOf('{')
+    const end = jsonText.lastIndexOf('}')
+    if (start >= 0 && end > start) {
+      jsonText = jsonText.slice(start, end + 1)
+    }
+  }
+
+  const usage = parsed.usage
+  const usageRecord = usage && typeof usage === 'object' ? usage as Record<string, unknown> : undefined
+  const inputTokens = typeof usageRecord?.input_tokens === 'number' ? usageRecord.input_tokens : 0
+  const outputTokens = typeof usageRecord?.output_tokens === 'number' ? usageRecord.output_tokens : 0
+
+  return {
+    items: parseGeminiFoodItems(jsonText),
+    promptTokens: inputTokens,
+    completionTokens: outputTokens,
+  }
+}
+
+async function upsertFavoriteFoodItem(
+  db: D1Database,
+  item: FoodItemNormalized,
+  source: string = 'gemini',
+): Promise<void> {
   const current = await queryFirst<{ id: number }>(
     db,
     `
@@ -501,9 +704,9 @@ async function upsertFavoriteFoodItem(db: D1Database, item: FoodItemNormalized):
     INSERT INTO food_items(
       name, brand, amount, kcal, protein_g, fat_g, carbs_g, micros_json,
       source, verified, use_count, last_used_at
-    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'gemini', 1, 1, ?)
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
     `,
-    [item.name, item.brand, item.amount, item.kcal, item.protein_g, item.fat_g, item.carbs_g, JSON.stringify(item.micros), now],
+    [item.name, item.brand, item.amount, item.kcal, item.protein_g, item.fat_g, item.carbs_g, JSON.stringify(item.micros), source, now],
   )
 }
 
@@ -565,38 +768,64 @@ export async function handleFoodAnalyze(request: Request, env: Env): Promise<Res
     }
   }
 
-  const apiKey = (env.GEMINI_API_KEY ?? '').trim()
-  if (!apiKey) {
-    return jsonResponse({ detail: 'GEMINI_API_KEY is not configured' }, 503)
-  }
-
-  const model = (env.GEMINI_MODEL ?? '').trim() || DEFAULT_GEMINI_MODEL
-  const prompt = buildAnalyzePrompt(text)
-  const limitCheck = await checkMonthlyLimit(env.DB)
-  if (!limitCheck.ok) {
-    return jsonResponse({
-      detail: 'Gemini API の月額上限に達しました。食品DBからの検索は引き続き利用できます。',
-      current_cost_jpy: limitCheck.currentCostJpy,
-      limit_jpy: limitCheck.limitJpy,
-    }, 429)
-  }
-
-  try {
-    const result = await callGeminiFoodAnalyze(apiKey, model, prompt, image)
-    try {
-      await recordGeminiUsage(env.DB, result.promptTokens, result.completionTokens)
-    } catch {
-      // Usage tracking failure should not block response delivery.
+  const provider = (env.FOOD_LLM_PROVIDER ?? env.LLM_PROVIDER ?? '').trim().toLowerCase() || 'gemini'
+  let result: GeminiFoodAnalyzeResult
+  if (provider === 'openai') {
+    const apiKey = (env.LLM_API_KEY ?? '').trim()
+    if (!apiKey) {
+      return jsonResponse({ detail: 'LLM_API_KEY is not configured' }, 503)
     }
-    return jsonResponse({
-      source: 'gemini',
-      items: result.items.map((item) => toFoodResponseItem(item)),
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to analyze meal'
-    console.error(`food-analyze-error: ${message}`)
-    return jsonResponse({ detail: 'Failed to analyze meal' }, 502)
+    const model = (env.FOOD_LLM_MODEL ?? env.LLM_MODEL ?? '').trim() || 'gpt-5.4-mini'
+    try {
+      if (text && !image) {
+        result = await callOpenAIFoodAnalyzeWithSearch(apiKey, model, buildWebSearchPrompt(text))
+        for (const item of result.items) {
+          try {
+            await upsertFavoriteFoodItem(env.DB, item, 'web_search')
+          } catch {
+            // Cache save failure should not block response delivery.
+          }
+        }
+      } else {
+        result = await callOpenAIFoodAnalyze(apiKey, model, buildAnalyzePrompt(text), image)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to analyze meal'
+      console.error(`food-analyze-error: ${message}`)
+      return jsonResponse({ detail: 'Failed to analyze meal' }, 502)
+    }
+  } else {
+    const apiKey = (env.GEMINI_API_KEY ?? '').trim()
+    if (!apiKey) {
+      return jsonResponse({ detail: 'GEMINI_API_KEY is not configured' }, 503)
+    }
+    const model = (env.GEMINI_MODEL ?? '').trim() || DEFAULT_GEMINI_MODEL
+    const limitCheck = await checkMonthlyLimit(env.DB)
+    if (!limitCheck.ok) {
+      return jsonResponse({
+        detail: 'Gemini API の月額上限に達しました。食品DBからの検索は引き続き利用できます。',
+        current_cost_jpy: limitCheck.currentCostJpy,
+        limit_jpy: limitCheck.limitJpy,
+      }, 429)
+    }
+    try {
+      result = await callGeminiFoodAnalyze(apiKey, model, buildAnalyzePrompt(text), image)
+      try {
+        await recordGeminiUsage(env.DB, result.promptTokens, result.completionTokens)
+      } catch {
+        // Usage tracking failure should not block response delivery.
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to analyze meal'
+      console.error(`food-analyze-error: ${message}`)
+      return jsonResponse({ detail: 'Failed to analyze meal' }, 502)
+    }
   }
+
+  return jsonResponse({
+    source: provider === 'openai' ? 'openai' : 'gemini',
+    items: result.items.map((item) => toFoodResponseItem(item)),
+  })
 }
 
 export async function handleFoodConfirm(request: Request, env: Env): Promise<Response> {

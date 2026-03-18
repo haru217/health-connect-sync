@@ -23,6 +23,8 @@ export interface Env {
   LLM_API_KEY?: string
   LLM_MODEL?: string
   LLM_PROVIDER?: string
+  FOOD_LLM_PROVIDER?: string
+  FOOD_LLM_MODEL?: string
 }
 
 export type ReportType = 'daily' | 'weekly' | 'monthly'
