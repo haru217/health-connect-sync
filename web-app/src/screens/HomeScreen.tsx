@@ -131,9 +131,6 @@ function computeAveragesFallback(full: SummaryResponse): Record<string, number |
   }
 }
 
-function stripMarkdown(text: string): string {
-  return text.replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1').trim()
-}
 
 
 const TEMPLATES = [
