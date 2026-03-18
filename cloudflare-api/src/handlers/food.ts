@@ -368,6 +368,7 @@ function buildAnalyzePrompt(userText: string | null): string {
   const inputLine = userText && userText.trim() ? userText.trim() : '(text not provided, infer from image only)'
   return [
     'Analyze the meal and return nutrition estimates as JSON.',
+    'IMPORTANT: All "name", "brand", and "amount" fields MUST be in Japanese (日本語).',
     'For chain restaurants, prioritize official nutrition data when available.',
     'For general foods, use standard Japanese food composition references (文科省食品成分表).',
     '',
@@ -402,6 +403,7 @@ function buildWebSearchPrompt(userText: string): string {
   const schemaLines = MICRO_KEYS.map((key) => `        "${key}": number | null`).join('\n')
   return [
     `Search the web for the official nutrition data of "${userText}" and return it as JSON.`,
+    'IMPORTANT: All "name", "brand", and "amount" fields MUST be in Japanese (日本語).',
     'Prioritize the official restaurant website or reliable nutrition databases.',
     'Use the exact official values - do not estimate or round.',
     '',

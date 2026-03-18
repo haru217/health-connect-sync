@@ -90,6 +90,29 @@ export async function analyzeFoodText(text: string): Promise<FoodAnalyzeResponse
         return { items: (res.items || []).map(mapApiItemToResult) }
 }
 
+export async function analyzeFoodImage(file: File, text?: string): Promise<FoodAnalyzeResponse> {
+        const base64 = await fileToBase64(file)
+        const body: Record<string, string> = { image_base64: base64 }
+        if (text?.trim()) body.text = text.trim()
+        const res = await apiFetch<{ items: FoodApiItem[] }>('/api/food/analyze', {
+                method: 'POST',
+                body: JSON.stringify(body),
+        })
+        return { items: (res.items || []).map(mapApiItemToResult) }
+}
+
+function fileToBase64(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => {
+                        const result = reader.result as string
+                        resolve(result)
+                }
+                reader.onerror = reject
+                reader.readAsDataURL(file)
+        })
+}
+
 export async function confirmFood(
         items: Array<FoodAnalyzeResult & { save_to_favorites?: boolean; meal_type?: string | null }>,
         localDate: string,
