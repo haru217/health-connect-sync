@@ -61,6 +61,19 @@ export async function fetchSupplements(): Promise<SupplementsResponse> {
   return apiFetch<SupplementsResponse>('/api/supplements')
 }
 
+export async function addSupplement(payload: { label: string; alias?: string; kcal?: number; protein_g?: number; fat_g?: number; carbs_g?: number; unit?: string }): Promise<{ ok: boolean; alias: string }> {
+  return apiFetch<{ ok: boolean; alias: string }>('/api/supplements', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteSupplement(id: number): Promise<{ ok: boolean; deleted_id: number }> {
+  return apiFetch<{ ok: boolean; deleted_id: number }>(`/api/supplements/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function fetchNutrientTargets(date: string): Promise<NutrientTargetsResponse> {
   const query = new URLSearchParams({ date }).toString()
   return apiFetch<NutrientTargetsResponse>(`/api/nutrients/targets?${query}`)

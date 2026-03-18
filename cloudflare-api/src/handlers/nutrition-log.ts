@@ -1,7 +1,27 @@
 ﻿import { SUPPLEMENT_CATALOG } from '../constants'
-import type { Env } from '../types'
-import { execute, jsonResponse, readJsonBody, toNumberOrNull, toPositiveCount } from '../utils'
+import type { CatalogItem, Env } from '../types'
+import { execute, jsonResponse, parseMicros, readJsonBody, toNumberOrNull, toPositiveCount } from '../utils'
 import { resolveDateAndTime } from './nutrition'
+
+async function resolveSupplementSource(db: any, alias: string | null): Promise<CatalogItem | null> {
+  if (!alias) return null
+  // まずDBから引く
+  const row = await db.prepare('SELECT alias, label, kcal, protein_g, fat_g, carbs_g, unit, micros_json FROM supplement_catalog WHERE alias = ?').bind(alias).first()
+  if (row) {
+    return {
+      alias: row.alias as string,
+      label: row.label as string,
+      kcal: row.kcal as number,
+      protein_g: row.protein_g as number,
+      fat_g: row.fat_g as number,
+      carbs_g: row.carbs_g as number,
+      unit: row.unit as string,
+      micros: parseMicros(row.micros_json as string | null),
+    }
+  }
+  // フォールバック: ハードコードカタログ
+  return SUPPLEMENT_CATALOG[alias] ?? null
+}
 
 export async function handleNutritionLog(request: Request, env: Env): Promise<Response> {
   const payload = await readJsonBody(request)
@@ -18,7 +38,7 @@ export async function handleNutritionLog(request: Request, env: Env): Promise<Re
     const alias = typeof item.alias === 'string' ? item.alias : null
     const label = typeof item.label === 'string' ? item.label.trim() : null
     const count = toPositiveCount(item.count, 1)
-    const baseSource = alias ? SUPPLEMENT_CATALOG[alias] : null
+    const baseSource = await resolveSupplementSource(env.DB, alias)
 
     if (!baseSource && !label) {
       return jsonResponse({ detail: 'alias or label is required' }, 400)

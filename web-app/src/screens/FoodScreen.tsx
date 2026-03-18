@@ -5,11 +5,12 @@ import FoodInput from '../components/FoodInput'
 import FoodConfirm from '../components/FoodConfirm'
 import FoodEditModal from '../components/FoodEditModal'
 import { fetchFoodHistory, deleteFood, updateFood } from '../api/food'
-import { fetchSupplements, fetchNutritionDay, logNutrition, deleteNutritionLog } from '../api/healthApi'
+import { fetchSupplements, fetchNutritionDay, logNutrition, deleteNutritionLog, addSupplement, deleteSupplement } from '../api/healthApi'
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../constants/food'
 import type { FoodAnalyzeResponse, FoodHistoryResponse, FoodHistoryItem, SupplementItem, NutritionDayResponse } from '../api/types'
 
 interface SupplementView {
+    catalogId?: number
     alias: string
     name: string
     checked: boolean
@@ -23,12 +24,13 @@ function toSupplementViews(supplements: SupplementItem[], day: NutritionDayRespo
         const aliasEvents = day.events.filter((e) => e.alias === item.alias)
         const sumCount = aliasEvents.reduce((sum, e) => sum + (e.count ?? 0), 0)
         return {
+            catalogId: item.id,
             alias: item.alias,
             name: item.label,
             checked: aliasEvents.length > 0,
             count: Math.max(1, Math.round(sumCount)) || 1,
             eventIds: aliasEvents.map((e) => e.id),
-            unitLabel: item.alias === 'protein' ? '本' : '錠',
+            unitLabel: item.unit === '本' ? '本' : '錠',
         }
     })
 }
@@ -46,6 +48,13 @@ export default function FoodScreen() {
     // Edit Modal States
     const [editingItem, setEditingItem] = useState<FoodHistoryItem | null>(null)
     const [editLoading, setEditLoading] = useState(false)
+
+    // Supplement Add/Delete States
+    const [showAddSupplement, setShowAddSupplement] = useState(false)
+    const [newSupplementName, setNewSupplementName] = useState('')
+    const [newSupplementUnit, setNewSupplementUnit] = useState('錠')
+    const [addingSupp, setAddingSupp] = useState(false)
+    const [editingSupplements, setEditingSupplements] = useState(false)
 
     const loadHistory = useCallback(async () => {
         setLoading(true)
@@ -98,6 +107,37 @@ export default function FoodScreen() {
             await loadSupplements()
         } catch {
             setSupplementError('サプリ更新エラー')
+        }
+    }
+
+    const handleAddSupplement = async () => {
+        const name = newSupplementName.trim()
+        if (!name) return
+        setAddingSupp(true)
+        setSupplementError(null)
+        try {
+            await addSupplement({ label: name, unit: newSupplementUnit })
+            setNewSupplementName('')
+            setShowAddSupplement(false)
+            await loadSupplements()
+        } catch {
+            setSupplementError('サプリの追加に失敗しました')
+        } finally {
+            setAddingSupp(false)
+        }
+    }
+
+    const handleDeleteSupplement = async (item: SupplementView) => {
+        if (!item.catalogId) return
+        setSupplementError(null)
+        try {
+            if (item.checked) {
+                await clearSupplementLogs(item)
+            }
+            await deleteSupplement(item.catalogId)
+            await loadSupplements()
+        } catch {
+            setSupplementError('サプリの削除に失敗しました')
         }
     }
 
@@ -279,7 +319,15 @@ export default function FoodScreen() {
 
                 {/* サプリセクション */}
                 <section style={{ marginTop: '24px' }}>
-                    <h3 style={{ fontSize: '15px', marginBottom: '12px' }}>サプリメント</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h3 style={{ fontSize: '15px', margin: 0 }}>サプリメント</h3>
+                        <button
+                            onClick={() => setEditingSupplements(!editingSupplements)}
+                            style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            {editingSupplements ? '完了' : '編集'}
+                        </button>
+                    </div>
                     {supplementError && (
                         <div style={{ marginBottom: '8px', color: 'var(--danger-color, #dc2626)', fontSize: '13px' }}>{supplementError}</div>
                     )}
@@ -287,7 +335,7 @@ export default function FoodScreen() {
                         {supplements.map((item) => (
                             <div
                                 key={item.alias}
-                                onClick={() => void toggleSupplement(item)}
+                                onClick={editingSupplements ? undefined : () => void toggleSupplement(item)}
                                 style={{
                                     background: item.checked ? 'var(--accent-bg, #eff6ff)' : 'var(--surface)',
                                     border: `1.5px solid ${item.checked ? 'var(--accent-color)' : 'var(--border-color, #e5e7eb)'}`,
@@ -296,12 +344,21 @@ export default function FoodScreen() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '12px',
-                                    cursor: 'pointer',
+                                    cursor: editingSupplements ? 'default' : 'pointer',
                                 }}
                             >
-                                <SupplementIcon alias={item.alias} checked={item.checked} />
+                                {editingSupplements ? (
+                                    <button
+                                        onClick={() => void handleDeleteSupplement(item)}
+                                        style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--danger-color, #dc2626)', color: 'white', border: 'none', fontSize: '14px', lineHeight: 1, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>remove</span>
+                                    </button>
+                                ) : (
+                                    <SupplementIcon alias={item.alias} checked={item.checked} />
+                                )}
                                 <div style={{ flex: 1, fontSize: '15px', fontWeight: item.checked ? 'bold' : 'normal' }}>{item.name}</div>
-                                {item.checked ? (
+                                {!editingSupplements && item.checked ? (
                                     <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <button
                                             onClick={() => void adjustSupplementCount(item, -1)}
@@ -316,11 +373,57 @@ export default function FoodScreen() {
                                             style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1.5px solid var(--accent-color)', background: 'white', color: 'var(--accent-color)', fontSize: '18px', lineHeight: 1, cursor: 'pointer' }}
                                         >＋</button>
                                     </div>
-                                ) : (
+                                ) : !editingSupplements ? (
                                     <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: '2px solid var(--border-color, #d1d5db)', flexShrink: 0 }} />
-                                )}
+                                ) : null}
                             </div>
                         ))}
+
+                        {/* サプリ追加 */}
+                        {showAddSupplement ? (
+                            <div style={{ background: 'var(--surface)', border: '1.5px solid var(--accent-color)', borderRadius: '12px', padding: '12px 16px' }}>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={newSupplementName}
+                                        onChange={(e) => setNewSupplementName(e.target.value)}
+                                        placeholder="サプリ名 (例: ビタミンC)"
+                                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }}
+                                        autoFocus
+                                    />
+                                    <select
+                                        value={newSupplementUnit}
+                                        onChange={(e) => setNewSupplementUnit(e.target.value)}
+                                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }}
+                                    >
+                                        <option value="錠">錠</option>
+                                        <option value="本">本</option>
+                                        <option value="包">包</option>
+                                        <option value="粒">粒</option>
+                                        <option value="ml">ml</option>
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => { setShowAddSupplement(false); setNewSupplementName('') }}
+                                        style={{ flex: 1, padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: 'none', fontSize: '14px', color: 'var(--text-muted)' }}
+                                    >キャンセル</button>
+                                    <button
+                                        onClick={() => void handleAddSupplement()}
+                                        disabled={!newSupplementName.trim() || addingSupp}
+                                        style={{ flex: 1, padding: '10px', background: 'var(--accent-color)', color: 'white', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 'bold', opacity: !newSupplementName.trim() || addingSupp ? 0.5 : 1 }}
+                                    >{addingSupp ? '追加中...' : '追加'}</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setShowAddSupplement(true)}
+                                style={{ width: '100%', padding: '12px', background: 'var(--surface)', border: '1.5px dashed var(--border-color, #d1d5db)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                                サプリ・薬を追加
+                            </button>
+                        )}
                     </div>
                 </section>
             </div>

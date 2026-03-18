@@ -3,7 +3,7 @@ import { isAuthorized, jsonResponse, optionsResponse, textResponse } from './uti
 import { handleActivityData, handleBodyData, handleSleepData, handleVitalsData } from './handlers/health'
 import { handleHomeSummary } from './handlers/home-summary'
 import { handleFoodAnalyze, handleFoodConfirm, handleFoodHistory, handleFoodSearch, handleFoodDelete, handleFoodUpdate } from './handlers/food'
-import { handleNutritionDay, handleSupplements } from './handlers/nutrition'
+import { handleNutritionDay, handleSupplements, handleSupplementAdd, handleSupplementDelete } from './handlers/nutrition'
 import { handleNutritionLogDelete, handleNutritionLogPost } from './handlers/nutrition-log'
 import { handleProfileGet, handleProfilePut } from './handlers/profile'
 import { handleCustomReportGetById, handleCustomReportPost, handleCustomReportsGet, handleCustomReportTemplatesGet } from './handlers/custom-report'
@@ -58,7 +58,9 @@ const worker: ExportedHandler<Env> = {
       if (key === 'GET /api/custom-report-templates') return handleCustomReportTemplatesGet()
       if (key === 'GET /api/sync/cursor') return handleSyncCursor(url, env)
       if (key === 'POST /api/sync') return handleSync(request, env, ctx)
-      if (key === 'GET /api/supplements') return handleSupplements()
+      if (key === 'GET /api/supplements') return handleSupplements(env)
+      if (key === 'POST /api/supplements') return handleSupplementAdd(request, env)
+      if (pathname.startsWith('/api/supplements/') && method === 'DELETE') return handleSupplementDelete(pathname, env)
       if (key === 'GET /api/nutrition/day') return handleNutritionDay(url, env)
       if (key === 'POST /api/nutrition/log') return handleNutritionLogPost(request, env)
       if (key === 'POST /api/food/analyze') return handleFoodAnalyze(request, env)

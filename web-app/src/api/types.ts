@@ -127,12 +127,14 @@ export interface NutritionDayResponse {
 }
 
 export interface SupplementItem {
+  id?: number
   alias: string
   label: string
   kcal: number | null
   protein_g: number | null
   fat_g: number | null
   carbs_g: number | null
+  unit?: string
 }
 
 export interface SupplementsResponse {
