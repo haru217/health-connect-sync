@@ -519,7 +519,7 @@ export default function ReportDetailScreen({
                   marginBottom: '12px',
                 }}
               >
-                他のレポート
+                過去のレポート
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {reportType === 'weekly'

@@ -732,18 +732,17 @@ export default function HomeScreen({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px',
-                width: 'calc(100% - 32px)',
-                margin: '8px 16px 0',
-                padding: '12px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                background: 'var(--surface)',
+                width: '100%',
+                marginTop: '16px',
+                padding: '8px 0',
+                border: 'none',
+                background: 'transparent',
                 fontSize: '13px',
-                color: 'var(--accent-color)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>history</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>history</span>
               履歴を見る
             </button>
           ) : null}
