@@ -152,6 +152,7 @@ function CustomReportSection({
   onViewHistory?: () => void
 }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const latestCustomReport = history[0] ?? null
 
   const styles = `
     .haru-template-btn {
@@ -256,6 +257,44 @@ function CustomReportSection({
           </button>
         ))}
       </div>
+      {latestCustomReport ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onViewReport?.(latestCustomReport.id)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onViewReport?.(latestCustomReport.id)
+            }
+          }}
+          style={{
+            marginTop: '12px',
+            background: 'var(--surface)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            padding: '14px 16px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5, marginBottom: '6px' }}>
+              {latestCustomReport.templateLabel}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {latestCustomReport.excerpt}
+            </div>
+          </div>
+          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
+            chevron_right
+          </span>
+        </div>
+      ) : null}
       <button
         type="button"
         onClick={handleViewHistory}
@@ -308,11 +347,18 @@ function WeeklyReportCard({
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-            {report.week_start}〜{report.week_end}
-          </div>
-          <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-            {report.headline}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                {report.week_start}〜{report.week_end}
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+                {report.headline}
+              </div>
+            </div>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
+              chevron_right
+            </span>
           </div>
         </div>
       ) : (
@@ -387,11 +433,18 @@ function MonthlyReportCard({
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-            {monthLabel}
-          </div>
-          <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-            {report.headline}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                {monthLabel}
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+                {report.headline}
+              </div>
+            </div>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
+              chevron_right
+            </span>
           </div>
         </div>
       ) : (
