@@ -152,6 +152,9 @@ function App() {
         }} onViewReport={(id) => {
           setReportDetailId(id)
           setCurrentScreen('report-detail')
+        }} onViewHistory={() => {
+          setReportHistoryTab('weekly')
+          setCurrentScreen('report-history')
         }} onViewWeeklyReport={(weekStart) => {
           setWeeklyReportWeekStart(weekStart)
           setCurrentScreen('weekly-report-detail')

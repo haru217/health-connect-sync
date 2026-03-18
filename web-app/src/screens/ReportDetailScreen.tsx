@@ -52,6 +52,10 @@ function stripMarkdownHeadings(line: string): string {
   return line.replace(/^#{1,6}\s+/, '')
 }
 
+function normalizeReportLine(line: string): string {
+  return stripMarkdownHeadings(line.trim()).replace(/^[-・]\s*/, '')
+}
+
 const sectionConfig: Record<string, { icon: string; color: string }> = {
   'からだ': { icon: 'favorite', color: 'var(--accent-red)' },
   '運動': { icon: 'directions_run', color: 'var(--accent-blue)' },
@@ -105,7 +109,7 @@ function renderReportBody(text: string) {
         if (headingTitle) {
           const config = findSectionConfig(headingTitle)
           const sectionLines = bodyText
-            ? bodyText.trim().split(/\n/).map((line) => stripMarkdownHeadings(line.trim())).filter((line) => line.length > 0)
+            ? bodyText.trim().split(/\n/).map((line) => normalizeReportLine(line)).filter((line) => line.length > 0)
             : []
 
           return (
@@ -135,9 +139,30 @@ function renderReportBody(text: string) {
           )
         }
 
+        const lines = paragraph
+          .split(/\n/)
+          .map((line) => normalizeReportLine(line))
+          .filter((line) => line.length > 0)
+
+        if (lines.length === 0) {
+          return null
+        }
+
+        if (lines.length > 1) {
+          return (
+            <div key={index} style={{ marginBottom: index < paragraphs.length - 1 ? '12px' : '0' }}>
+              {lines.map((line, lineIndex) => (
+                <p key={lineIndex} style={{ margin: `0 0 ${lineIndex < lines.length - 1 ? '4px' : '0'} 0` }}>
+                  {renderMarkdownText(line)}
+                </p>
+              ))}
+            </div>
+          )
+        }
+
         return (
           <p key={index} style={{ margin: `0 0 ${index < paragraphs.length - 1 ? '12px' : '0'} 0` }}>
-            {renderMarkdownText(paragraph)}
+            {renderMarkdownText(lines[0] ?? paragraph)}
           </p>
         )
       })}

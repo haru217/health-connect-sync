@@ -154,7 +154,7 @@ function CustomReportSection({
   onViewHistory?: () => void
 }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const latestCustomReport = history[0] ?? null
+  const recentCustomReports = history.slice(0, 3)
 
   const styles = `
     .haru-template-btn {
@@ -249,63 +249,67 @@ function CustomReportSection({
           </button>
         ))}
       </div>
-      {latestCustomReport ? (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => onViewReport?.(latestCustomReport.id)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault()
-              onViewReport?.(latestCustomReport.id)
-            }
-          }}
-          style={{
-            marginTop: '12px',
-            background: 'var(--surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-color)',
-            padding: '14px 16px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
-              {latestCustomReport.templateLabel}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {new Date(latestCustomReport.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <button hidden
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onViewHistory?.()
+      {recentCustomReports.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+          {recentCustomReports.map((report) => (
+            <div
+              key={report.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onViewReport?.(report.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onViewReport?.(report.id)
+                }
               }}
-              onKeyDown={(event) => event.stopPropagation()}
               style={{
-                fontSize: '12px',
-                color: 'var(--accent-color)',
-                marginTop: '8px',
-                textAlign: 'right',
+                background: 'var(--surface)',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                padding: '14px 16px',
                 cursor: 'pointer',
-                width: '100%',
-                border: 'none',
-                background: 'transparent',
-                padding: 0,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '12px',
               }}
             >
-              履歴を見る
-            </button>
-          </div>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
-            chevron_right
-          </span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5 }}>
+                  {report.templateLabel}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {new Date(report.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <button hidden
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onViewHistory?.()
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--accent-color)',
+                    marginTop: '8px',
+                    textAlign: 'right',
+                    cursor: 'pointer',
+                    width: '100%',
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                  }}
+                >
+                  履歴を見る
+                </button>
+              </div>
+              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                chevron_right
+              </span>
+            </div>
+          ))}
         </div>
       ) : null}
     </section>
@@ -533,6 +537,7 @@ type HomeScreenData = {
 interface HomeScreenProps {
   onNavigate?: (target: HomeNavigateTarget) => void
   onViewReport?: (id: number) => void
+  onViewHistory?: () => void
   onViewWeeklyReport?: (weekStart: string) => void
   onViewMonthlyReport?: (month: string) => void
 }
@@ -540,6 +545,7 @@ interface HomeScreenProps {
 export default function HomeScreen({
   onNavigate,
   onViewReport,
+  onViewHistory,
   onViewWeeklyReport,
   onViewMonthlyReport,
 }: HomeScreenProps) {
@@ -716,6 +722,31 @@ export default function HomeScreen({
               {reportError}
             </div>
           )}
+
+          {onViewHistory ? (
+            <button
+              type="button"
+              onClick={onViewHistory}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                width: 'calc(100% - 32px)',
+                margin: '8px 16px 0',
+                padding: '12px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                background: 'var(--surface)',
+                fontSize: '13px',
+                color: 'var(--accent-color)',
+                cursor: 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>history</span>
+              履歴を見る
+            </button>
+          ) : null}
 
           {false && content ? (
             <>
