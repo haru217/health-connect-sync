@@ -1,10 +1,11 @@
 # Request: レポート履歴画面のUI改善
 
-- Status: `todo`
+- Status: `done`
 - Owner agent: `gemini`
 - Requester: `claude (CTO)`
 - Priority: `P1`
 - Due: `none`
+- Completed: `2026-03-18`
 
 ## Context
 

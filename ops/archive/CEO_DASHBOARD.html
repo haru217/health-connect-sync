@@ -381,7 +381,7 @@
             <header class="hero">
                 <h1 class="hero-h1">AIエージェント・マルチタスク・コントロールパネル</h1>
                 <div class="meta-row">
-                    <span class="tag">最終更新日: 2026-03-17</span>
+                    <span class="tag">最終更新日: 2026-03-18</span>
                     <span class="tag">ゴール: Android正式リリース</span>
                     <span class="tag">更新責任: CTO（Codex）</span>
                 </div>
@@ -709,7 +709,7 @@
                 { name: "運動タブ", status: "ok", summary: "TabAiAdvice共通コンポーネント化完了。AIコメント表示を統一済み", owner: "Claude / Gemini", type: "frontend", relatedTasks: ["I3-CODEX","I3-GEMINI","D1-REFACTOR"] },
                 { name: "食事タブ", status: "ok", summary: "検索ファースト+編集・削除モーダル+DELETE/PUT API完了。技術負債（型アサーション・ミューテーション・バリデーション等）も全て解消済み", owner: "Gemini / Codex-shinsekai", type: "frontend", relatedTasks: ["I4-CODEX","I4-GEMINI","D1-REFACTOR","U4-API","U4-UI"] },
                 { name: "マイページ", status: "ok", summary: "プロフィール編集、目標設定、データ状態、AI利用状況を1画面で確認・更新可能", owner: "Codex", type: "frontend", relatedTasks: ["M1-MYPAGE"] },
-                { name: "API（サーバー）", status: "ok", summary: "食事DELETE/PUT API完了。技術負債8件全解消（LLMプロバイダー分離・chart共通化等）。レポート自動生成の監視ログ強化済み。/api/ai-config追加予定(M1)", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE","M1-MYPAGE"] },
+                { name: "API（サーバー）", status: "ok", summary: "食事名に店名と商品名を一緒に入れても、保存済み候補を見つけやすく改善。公式サイトなどの検索結果で細かな栄養が多く欠ける場合は、不足分だけ補って次回からそのまま再利用できるようにした。写真つき解析・食事の編集削除・レポート自動生成の流れはそのまま維持。", owner: "Codex", type: "backend", relatedTasks: ["P1-1-2","P1-1-4","C1-REPORT","C1v2-TRIGGER","A1v3-VALUES","D2-REFACTOR","F1-SLEEP-STAGE","H1-HARU","H2-CUSTOM-REPORT","U4-API","U5-SYNC","U6-DATE","M1-MYPAGE"] },
                 { name: "データベース", status: "ok", summary: "Cloudflare D1は正常稼働中", owner: "Codex-2", type: "backend", relatedTasks: [] },
                 { name: "Android同期", status: "wip", summary: "権限を全種に拡張し同期の安定化を実装済み。APKビルド成功。実機での動作確認待ち", owner: "Codex-shinsekai", type: "backend", relatedTasks: ["P1-1-1"] },
             ];
