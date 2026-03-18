@@ -180,15 +180,36 @@ function App() {
         return <MyScreen />
       case 'report-detail':
         return reportDetailId != null ? (
-          <ReportDetailScreen reportId={reportDetailId} onBack={() => setCurrentScreen('home')} />
+          <ReportDetailScreen
+            reportId={reportDetailId}
+            onBack={() => setCurrentScreen('home')}
+            onViewHistory={() => {
+              setReportHistoryTab('custom')
+              setCurrentScreen('report-history')
+            }}
+          />
         ) : <HomeScreen />
       case 'weekly-report-detail':
         return weeklyReportWeekStart != null ? (
-          <ReportDetailScreen weeklyReportWeekStart={weeklyReportWeekStart} onBack={() => setCurrentScreen('home')} />
+          <ReportDetailScreen
+            weeklyReportWeekStart={weeklyReportWeekStart}
+            onBack={() => setCurrentScreen('home')}
+            onViewHistory={() => {
+              setReportHistoryTab('weekly')
+              setCurrentScreen('report-history')
+            }}
+          />
         ) : <HomeScreen />
       case 'monthly-report-detail':
         return monthlyReportMonth != null ? (
-          <ReportDetailScreen monthlyReportMonth={monthlyReportMonth} onBack={() => setCurrentScreen('home')} />
+          <ReportDetailScreen
+            monthlyReportMonth={monthlyReportMonth}
+            onBack={() => setCurrentScreen('home')}
+            onViewHistory={() => {
+              setReportHistoryTab('monthly')
+              setCurrentScreen('report-history')
+            }}
+          />
         ) : <HomeScreen />
       case 'report-history':
         return <ReportHistoryScreen

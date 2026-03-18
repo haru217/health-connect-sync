@@ -8,6 +8,7 @@ interface ReportDetailScreenProps {
   readonly weeklyReportWeekStart?: string | null
   readonly monthlyReportMonth?: string | null
   readonly onBack: () => void
+  readonly onViewHistory?: () => void
 }
 
 function renderMarkdownText(text: string): ReactNode[] {
@@ -70,8 +71,20 @@ type FetchState =
   | { status: 'success'; text: string; title: string }
   | { status: 'error'; message: string }
 
-export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, monthlyReportMonth, onBack }: ReportDetailScreenProps) {
+type ReportType = 'weekly' | 'monthly' | 'custom'
+
+export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, monthlyReportMonth, onBack, onViewHistory }: ReportDetailScreenProps) {
   const [state, setState] = useState<FetchState>({ status: 'loading' })
+  const reportType: ReportType = weeklyReportWeekStart
+    ? 'weekly'
+    : monthlyReportMonth
+      ? 'monthly'
+      : 'custom'
+  const headerIcon = reportType === 'weekly'
+    ? { name: 'calendar_month', color: 'var(--accent-color)' }
+    : reportType === 'monthly'
+      ? { name: 'date_range', color: 'var(--accent-indigo)' }
+      : { name: 'psychology', color: 'var(--accent-color)' }
 
   useEffect(() => {
     let alive = true
@@ -167,7 +180,23 @@ export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, mo
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--text-primary)' }}>arrow_back</span>
         </button>
-        <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{headerTitle}</span>
+        <span style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          minWidth: 0,
+          fontSize: '16px',
+          fontWeight: 'bold',
+          color: 'var(--text-primary)',
+        }}>
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '20px', color: headerIcon.color, flexShrink: 0, fontVariationSettings: "'FILL' 1" }}
+          >
+            {headerIcon.name}
+          </span>
+          <span style={{ minWidth: 0 }}>{headerTitle}</span>
+        </span>
       </div>
 
       {/* Body */}
@@ -182,42 +211,68 @@ export default function ReportDetailScreen({ reportId, weeklyReportWeekStart, mo
       ) : null}
 
       {state.status === 'success' ? (
-        <div style={{
-          background: 'var(--surface)',
-          borderRadius: '24px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          border: '1px solid var(--border-color)',
-          overflow: 'hidden',
-        }}>
-          {/* アバター領域 */}
+        <>
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '20px 20px 16px 20px',
-            background: 'linear-gradient(to bottom, var(--surface-subtle), var(--surface))',
-            borderBottom: '1px solid rgba(0,0,0,0.02)'
+            background: 'var(--surface)',
+            borderRadius: '24px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden',
           }}>
+            {/* アバター領域 */}
             <div style={{
-              flexShrink: 0, width: '64px', height: '64px', borderRadius: '50%',
-              overflow: 'hidden',
-              border: '3px solid white',
-              boxShadow: '0 4px 12px rgba(45,139,111,0.15)',
-              background: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '20px 20px 16px 20px',
+              background: 'linear-gradient(to bottom, var(--surface-subtle), var(--surface))',
+              borderBottom: '1px solid rgba(0,0,0,0.02)'
             }}>
-              <img
-                src="/haru-avatar.png"
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              <div style={{
+                flexShrink: 0, width: '64px', height: '64px', borderRadius: '50%',
+                overflow: 'hidden',
+                border: '3px solid white',
+                boxShadow: '0 4px 12px rgba(45,139,111,0.15)',
+                background: 'white',
+              }}>
+                <img
+                  src="/haru-avatar.png"
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            </div>
+
+            {/* レポート本文 */}
+            <div style={{ padding: '0 20px 24px 20px' }}>
+              {renderReportBody(state.text)}
             </div>
           </div>
-
-          {/* レポート本文 */}
-          <div style={{ padding: '0 20px 24px 20px' }}>
-            {renderReportBody(state.text)}
-          </div>
-        </div>
+          {onViewHistory ? (
+            <button
+              type="button"
+              onClick={onViewHistory}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                background: 'var(--surface)',
+                fontSize: '13px',
+                color: 'var(--accent-color)',
+                cursor: 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>history</span>
+              履歴を見る
+            </button>
+          ) : null}
+        </>
       ) : null}
     </div>
   )
