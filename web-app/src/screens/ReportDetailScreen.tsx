@@ -52,6 +52,27 @@ function stripMarkdownHeadings(line: string): string {
   return line.replace(/^#{1,6}\s+/, '')
 }
 
+const sectionConfig: Record<string, { icon: string; color: string }> = {
+  'からだ': { icon: 'favorite', color: 'var(--accent-red)' },
+  '運動': { icon: 'directions_run', color: 'var(--accent-blue)' },
+  '活動': { icon: 'directions_run', color: 'var(--accent-blue)' },
+  '食事': { icon: 'restaurant', color: 'var(--accent-color)' },
+  '栄養': { icon: 'restaurant', color: 'var(--accent-color)' },
+  '睡眠': { icon: 'bedtime', color: 'var(--accent-yellow)' },
+  'まとめ': { icon: 'psychology', color: 'var(--accent-indigo)' },
+  '来週': { icon: 'event', color: 'var(--accent-indigo)' },
+  '来月': { icon: 'event', color: 'var(--accent-indigo)' },
+  '今週': { icon: 'trending_up', color: 'var(--accent-blue)' },
+  '今月': { icon: 'trending_up', color: 'var(--accent-blue)' },
+}
+
+function findSectionConfig(title: string): { icon: string; color: string } {
+  const entry = Object.entries(sectionConfig).find(
+    ([key]) => title.startsWith(key),
+  )
+  return entry ? entry[1] : { icon: 'info', color: 'var(--text-muted)' }
+}
+
 function renderReportBody(text: string) {
   const paragraphs = text
     .split(/\n\n+/)
@@ -69,16 +90,23 @@ function renderReportBody(text: string) {
             .map((line) => stripMarkdownHeadings(line.trim()))
             .filter((line) => line.length > 0)
 
+          const config = findSectionConfig(sectionMatch[1])
           return (
-            <div key={index} style={{ marginBottom: index < paragraphs.length - 1 ? '16px' : 0 }}>
+            <div key={index} style={{ marginBottom: index < paragraphs.length - 1 ? '20px' : 0 }}>
               <div
                 style={{
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 'bold',
-                  color: 'var(--accent-color)',
-                  marginBottom: '6px',
+                  color: config.color,
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                 }}
               >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                  {config.icon}
+                </span>
                 {sectionMatch[1]}
               </div>
               {sectionLines.map((line, lineIndex) => (
