@@ -249,7 +249,7 @@ function CustomReportSection({
       </div>
       {recentCustomReports.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
-          <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 4px', fontWeight: 600 }}>最近の分析</h4>
+          <h4 style={{ fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 4px', fontWeight: 700 }}>分析結果</h4>
           {recentCustomReports.map((report) => (
             <div
               key={report.id}
