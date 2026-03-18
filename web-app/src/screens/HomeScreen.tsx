@@ -283,7 +283,7 @@ function CustomReportSection({
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
               {stripMarkdown(latestCustomReport.excerpt)}
             </div>
-            <button
+            <button hidden
               type="button"
               onClick={(event) => {
                 event.stopPropagation()
@@ -366,7 +366,7 @@ function WeeklyReportCard({
               chevron_right
             </span>
           </div>
-          <button
+          <button hidden
             type="button"
             onClick={(event) => {
               event.stopPropagation()
@@ -391,7 +391,7 @@ function WeeklyReportCard({
       ) : (
         <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>週次レポートはまだありません</div>
-          <button
+          <button hidden
             type="button"
             onClick={onViewHistory}
             style={{
@@ -473,7 +473,7 @@ function MonthlyReportCard({
               chevron_right
             </span>
           </div>
-          <button
+          <button hidden
             type="button"
             onClick={(event) => {
               event.stopPropagation()
@@ -498,7 +498,7 @@ function MonthlyReportCard({
       ) : (
         <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '14px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
           <div>月次レポートはまだありません</div>
-          <button
+          <button hidden
             type="button"
             onClick={onViewHistory}
             style={{
@@ -537,9 +537,6 @@ interface HomeScreenProps {
   onViewReport?: (id: number) => void
   onViewWeeklyReport?: (weekStart: string) => void
   onViewMonthlyReport?: (month: string) => void
-  onViewWeeklyHistory?: () => void
-  onViewMonthlyHistory?: () => void
-  onViewCustomHistory?: () => void
 }
 
 export default function HomeScreen({
@@ -547,9 +544,6 @@ export default function HomeScreen({
   onViewReport,
   onViewWeeklyReport,
   onViewMonthlyReport,
-  onViewWeeklyHistory,
-  onViewMonthlyHistory,
-  onViewCustomHistory,
 }: HomeScreenProps) {
   const { activeDate } = useDateContext()
   const [state, setState] = useState<RequestState<HomeScreenData>>({ status: 'loading' })
@@ -709,18 +703,15 @@ export default function HomeScreen({
           <WeeklyReportCard
             report={content.latestWeeklyReport}
             onOpen={onViewWeeklyReport}
-            onViewHistory={onViewWeeklyHistory}
           />
           <MonthlyReportCard
             report={content.latestMonthlyReport}
             onOpen={onViewMonthlyReport}
-            onViewHistory={onViewMonthlyHistory}
           />
           <CustomReportSection
             history={content.customReports}
             onRequest={handleRequestReport}
             onViewReport={onViewReport}
-            onViewHistory={onViewCustomHistory}
           />
           {reportError && (
             <div style={{ margin: '0 16px', padding: '12px', background: 'var(--danger-bg, #fef2f2)', color: 'var(--danger-color, #dc2626)', borderRadius: '8px', fontSize: '13px' }}>

@@ -158,15 +158,6 @@ function App() {
         }} onViewMonthlyReport={(month) => {
           setMonthlyReportMonth(month)
           setCurrentScreen('monthly-report-detail')
-        }} onViewWeeklyHistory={() => {
-          setReportHistoryTab('weekly')
-          setCurrentScreen('report-history')
-        }} onViewMonthlyHistory={() => {
-          setReportHistoryTab('monthly')
-          setCurrentScreen('report-history')
-        }} onViewCustomHistory={() => {
-          setReportHistoryTab('custom')
-          setCurrentScreen('report-history')
         }} />
       case 'food':
         return <FoodScreen />
@@ -187,6 +178,18 @@ function App() {
               setReportHistoryTab('custom')
               setCurrentScreen('report-history')
             }}
+            onViewWeeklyReport={(weekStart) => {
+              setWeeklyReportWeekStart(weekStart)
+              setCurrentScreen('weekly-report-detail')
+            }}
+            onViewMonthlyReport={(month) => {
+              setMonthlyReportMonth(month)
+              setCurrentScreen('monthly-report-detail')
+            }}
+            onViewCustomReport={(id) => {
+              setReportDetailId(id)
+              setCurrentScreen('report-detail')
+            }}
           />
         ) : <HomeScreen />
       case 'weekly-report-detail':
@@ -198,6 +201,18 @@ function App() {
               setReportHistoryTab('weekly')
               setCurrentScreen('report-history')
             }}
+            onViewWeeklyReport={(weekStart) => {
+              setWeeklyReportWeekStart(weekStart)
+              setCurrentScreen('weekly-report-detail')
+            }}
+            onViewMonthlyReport={(month) => {
+              setMonthlyReportMonth(month)
+              setCurrentScreen('monthly-report-detail')
+            }}
+            onViewCustomReport={(id) => {
+              setReportDetailId(id)
+              setCurrentScreen('report-detail')
+            }}
           />
         ) : <HomeScreen />
       case 'monthly-report-detail':
@@ -208,6 +223,18 @@ function App() {
             onViewHistory={() => {
               setReportHistoryTab('monthly')
               setCurrentScreen('report-history')
+            }}
+            onViewWeeklyReport={(weekStart) => {
+              setWeeklyReportWeekStart(weekStart)
+              setCurrentScreen('weekly-report-detail')
+            }}
+            onViewMonthlyReport={(month) => {
+              setMonthlyReportMonth(month)
+              setCurrentScreen('monthly-report-detail')
+            }}
+            onViewCustomReport={(id) => {
+              setReportDetailId(id)
+              setCurrentScreen('report-detail')
             }}
           />
         ) : <HomeScreen />
