@@ -268,7 +268,6 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         onChange={handleImageSelect}
                         style={{ display: 'none' }}
                     />
