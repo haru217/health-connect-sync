@@ -54,31 +54,52 @@ const MICRO_KEYS = [
 type MicroKey = (typeof MICRO_KEYS)[number]
 type MicrosPayload = Record<MicroKey, number | null>
 
-interface FoodDbRow {
-  id: number
+type FoodSourceType = 'master' | 'custom'
+
+interface FoodSearchRow {
+  id: number | null
+  food_master_id: number | null
   name: string
+  display_name: string
   brand: string | null
   amount: string
+  amount_g: number | null
   kcal: number | null
   protein_g: number | null
   fat_g: number | null
   carbs_g: number | null
   micros_json: string | null
+  per100g_kcal: number | null
+  per100g_protein_g: number | null
+  per100g_fat_g: number | null
+  per100g_carbs_g: number | null
+  per100g_micros_json: string | null
   source: string
-  verified: number
+  source_type: FoodSourceType
+  food_group: string | null
   use_count: number
   last_used_at: string | null
 }
 
 interface FoodItemNormalized {
   name: string
+  display_name: string
   brand: string | null
   amount: string
+  amount_g: number | null
   kcal: number
   protein_g: number
   fat_g: number
   carbs_g: number
   micros: MicrosPayload
+  source_type?: FoodSourceType
+  food_group?: string | null
+  food_master_id?: number | null
+  per100g_kcal?: number | null
+  per100g_protein_g?: number | null
+  per100g_fat_g?: number | null
+  per100g_carbs_g?: number | null
+  per100g_micros?: MicrosPayload | null
 }
 
 interface ConfirmFoodItem extends FoodItemNormalized {
@@ -128,6 +149,17 @@ function readRequiredNumber(value: unknown, field: string): number {
   const parsed = toNumberOrNull(value)
   if (parsed == null) {
     throw new FoodValidationError(`${field} must be a number`)
+  }
+  return parsed
+}
+
+function readOptionalNumber(value: unknown, field: string): number | null {
+  if (value == null || value === '') {
+    return null
+  }
+  const parsed = toNumberOrNull(value)
+  if (parsed == null) {
+    throw new FoodValidationError(`${field} must be a number or null`)
   }
   return parsed
 }
@@ -186,13 +218,29 @@ function normalizeFoodItem(input: unknown): FoodItemNormalized {
     : Object.fromEntries(MICRO_KEYS.map((k) => [k, null])) as MicrosPayload
   return {
     name: readRequiredString(row.name, 'items[].name'),
+    display_name: typeof row.display_name === 'string' && row.display_name.trim()
+      ? row.display_name.trim()
+      : readRequiredString(row.name, 'items[].name'),
     brand: readOptionalString(row.brand, 'items[].brand'),
     amount: readRequiredString(row.amount, 'items[].amount', 64),
+    amount_g: readOptionalNumber(row.amount_g, 'items[].amount_g'),
     kcal: toNumberOrNull(row.kcal) ?? toNumberOrNull(row.calories) ?? 0,
     protein_g: toNumberOrNull(row.protein_g) ?? toNumberOrNull(row.protein) ?? 0,
     fat_g: toNumberOrNull(row.fat_g) ?? toNumberOrNull(row.fat) ?? 0,
     carbs_g: toNumberOrNull(row.carbs_g) ?? toNumberOrNull(row.carbs) ?? 0,
     micros,
+    source_type: row.source_type === 'master' || row.source_type === 'custom'
+      ? row.source_type
+      : undefined,
+    food_group: readOptionalString(row.food_group, 'items[].food_group'),
+    food_master_id: readOptionalNumber(row.food_master_id, 'items[].food_master_id'),
+    per100g_kcal: readOptionalNumber(row.per100g_kcal, 'items[].per100g_kcal'),
+    per100g_protein_g: readOptionalNumber(row.per100g_protein_g, 'items[].per100g_protein_g'),
+    per100g_fat_g: readOptionalNumber(row.per100g_fat_g, 'items[].per100g_fat_g'),
+    per100g_carbs_g: readOptionalNumber(row.per100g_carbs_g, 'items[].per100g_carbs_g'),
+    per100g_micros: row.per100g_micros && typeof row.per100g_micros === 'object' && !Array.isArray(row.per100g_micros)
+      ? normalizeMicros(row.per100g_micros, 'items[].per100g_micros')
+      : null,
   }
 }
 
@@ -258,75 +306,207 @@ function escapeLike(value: string): string {
 
 function toFoodResponseItem(item: FoodItemNormalized): Record<string, unknown> {
   return {
-    name: item.name,
+    name: item.display_name,
+    display_name: item.display_name,
     brand: item.brand,
     amount: item.amount,
+    amount_g: item.amount_g,
     kcal: item.kcal,
     protein_g: item.protein_g,
     fat_g: item.fat_g,
     carbs_g: item.carbs_g,
     micros: { ...item.micros },
+    source_type: item.source_type,
+    food_group: item.food_group ?? null,
+    food_master_id: item.food_master_id ?? null,
+    per100g_kcal: item.per100g_kcal ?? null,
+    per100g_protein_g: item.per100g_protein_g ?? null,
+    per100g_fat_g: item.per100g_fat_g ?? null,
+    per100g_carbs_g: item.per100g_carbs_g ?? null,
+    per100g_micros: item.per100g_micros ? { ...item.per100g_micros } : null,
   }
 }
 
-function toFoodResponseFromDb(row: FoodDbRow): Record<string, unknown> {
+function toFoodResponseFromSearchRow(row: FoodSearchRow): Record<string, unknown> {
   return {
     id: row.id,
-    name: row.name,
+    food_master_id: row.food_master_id,
+    name: row.display_name,
+    display_name: row.display_name,
     brand: row.brand,
     amount: row.amount,
+    amount_g: row.amount_g,
     kcal: row.kcal,
     protein_g: row.protein_g,
     fat_g: row.fat_g,
     carbs_g: row.carbs_g,
     micros: normalizeMicrosFromJson(row.micros_json),
     source: row.source,
-    verified: row.verified,
+    source_type: row.source_type,
+    food_group: row.food_group,
     use_count: row.use_count,
     last_used_at: row.last_used_at,
+    per100g_kcal: row.per100g_kcal,
+    per100g_protein_g: row.per100g_protein_g,
+    per100g_fat_g: row.per100g_fat_g,
+    per100g_carbs_g: row.per100g_carbs_g,
+    per100g_micros: normalizeMicrosFromJson(row.per100g_micros_json),
   }
 }
 
-function toFoodAnalyzeItemFromDb(row: FoodDbRow): Record<string, unknown> {
+function toFoodAnalyzeItemFromSearchRow(row: FoodSearchRow): Record<string, unknown> {
   return {
-    name: row.name,
+    name: row.display_name,
+    display_name: row.display_name,
     brand: row.brand,
     amount: row.amount,
+    amount_g: row.amount_g,
     kcal: row.kcal,
     protein_g: row.protein_g,
     fat_g: row.fat_g,
     carbs_g: row.carbs_g,
     micros: normalizeMicrosFromJson(row.micros_json),
+    source_type: row.source_type,
+    food_group: row.food_group,
+    food_master_id: row.food_master_id,
+    per100g_kcal: row.per100g_kcal,
+    per100g_protein_g: row.per100g_protein_g,
+    per100g_fat_g: row.per100g_fat_g,
+    per100g_carbs_g: row.per100g_carbs_g,
+    per100g_micros: normalizeMicrosFromJson(row.per100g_micros_json),
   }
 }
 
-async function queryFoodItemsLike(db: D1Database, text: string, limit: number): Promise<FoodDbRow[]> {
-  const tokens = text.trim().split(/\s+/).filter((token) => token.length > 0)
+function buildFoodSearchTokens(text: string): string[] {
+  return text.trim().split(/\s+/).filter((token) => token.length > 0)
+}
+
+async function searchFoodUnified(db: D1Database, text: string, limit: number): Promise<FoodSearchRow[]> {
+  const tokens = buildFoodSearchTokens(text)
   if (tokens.length === 0) {
     return []
   }
 
-  const conditions: string[] = []
-  const params: unknown[] = []
+  const customConditions: string[] = []
+  const customParams: unknown[] = []
   for (const token of tokens) {
     const like = `%${escapeLike(token)}%`
-    conditions.push(`(name LIKE ? ESCAPE '\\' OR COALESCE(brand, '') LIKE ? ESCAPE '\\')`)
-    params.push(like, like)
+    customConditions.push(`(name LIKE ? ESCAPE '\\' OR COALESCE(brand, '') LIKE ? ESCAPE '\\')`)
+    customParams.push(like, like)
   }
 
-  return queryAll<FoodDbRow>(
+  const customRows = await queryAll<FoodSearchRow>(
     db,
     `
     SELECT
-      id, name, brand, amount, kcal, protein_g, fat_g, carbs_g, micros_json,
-      source, verified, use_count, last_used_at
-    FROM food_items
-    WHERE ${conditions.join(' AND ')}
+      id,
+      food_master_id,
+      name,
+      name AS display_name,
+      brand,
+      amount,
+      amount_g,
+      kcal,
+      protein_g,
+      fat_g,
+      carbs_g,
+      micros_json,
+      NULL AS per100g_kcal,
+      NULL AS per100g_protein_g,
+      NULL AS per100g_fat_g,
+      NULL AS per100g_carbs_g,
+      NULL AS per100g_micros_json,
+      source,
+      'custom' AS source_type,
+      NULL AS food_group,
+      use_count,
+      last_used_at
+    FROM food_custom
+    WHERE ${customConditions.join(' AND ')}
     ORDER BY use_count DESC, last_used_at DESC, id DESC
     LIMIT ?
     `,
-    [...params, limit],
+    [...customParams, limit],
   )
+
+  if (customRows.length >= limit) {
+    return customRows.slice(0, limit)
+  }
+
+  const masterConditions: string[] = []
+  const masterParams: unknown[] = []
+  for (const token of tokens) {
+    const like = `%${escapeLike(token)}%`
+    masterConditions.push(`(name LIKE ? ESCAPE '\\' OR COALESCE(name_kana, '') LIKE ? ESCAPE '\\')`)
+    masterParams.push(like, like)
+  }
+
+  const remaining = limit - customRows.length
+  const exactQuery = text.trim()
+  const aliasLike = `%${escapeLike(exactQuery)}%`
+  const exactLike = `${escapeLike(exactQuery)}%`
+  const masterRows = await queryAll<FoodSearchRow>(
+    db,
+    `
+    SELECT
+      id,
+      id AS food_master_id,
+      name,
+      name AS display_name,
+      NULL AS brand,
+      amount,
+      amount_g,
+      kcal,
+      protein_g,
+      fat_g,
+      carbs_g,
+      micros_json,
+      per100g_kcal,
+      per100g_protein_g,
+      per100g_fat_g,
+      per100g_carbs_g,
+      per100g_micros_json,
+      'mext' AS source,
+      'master' AS source_type,
+      food_group,
+      0 AS use_count,
+      NULL AS last_used_at
+    FROM food_master
+    WHERE ${masterConditions.join(' AND ')}
+    ORDER BY
+      CASE
+        WHEN name = ? THEN 0
+        WHEN COALESCE(name_kana, '') LIKE ? ESCAPE '\\' THEN 1
+        WHEN name LIKE ? ESCAPE '\\' THEN 2
+        ELSE 3
+      END,
+      CASE
+        WHEN amount_g IS NOT NULL AND ABS(amount_g - 100) > 0.001 THEN 0
+        ELSE 1
+      END,
+      CASE
+        WHEN name LIKE '%主品目%' THEN 0
+        WHEN name LIKE '%副品目%' THEN 2
+        ELSE 1
+      END,
+      CASE
+        WHEN name LIKE '%めし%' THEN 0
+        WHEN name LIKE '%穀粒%' THEN 2
+        ELSE 1
+      END,
+      CASE
+        WHEN name LIKE '%皮なし%' THEN 0
+        WHEN name LIKE '%皮つき%' THEN 1
+        ELSE 2
+      END,
+      LENGTH(name) ASC,
+      id ASC
+    LIMIT ?
+    `,
+    [...masterParams, exactQuery, aliasLike, exactLike, remaining],
+  )
+
+  return [...customRows, ...masterRows]
 }
 
 interface ParsedInlineImage {
@@ -672,25 +852,24 @@ async function callOpenAIFoodAnalyzeWithSearch(
   }
 }
 
-async function upsertFavoriteFoodItem(
+async function upsertCustomFoodItem(
   db: D1Database,
   item: FoodItemNormalized,
-  source: string = 'gemini',
+  source: string = 'manual',
 ): Promise<void> {
-  // kcalが0以下・未設定の場合はfavoritesに保存しない（ゴミデータ防止）
   if (!item.kcal || item.kcal <= 0) return
 
   const current = await queryFirst<{ id: number }>(
     db,
     `
     SELECT id
-    FROM food_items
+    FROM food_custom
     WHERE name = ?
       AND amount = ?
       AND ((brand IS NULL AND ? IS NULL) OR brand = ?)
     LIMIT 1
     `,
-    [item.name, item.amount, item.brand, item.brand],
+    [item.display_name, item.amount, item.brand, item.brand],
   )
 
   const now = nowIso()
@@ -698,19 +877,32 @@ async function upsertFavoriteFoodItem(
     await execute(
       db,
       `
-      UPDATE food_items
+      UPDATE food_custom
       SET
+        amount_g = ?,
         kcal = ?,
         protein_g = ?,
         fat_g = ?,
         carbs_g = ?,
         micros_json = ?,
-        verified = 1,
+        source = ?,
         use_count = COALESCE(use_count, 0) + 1,
-        last_used_at = ?
+        last_used_at = ?,
+        food_master_id = ?
       WHERE id = ?
       `,
-      [item.kcal, item.protein_g, item.fat_g, item.carbs_g, JSON.stringify(item.micros), now, current.id],
+      [
+        item.amount_g,
+        item.kcal,
+        item.protein_g,
+        item.fat_g,
+        item.carbs_g,
+        JSON.stringify(item.micros),
+        source,
+        now,
+        item.food_master_id ?? null,
+        current.id,
+      ],
     )
     return
   }
@@ -718,12 +910,25 @@ async function upsertFavoriteFoodItem(
   await execute(
     db,
     `
-    INSERT INTO food_items(
-      name, brand, amount, kcal, protein_g, fat_g, carbs_g, micros_json,
-      source, verified, use_count, last_used_at
-    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
+    INSERT INTO food_custom(
+      name, brand, amount, amount_g, kcal, protein_g, fat_g, carbs_g, micros_json,
+      source, use_count, last_used_at, food_master_id
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
     `,
-    [item.name, item.brand, item.amount, item.kcal, item.protein_g, item.fat_g, item.carbs_g, JSON.stringify(item.micros), source, now],
+    [
+      item.display_name,
+      item.brand,
+      item.amount,
+      item.amount_g,
+      item.kcal,
+      item.protein_g,
+      item.fat_g,
+      item.carbs_g,
+      JSON.stringify(item.micros),
+      source,
+      now,
+      item.food_master_id ?? null,
+    ],
   )
 }
 
@@ -839,11 +1044,11 @@ export async function handleFoodAnalyze(request: Request, env: Env): Promise<Res
   }
 
   if (text) {
-    const dbItems = await queryFoodItemsLike(env.DB, text, FOOD_ANALYZE_DB_LIMIT)
+    const dbItems = await searchFoodUnified(env.DB, text, FOOD_ANALYZE_DB_LIMIT)
     if (dbItems.length > 0) {
       return jsonResponse({
         source: 'db',
-        items: dbItems.map((row) => toFoodAnalyzeItemFromDb(row)),
+        items: dbItems.map((row) => toFoodAnalyzeItemFromSearchRow(row)),
       })
     }
   }
@@ -951,7 +1156,7 @@ export async function handleFoodConfirm(request: Request, env: Env): Promise<Res
         consumedAt,
         localDateRaw,
         item.brand,
-        item.name,
+        item.display_name,
         item.amount,
         item.kcal,
         item.protein_g,
@@ -963,7 +1168,7 @@ export async function handleFoodConfirm(request: Request, env: Env): Promise<Res
     )
 
     if (item.save_to_favorites && source === 'manual') {
-      await upsertFavoriteFoodItem(env.DB, item, source)
+      await upsertCustomFoodItem(env.DB, item, source)
       favoritesSaved += 1
     }
   }
@@ -988,10 +1193,10 @@ export async function handleFoodSearch(url: URL, env: Env): Promise<Response> {
     return jsonResponse({ detail: 'q query is too long' }, 400)
   }
   const limit = clampLimit(url.searchParams.get('limit'), FOOD_SEARCH_DEFAULT_LIMIT, FOOD_SEARCH_MAX_LIMIT)
-  const rows = await queryFoodItemsLike(env.DB, query, limit)
+  const rows = await searchFoodUnified(env.DB, query, limit)
   return jsonResponse({
     q: query,
-    items: rows.map((row) => toFoodResponseFromDb(row)),
+    items: rows.map((row) => toFoodResponseFromSearchRow(row)),
   })
 }
 

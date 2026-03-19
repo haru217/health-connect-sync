@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "wrangler deploy --dry-run"
+    "check": "wrangler deploy --dry-run",
+    "mext:seed": "node --experimental-strip-types scripts/convert-mext-csv.ts",
+    "verify:food-master-local": "node --experimental-strip-types --experimental-sqlite scripts/verify-food-master-local.ts"
   },
   "devDependencies": {
+    "csv-parse": "^6.2.0",
+    "iconv-lite": "^0.7.2",
     "typescript": "^5.9.3",
-    "wrangler": "^4.51.1"
+    "wrangler": "^4.51.1",
+    "xlsx": "^0.18.5"
   }
 }

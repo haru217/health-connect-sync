@@ -562,11 +562,17 @@ export interface NutrientDetails {
 }
 
 export interface FoodAnalyzeResult {
-  id?: string
+  id?: string | number
   name: string
+  display_name?: string
   brand: string | null
   amount: string
+  amount_g?: number | null
+  source_type?: 'master' | 'custom'
+  food_group?: string | null
+  food_master_id?: number | null
   nutrients: NutrientDetails
+  per100g_nutrients?: NutrientDetails | null
   save_to_favorites?: boolean
 }
 

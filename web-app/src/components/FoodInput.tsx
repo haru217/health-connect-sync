@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
-import { searchFoodFavorites, analyzeFoodText, analyzeFoodImage } from '../api/food'
+import { searchFoodCandidates, analyzeFoodText, analyzeFoodImage } from '../api/food'
 import type { FoodAnalyzeResponse, FoodAnalyzeResult, NutrientDetails } from '../api/types'
 
 interface FoodInputProps {
@@ -38,12 +38,12 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
             return
         }
         let active = true
-        const fetchFavs = async () => {
-            try {
-                const res = await searchFoodFavorites(trimmed)
-                if (active) setFavorites(res)
-            } catch {
-                // Favorites search failure is non-critical
+                const fetchFavs = async () => {
+                    try {
+                        const res = await searchFoodCandidates(trimmed)
+                        if (active) setFavorites(res)
+                    } catch {
+                        // Favorites search failure is non-critical
             }
         }
         const timer = setTimeout(fetchFavs, 300)
@@ -98,6 +98,8 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
 
     const handleManualSubmit = () => {
         if (!manualName.trim()) return
+        const amount = manualAmount.trim() || '1食'
+        const amountMatch = amount.match(/(\d+(?:\.\d+)?)\s*g/i)
         const emptyNutrients: NutrientDetails = {
             calories: null, protein_g: null, fat_g: null, carbs_g: null,
             saturated_fat_g: null, omega3_mg: null, omega6_mg: null, trans_fat_g: null,
@@ -112,8 +114,10 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
         }
         const item: FoodAnalyzeResult = {
             name: manualName.trim(),
+            display_name: manualName.trim(),
             brand: null,
-            amount: manualAmount.trim() || '1食',
+            amount,
+            amount_g: amountMatch ? Number(amountMatch[1]) : null,
             nutrients: {
                 ...emptyNutrients,
                 calories: manualKcal ? Number(manualKcal) : null,
@@ -231,7 +235,7 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontWeight: 'bold' }}>{fav.name}</div>
+                                    <div style={{ fontWeight: 'bold' }}>{fav.name}</div>
                                             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                                                 {fav.amount} · {fav.brand || '一般'}
                                             </div>

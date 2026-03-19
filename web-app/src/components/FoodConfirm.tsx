@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import type { FoodAnalyzeResponse, FoodAnalyzeResult } from '../api/types'
-import NutrientTable from './NutrientTable'
-import { confirmFood, searchFoodFavorites } from '../api/food'
-import { useDateContext } from '../context/DateContext'
+import { useEffect, useRef, useState } from 'react'
+
+import { confirmFood, searchFoodCandidates } from '../api/food'
+import type { FoodAnalyzeResponse, FoodAnalyzeResult, NutrientDetails } from '../api/types'
 import { MEAL_TYPES, suggestMealType } from '../constants/food'
+import { useDateContext } from '../context/DateContext'
+import NutrientTable from './NutrientTable'
 
 interface FoodConfirmProps {
     analyzeData: FoodAnalyzeResponse
@@ -15,27 +16,81 @@ interface FoodConfirmProps {
 type ConfirmItem = FoodAnalyzeResult & {
     save_to_favorites?: boolean
     meal_type?: string
-    multiplier?: number
     base_item?: FoodAnalyzeResult
     from_favorite?: boolean
+    amount_g_input?: string
 }
 
 function isReasonableMatch(queryName: string, resultName: string): boolean {
     const q = queryName.replace(/\s+/g, '')
     const r = resultName.replace(/\s+/g, '')
     if (q.length === 0 || r.length === 0) return false
-    // 結果名がクエリ名を含む場合は良いマッチ（例: "味噌汁" → "味噌汁（ねぎ・わかめ）"）
     if (r.includes(q)) return true
-    // 長さの比率が0.4未満なら不一致とみなす
     const ratio = Math.min(q.length, r.length) / Math.max(q.length, r.length)
     return ratio >= 0.4
 }
 
+function roundNutrientValue(value: number): number {
+    return Number(value.toFixed(Math.abs(value) >= 100 ? 1 : 2))
+}
+
+function scaleNutrients(base: NutrientDetails, ratio: number): NutrientDetails {
+    return Object.fromEntries(
+        Object.entries(base).map(([key, value]) => [
+            key,
+            typeof value === 'number' ? roundNutrientValue(value * ratio) : value,
+        ]),
+    ) as NutrientDetails
+}
+
+function inferAmountG(item: FoodAnalyzeResult): number | null {
+    if (typeof item.amount_g === 'number' && Number.isFinite(item.amount_g) && item.amount_g > 0) {
+        return item.amount_g
+    }
+    const match = item.amount.match(/(\d+(?:\.\d+)?)\s*g/i)
+    if (!match) return null
+    const parsed = Number(match[1])
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function buildConfirmItem(item: FoodAnalyzeResult): ConfirmItem {
+    const amountG = inferAmountG(item)
+    const normalized: FoodAnalyzeResult = {
+        ...item,
+        name: item.display_name ?? item.name,
+        display_name: item.display_name ?? item.name,
+        amount_g: amountG,
+    }
+    return {
+        ...normalized,
+        save_to_favorites: true,
+        meal_type: suggestMealType(),
+        base_item: structuredClone(normalized),
+        from_favorite: normalized.source_type === 'custom',
+        amount_g_input: amountG != null ? String(amountG) : '',
+    }
+}
+
+function getBaseAmountG(item: ConfirmItem): number | null {
+    const base = item.base_item
+    if (!base) return null
+    if (base.per100g_nutrients) return 100
+    return inferAmountG(base)
+}
+
+function getSourceBadge(item: ConfirmItem): { label: string; background: string } | null {
+    if (item.source_type === 'master') {
+        return { label: '成分表', background: '#166534' }
+    }
+    if (item.source_type === 'custom' || item.from_favorite) {
+        return { label: '登録済み', background: 'var(--accent-color)' }
+    }
+    return null
+}
+
 export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmSuccess, onBack }: FoodConfirmProps) {
     const { activeDate } = useDateContext()
-    const [items, setItems] = useState<ConfirmItem[]>(
-        analyzeData.items.map(item => ({ ...item, save_to_favorites: true, meal_type: suggestMealType(), multiplier: 1, base_item: structuredClone(item) }))
-    )
+    const [items, setItems] = useState<ConfirmItem[]>(() => analyzeData.items.map(buildConfirmItem))
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showSuccess, setShowSuccess] = useState(false)
@@ -44,47 +99,45 @@ export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmS
     const [suggestions, setSuggestions] = useState<FoodAnalyzeResult[]>([])
     const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    // 初期表示時：各品目をお気に入りDBと突合
     useEffect(() => {
         const matchAll = async () => {
             const results = await Promise.all(
                 analyzeData.items.map(async (item) => {
                     try {
-                        const favs = await searchFoodFavorites(item.name)
-                        if (favs.length > 0 && isReasonableMatch(item.name, favs[0].name)) {
-                            return favs[0]
+                        const candidates = await searchFoodCandidates(item.name)
+                        if (candidates.length > 0 && isReasonableMatch(item.name, candidates[0].name)) {
+                            return candidates[0]
                         }
-                    } catch { /* non-critical */ }
+                    } catch {
+                        // Candidate lookup failure is non-critical.
+                    }
                     return null
-                })
+                }),
             )
-            setItems(prev => prev.map((item, i) => {
-                const match = results[i]
+
+            setItems((prev) => prev.map((item, index) => {
+                const match = results[index]
                 if (!match) return item
-                const merged: ConfirmItem = {
-                    ...item,
-                    name: match.name,
-                    brand: match.brand,
-                    amount: match.amount,
-                    nutrients: { ...match.nutrients },
-                    from_favorite: true,
+                const merged = buildConfirmItem(match)
+                return {
+                    ...merged,
+                    meal_type: item.meal_type,
                     save_to_favorites: true,
+                    from_favorite: match.source_type === 'custom',
                 }
-                merged.base_item = structuredClone(merged)
-                merged.multiplier = 1
-                return merged
             }))
         }
+
         matchAll()
     }, [analyzeData.items])
 
     const deleteItem = (index: number) => {
-        setItems(prev => prev.filter((_, i) => i !== index))
+        setItems((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
     }
 
     const startEditing = (index: number) => {
         setEditingIndex(index)
-        setEditName(items[index].name)
+        setEditName(items[index].display_name ?? items[index].name)
         setSuggestions([])
     }
 
@@ -97,61 +150,77 @@ export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmS
         }
         searchTimerRef.current = setTimeout(async () => {
             try {
-                const favs = await searchFoodFavorites(value.trim())
-                setSuggestions(favs)
+                const candidates = await searchFoodCandidates(value.trim())
+                setSuggestions(candidates)
             } catch {
                 setSuggestions([])
             }
         }, 300)
     }
 
-    const applyFavorite = (index: number, fav: FoodAnalyzeResult) => {
-        setItems(prev => prev.map((it, i) => {
-            if (i !== index) return it
-            const updated: ConfirmItem = {
-                ...it,
-                name: fav.name,
-                brand: fav.brand,
-                amount: fav.amount,
-                nutrients: { ...fav.nutrients },
-                from_favorite: true,
+    const applyCandidate = (index: number, candidate: FoodAnalyzeResult) => {
+        setItems((prev) => prev.map((item, currentIndex) => {
+            if (currentIndex !== index) return item
+            const updated = buildConfirmItem(candidate)
+            return {
+                ...updated,
+                meal_type: item.meal_type,
                 save_to_favorites: true,
+                from_favorite: candidate.source_type === 'custom',
             }
-            updated.base_item = structuredClone(updated)
-            updated.multiplier = 1
-            return updated
         }))
         setEditingIndex(null)
         setSuggestions([])
     }
 
     const confirmNameEdit = (index: number) => {
-        if (editName.trim() && editName !== items[index].name) {
-            setItems(prev => prev.map((it, i) => i === index ? { ...it, name: editName.trim() } : it))
+        if (editName.trim()) {
+            setItems((prev) => prev.map((item, currentIndex) => {
+                if (currentIndex !== index) return item
+                return {
+                    ...item,
+                    name: editName.trim(),
+                    display_name: editName.trim(),
+                }
+            }))
         }
         setEditingIndex(null)
         setSuggestions([])
     }
 
-    const updateItemMultiplier = (index: number, newMultiplier: number) => {
-        setItems(prev => prev.map((it, i) => {
-            if (i !== index) return it;
-            const base = it.base_item;
-            if (!base) return { ...it, multiplier: newMultiplier };
+    const updateItemAmountG = (index: number, nextValue: string) => {
+        setItems((prev) => prev.map((item, currentIndex) => {
+            if (currentIndex !== index) return item
 
-            // 再計算（イミュータブル）
-            const recalcNutrients = Object.fromEntries(
-                Object.entries(base.nutrients).map(([k, v]) => [
-                    k,
-                    typeof v === 'number' ? Number((v * newMultiplier).toFixed(1)) : v,
-                ])
-            ) as typeof base.nutrients;
+            const baseItem = item.base_item ?? item
+            const baseNutrients = baseItem.per100g_nutrients ?? baseItem.nutrients
+            const baseAmountG = getBaseAmountG(item)
 
+            const trimmed = nextValue.trim()
+            if (!trimmed) {
+                return {
+                    ...item,
+                    amount_g: inferAmountG(baseItem),
+                    amount_g_input: '',
+                    nutrients: baseItem.nutrients,
+                }
+            }
+
+            const parsed = Number(trimmed)
+            if (!Number.isFinite(parsed) || parsed <= 0 || !baseAmountG) {
+                return {
+                    ...item,
+                    amount_g_input: nextValue,
+                }
+            }
+
+            const ratio = parsed / baseAmountG
             return {
-                ...it,
-                multiplier: newMultiplier,
-                nutrients: recalcNutrients
-            };
+                ...item,
+                amount_g: parsed,
+                amount_g_input: nextValue,
+                nutrients: scaleNutrients(baseNutrients, ratio),
+            }
         }))
     }
 
@@ -159,12 +228,14 @@ export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmS
         setLoading(true)
         setError(null)
         try {
-            // base_item 等の不要な拡張プロパティを除外して純粋なアイテムだけを渡す
-            const payloadItems = items.map(({ base_item, multiplier, from_favorite, ...rest }) => rest)
+            const payloadItems = items.map(({ base_item, from_favorite, amount_g_input, ...rest }) => ({
+                ...rest,
+                amount_g: rest.amount_g ?? inferAmountG(base_item ?? rest) ?? null,
+            }))
             await confirmFood(payloadItems, activeDate, new Date().toISOString(), source)
             setShowSuccess(true)
             setTimeout(() => onConfirmSuccess(), 1000)
-        } catch (err) {
+        } catch {
             setError('保存に失敗しました。もう一度お試しください。')
             setLoading(false)
         }
@@ -200,126 +271,129 @@ export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmS
                 </div>
             </div>
 
-            {error && <div style={{ color: 'var(--danger-color)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+            {error ? <div style={{ color: 'var(--danger-color)', marginBottom: '16px', fontSize: '14px' }}>{error}</div> : null}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {items.map((item, index) => (
-                    <div key={index} style={{ background: 'var(--surface)', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'relative' }}>
-                        {/* 削除ボタン */}
-                        <button
-                            onClick={() => deleteItem(index)}
-                            style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            aria-label="この品目を削除"
-                        >✕</button>
+                {items.map((item, index) => {
+                    const badge = getSourceBadge(item)
+                    return (
+                        <div key={`${item.display_name ?? item.name}-${index}`} style={{ background: 'var(--surface)', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'relative' }}>
+                            <button
+                                onClick={() => deleteItem(index)}
+                                style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                aria-label="この品目を削除"
+                            >✕</button>
 
-                        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', paddingRight: '32px' }}>
-                            {MEAL_TYPES.map(mt => (
-                                <button key={mt.value}
-                                    onClick={() => setItems(prev => prev.map((it, i) => i === index ? { ...it, meal_type: mt.value } : it))}
-                                    style={{
-                                        flex: 1, padding: '8px 4px', borderRadius: '8px',
-                                        background: item.meal_type === mt.value ? 'var(--accent-color)' : 'var(--bg-color)',
-                                        color: item.meal_type === mt.value ? 'white' : 'var(--text-muted)',
-                                        border: item.meal_type === mt.value ? 'none' : '1px solid var(--border-color)',
-                                        fontSize: '12px', cursor: 'pointer', fontWeight: item.meal_type === mt.value ? 'bold' : 'normal',
-                                    }}>
-                                    {mt.emoji} {mt.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div style={{ marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{(item.brand && item.brand !== 'null') ? item.brand : '一般'}</div>
-                                {item.from_favorite ? (
-                                    <span style={{ fontSize: '11px', background: 'var(--accent-color)', color: 'white', padding: '1px 6px', borderRadius: '4px' }}>お気に入り</span>
-                                ) : null}
+                            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', paddingRight: '32px' }}>
+                                {MEAL_TYPES.map((mealType) => (
+                                    <button
+                                        key={mealType.value}
+                                        onClick={() => setItems((prev) => prev.map((currentItem, currentIndex) => currentIndex === index ? { ...currentItem, meal_type: mealType.value } : currentItem))}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 4px',
+                                            borderRadius: '8px',
+                                            background: item.meal_type === mealType.value ? 'var(--accent-color)' : 'var(--bg-color)',
+                                            color: item.meal_type === mealType.value ? 'white' : 'var(--text-muted)',
+                                            border: item.meal_type === mealType.value ? 'none' : '1px solid var(--border-color)',
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            fontWeight: item.meal_type === mealType.value ? 'bold' : 'normal',
+                                        }}
+                                    >
+                                        {mealType.emoji} {mealType.label}
+                                    </button>
+                                ))}
                             </div>
-                            {editingIndex === index ? (
-                                <div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <input
-                                            type="text"
-                                            value={editName}
-                                            onChange={e => handleNameChange(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') confirmNameEdit(index) }}
-                                            autoFocus
-                                            style={{ flex: 1, fontSize: '18px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '8px', border: '1px solid var(--accent-color)', outline: 'none' }}
-                                        />
-                                        <button
-                                            onClick={() => confirmNameEdit(index)}
-                                            style={{ padding: '4px 12px', borderRadius: '8px', background: 'var(--accent-color)', color: 'white', border: 'none', fontSize: '13px', cursor: 'pointer' }}
-                                        >確定</button>
-                                    </div>
-                                    {suggestions.length > 0 ? (
-                                        <div style={{ marginTop: '8px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
-                                            {suggestions.slice(0, 5).map((fav, si) => (
-                                                <button
-                                                    key={fav.id || si}
-                                                    onClick={() => applyFavorite(index, fav)}
-                                                    style={{ width: '100%', textAlign: 'left', padding: '10px 12px', background: 'var(--surface)', border: 'none', borderBottom: si < Math.min(suggestions.length, 5) - 1 ? '1px solid var(--border-color)' : 'none', cursor: 'pointer', fontSize: '14px' }}
-                                                >
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: 'bold' }}>{fav.name}</span>
-                                                            <span style={{ color: 'var(--text-muted)', marginLeft: '8px', fontSize: '12px' }}>{fav.amount}</span>
-                                                        </div>
-                                                        <span style={{ color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '13px' }}>
-                                                            {fav.nutrients.calories?.toFixed(0) || '?'} kcal
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{(item.brand && item.brand !== 'null') ? item.brand : '一般'}</div>
+                                    {item.food_group ? <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.food_group}</span> : null}
+                                    {badge ? (
+                                        <span style={{ fontSize: '11px', background: badge.background, color: 'white', padding: '1px 6px', borderRadius: '4px' }}>{badge.label}</span>
                                     ) : null}
                                 </div>
-                            ) : (
-                                <div
-                                    onClick={() => startEditing(index)}
-                                    style={{ fontSize: '20px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                >
-                                    {item.name}
-                                    <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>✎</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>分量目安:</span>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                    type="text"
-                                    value={item.amount}
-                                    onChange={e => {
-                                        setItems(prev => prev.map((it, i) => i === index ? { ...it, amount: e.target.value } : it))
-                                    }}
-                                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', minWidth: 0 }}
-                                />
-                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-                                    <button
-                                        onClick={() => {
-                                            const newMult = Math.max(0.25, (item.multiplier || 1) - 0.5);
-                                            updateItemMultiplier(index, newMult);
-                                        }}
-                                        style={{ width: '36px', height: '36px', background: 'none', border: 'none', borderRight: '1px solid var(--border-color)', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}
-                                    >-</button>
-                                    <div style={{ padding: '0 12px', fontSize: '14px', fontWeight: 'bold', minWidth: '40px', textAlign: 'center' }}>
-                                        {item.multiplier || 1}
+                                {editingIndex === index ? (
+                                    <div>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <input
+                                                type="text"
+                                                value={editName}
+                                                onChange={(event) => handleNameChange(event.target.value)}
+                                                onKeyDown={(event) => { if (event.key === 'Enter') confirmNameEdit(index) }}
+                                                autoFocus
+                                                style={{ flex: 1, fontSize: '18px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '8px', border: '1px solid var(--accent-color)', outline: 'none' }}
+                                            />
+                                            <button
+                                                onClick={() => confirmNameEdit(index)}
+                                                style={{ padding: '4px 12px', borderRadius: '8px', background: 'var(--accent-color)', color: 'white', border: 'none', fontSize: '13px', cursor: 'pointer' }}
+                                            >確定</button>
+                                        </div>
+                                        {suggestions.length > 0 ? (
+                                            <div style={{ marginTop: '8px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                                                {suggestions.slice(0, 5).map((candidate, candidateIndex) => (
+                                                    <button
+                                                        key={candidate.id ?? candidateIndex}
+                                                        onClick={() => applyCandidate(index, candidate)}
+                                                        style={{ width: '100%', textAlign: 'left', padding: '10px 12px', background: 'var(--surface)', border: 'none', borderBottom: candidateIndex < Math.min(suggestions.length, 5) - 1 ? '1px solid var(--border-color)' : 'none', cursor: 'pointer', fontSize: '14px' }}
+                                                    >
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                                                            <div>
+                                                                <span style={{ fontWeight: 'bold' }}>{candidate.display_name ?? candidate.name}</span>
+                                                                <span style={{ color: 'var(--text-muted)', marginLeft: '8px', fontSize: '12px' }}>{candidate.amount}</span>
+                                                            </div>
+                                                            <span style={{ color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '13px' }}>
+                                                                {candidate.nutrients.calories?.toFixed(0) || '?'} kcal
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : null}
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            const newMult = Math.min(10, (item.multiplier || 1) + 0.5);
-                                            updateItemMultiplier(index, newMult);
+                                ) : (
+                                    <div
+                                        onClick={() => startEditing(index)}
+                                        style={{ fontSize: '20px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        {item.display_name ?? item.name}
+                                        <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>✎</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 112px', gap: '8px', marginBottom: '16px' }}>
+                                <div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>分量表示</div>
+                                    <input
+                                        type="text"
+                                        value={item.amount}
+                                        onChange={(event) => {
+                                            const nextAmount = event.target.value
+                                            setItems((prev) => prev.map((currentItem, currentIndex) => currentIndex === index ? { ...currentItem, amount: nextAmount } : currentItem))
                                         }}
-                                        style={{ width: '36px', height: '36px', background: 'none', border: 'none', borderLeft: '1px solid var(--border-color)', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}
-                                    >+</button>
+                                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>g数</div>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        inputMode="decimal"
+                                        value={item.amount_g_input ?? ''}
+                                        onChange={(event) => updateItemAmountG(index, event.target.value)}
+                                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                                    />
                                 </div>
                             </div>
-                        </div>
 
-                        <NutrientTable nutrients={item.nutrients} />
-                    </div>
-                ))}
+                            <NutrientTable nutrients={item.nutrients} />
+                        </div>
+                    )
+                })}
             </div>
 
             <div style={{ position: 'fixed', bottom: 56, left: 0, right: 0, maxWidth: '480px', margin: '0 auto', padding: '16px', background: 'var(--bg-color)', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '12px', zIndex: 10 }}>
