@@ -4,7 +4,7 @@ import { searchFoodFavorites, analyzeFoodText, analyzeFoodImage } from '../api/f
 import type { FoodAnalyzeResponse, FoodAnalyzeResult, NutrientDetails } from '../api/types'
 
 interface FoodInputProps {
-    onAnalyzeSuccess: (data: FoodAnalyzeResponse) => void
+    onAnalyzeSuccess: (data: FoodAnalyzeResponse, source?: 'gemini' | 'manual') => void
     onCancel: () => void
 }
 
@@ -122,7 +122,7 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                 carbs_g: manualCarbs ? Number(manualCarbs) : null,
             },
         }
-        onAnalyzeSuccess({ items: [item] })
+        onAnalyzeSuccess({ items: [item] }, 'manual')
     }
 
     const onSubmit = (e: FormEvent) => {

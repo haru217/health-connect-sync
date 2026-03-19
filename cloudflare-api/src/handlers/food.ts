@@ -860,13 +860,6 @@ export async function handleFoodAnalyze(request: Request, env: Env): Promise<Res
       if (text && !image) {
         result = await callOpenAIFoodAnalyzeWithSearch(apiKey, model, buildWebSearchPrompt(text))
         result = await supplementOpenAISearchMicros(apiKey, model, result)
-        for (const item of result.items) {
-          try {
-            await upsertFavoriteFoodItem(env.DB, item, 'web_search')
-          } catch {
-            // Cache save failure should not block response delivery.
-          }
-        }
       } else {
         result = await callOpenAIFoodAnalyze(apiKey, model, buildAnalyzePrompt(text), image)
       }
@@ -927,6 +920,7 @@ export async function handleFoodConfirm(request: Request, env: Env): Promise<Res
     consumed_at: body.consumed_at,
   })
   const consumedAt = resolved.consumedAt
+  const source = typeof body.source === 'string' ? body.source : 'gemini'
 
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return jsonResponse({ detail: 'items must be a non-empty array' }, 400)
@@ -968,8 +962,8 @@ export async function handleFoodConfirm(request: Request, env: Env): Promise<Res
       ],
     )
 
-    if (item.save_to_favorites) {
-      await upsertFavoriteFoodItem(env.DB, item)
+    if (item.save_to_favorites && source === 'manual') {
+      await upsertFavoriteFoodItem(env.DB, item, source)
       favoritesSaved += 1
     }
   }

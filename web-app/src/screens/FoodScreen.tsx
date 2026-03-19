@@ -40,6 +40,7 @@ export default function FoodScreen() {
     const [view, setView] = useState<'home' | 'input' | 'confirm'>('home')
     const [historyData, setHistoryData] = useState<FoodHistoryResponse | null>(null)
     const [analyzeData, setAnalyzeData] = useState<FoodAnalyzeResponse | null>(null)
+    const [foodSource, setFoodSource] = useState<'gemini' | 'manual'>('gemini')
     const [loading, setLoading] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [supplements, setSupplements] = useState<SupplementView[]>([])
@@ -215,8 +216,9 @@ export default function FoodScreen() {
         return (
             <div className="screen-container">
                 <FoodInput
-                    onAnalyzeSuccess={(data) => {
+                    onAnalyzeSuccess={(data, source) => {
                         setAnalyzeData(data)
+                        setFoodSource(source ?? 'gemini')
                         setView('confirm')
                     }}
                     onCancel={() => setView('home')}
@@ -230,6 +232,7 @@ export default function FoodScreen() {
             <div className="screen-container">
                 <FoodConfirm
                     analyzeData={analyzeData}
+                    source={foodSource}
                     onConfirmSuccess={() => {
                         setView('home')
                         loadHistory()

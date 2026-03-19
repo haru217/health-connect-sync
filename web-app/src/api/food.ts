@@ -117,12 +117,14 @@ export async function confirmFood(
         items: Array<FoodAnalyzeResult & { save_to_favorites?: boolean; meal_type?: string | null }>,
         localDate: string,
         consumedAt: string,
+        source: 'gemini' | 'manual' = 'gemini',
 ): Promise<void> {
         await apiFetch<void>('/api/food/confirm', {
                 method: 'POST',
                 body: JSON.stringify({
                         local_date: localDate,
                         consumed_at: consumedAt,
+                        source,
                         items: items.map(item => ({
                                 name: item.name,
                                 brand: item.brand,

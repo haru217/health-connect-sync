@@ -7,6 +7,7 @@ import { MEAL_TYPES, suggestMealType } from '../constants/food'
 
 interface FoodConfirmProps {
     analyzeData: FoodAnalyzeResponse
+    source?: 'gemini' | 'manual'
     onConfirmSuccess: () => void
     onBack: () => void
 }
@@ -30,7 +31,7 @@ function isReasonableMatch(queryName: string, resultName: string): boolean {
     return ratio >= 0.4
 }
 
-export default function FoodConfirm({ analyzeData, onConfirmSuccess, onBack }: FoodConfirmProps) {
+export default function FoodConfirm({ analyzeData, source = 'gemini', onConfirmSuccess, onBack }: FoodConfirmProps) {
     const { activeDate } = useDateContext()
     const [items, setItems] = useState<ConfirmItem[]>(
         analyzeData.items.map(item => ({ ...item, save_to_favorites: true, meal_type: suggestMealType(), multiplier: 1, base_item: structuredClone(item) }))
@@ -160,7 +161,7 @@ export default function FoodConfirm({ analyzeData, onConfirmSuccess, onBack }: F
         try {
             // base_item 等の不要な拡張プロパティを除外して純粋なアイテムだけを渡す
             const payloadItems = items.map(({ base_item, multiplier, from_favorite, ...rest }) => rest)
-            await confirmFood(payloadItems, activeDate, new Date().toISOString())
+            await confirmFood(payloadItems, activeDate, new Date().toISOString(), source)
             setShowSuccess(true)
             setTimeout(() => onConfirmSuccess(), 1000)
         } catch (err) {
