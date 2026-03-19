@@ -3,6 +3,8 @@ import type { FormEvent, ChangeEvent } from 'react'
 import { searchFoodCandidates, analyzeFoodText, analyzeFoodImage } from '../api/food'
 import type { FoodAnalyzeResponse, FoodAnalyzeResult, NutrientDetails } from '../api/types'
 
+import './FoodInput.css'
+
 interface FoodInputProps {
     onAnalyzeSuccess: (data: FoodAnalyzeResponse, source?: 'gemini' | 'manual') => void
     onCancel: () => void
@@ -283,33 +285,47 @@ export default function FoodInput({ onAnalyzeSuccess, onCancel }: FoodInputProps
                     />
 
                     {showImageSourceModal ? (
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div className="food-input-modal-overlay">
                             <div
+                                className="food-input-modal-backdrop"
                                 onClick={() => setShowImageSourceModal(false)}
-                                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }}
                             />
-                            <div style={{ position: 'relative', width: '100%', maxWidth: '480px', background: 'var(--surface, #fff)', borderRadius: '20px 20px 0 0', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center', marginBottom: '4px' }}>画像の取得方法</div>
+                            <div className="food-input-modal-content">
+                                <div className="food-input-modal-handle" />
+                                <div className="food-input-modal-title">画像の追加方法を選択</div>
+
                                 <button
                                     type="button"
+                                    className="food-input-action-btn"
                                     onClick={() => { setShowImageSourceModal(false); cameraInputRef.current?.click() }}
-                                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--surface)', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                 >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>photo_camera</span>
-                                    カメラで撮影
+                                    <div className="food-input-action-icon-container">
+                                        <span className="material-symbols-outlined">photo_camera</span>
+                                    </div>
+                                    <div className="food-input-action-text">
+                                        <span className="food-input-action-label">カメラで撮影</span>
+                                        <span className="food-input-action-desc">その場で写真を撮って解析</span>
+                                    </div>
                                 </button>
+
                                 <button
                                     type="button"
+                                    className="food-input-action-btn"
                                     onClick={() => { setShowImageSourceModal(false); fileInputRef.current?.click() }}
-                                    style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--surface)', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                 >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>photo_library</span>
-                                    ギャラリーから選択
+                                    <div className="food-input-action-icon-container">
+                                        <span className="material-symbols-outlined">photo_library</span>
+                                    </div>
+                                    <div className="food-input-action-text">
+                                        <span className="food-input-action-label">アルバムから選択</span>
+                                        <span className="food-input-action-desc">保存済みの写真を使用</span>
+                                    </div>
                                 </button>
+
                                 <button
                                     type="button"
+                                    className="food-input-cancel-btn"
                                     onClick={() => setShowImageSourceModal(false)}
-                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'transparent', fontSize: '14px', color: 'var(--text-muted)', cursor: 'pointer' }}
                                 >
                                     キャンセル
                                 </button>
