@@ -1167,7 +1167,12 @@ export async function handleFoodConfirm(request: Request, env: Env): Promise<Res
       ],
     )
 
-    if (item.save_to_favorites && source === 'manual') {
+    const shouldSave = item.save_to_favorites && (
+      source === 'manual' ||
+      (item.brand != null && item.brand !== '') ||
+      item.food_master_id == null
+    )
+    if (shouldSave) {
       await upsertCustomFoodItem(env.DB, item, source)
       favoritesSaved += 1
     }
